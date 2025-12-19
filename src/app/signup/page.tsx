@@ -28,7 +28,7 @@ export default async function SignupPage({
       </div>
       <div className="bg-muted relative hidden lg:block">
         <Image
-          src="@/public/placeholder.svg"
+          src="@/public/authscreen.png"
           alt="Image"
           className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
           width={500}

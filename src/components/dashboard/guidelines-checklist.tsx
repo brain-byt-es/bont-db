@@ -30,7 +30,7 @@ export function GuidelinesChecklist({
   const spastikDystonieFulfilled = spastikDystonie >= spastikDystonieGoal;
 
   return (
-    <Card className="col-span-full md:col-span-2">
+    <Card>
       <CardHeader>
         <CardTitle>Guidelines Checklist</CardTitle>
         <CardDescription>

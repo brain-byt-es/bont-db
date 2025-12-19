@@ -1,9 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
-import { RecentRecordsTable } from "@/components/recent-records-table"
-import { TreatmentCreateDialog } from "@/components/treatment-create-dialog"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { TreatmentsClient } from "./client"
 
 interface PatientCode {
   patient_code: string;
@@ -35,8 +32,6 @@ export default async function TreatmentsPage() {
 
   if (treatmentsError) {
     console.error("Error fetching treatments:", treatmentsError)
-  } else {
-    console.log(`Fetched ${treatments?.length} treatments`)
   }
 
   // Fetch patients for the create dialog
@@ -47,22 +42,19 @@ export default async function TreatmentsPage() {
 
   // Transform data for the table
   const formattedTreatments = (treatments as unknown as TreatmentWithPatient[] || []).map((t) => ({
-    ...t,
+    id: t.id,
+    treatment_date: t.treatment_date,
+    treatment_site: t.treatment_site,
+    indication: t.indication,
+    product: t.product,
+    total_units: t.total_units,
     patient: t.patients 
   }))
 
   return (
-    <div className="flex flex-col gap-4 pt-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Treatments</h1>
-        <TreatmentCreateDialog patients={patients || []}>
-          <Button>
-            <Plus className="mr-2 size-4" />
-            New Treatment
-          </Button>
-        </TreatmentCreateDialog>
-      </div>
-      <RecentRecordsTable records={formattedTreatments} />
-    </div>
+    <TreatmentsClient 
+      initialTreatments={formattedTreatments} 
+      patients={patients || []} 
+    />
   )
 }

@@ -5,8 +5,16 @@ import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
+interface AssessmentData {
+  scale: string;
+  timepoint: string;
+  value: number;
+  assessed_at: Date;
+  notes?: string;
+}
+
 interface ProcedureStep {
-  target_structure: string;
+  muscle_id: string; // Renamed from target_structure
   side: 'Left' | 'Right' | 'Bilateral' | 'Midline';
   numeric_value: number;
 }
@@ -19,6 +27,7 @@ interface CreateTreatmentFormData {
   product_label: string;
   notes?: string;
   steps?: ProcedureStep[];
+  assessments?: AssessmentData[];
 }
 
 export async function createTreatment(formData: CreateTreatmentFormData) {
@@ -32,7 +41,8 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
     category,
     product_label,
     notes,
-    steps
+    steps,
+    assessments
   } = formData
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -85,6 +95,18 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
 
   // Insert into injections table
   if (steps && Array.isArray(steps) && steps.length > 0) {
+    // Validate muscles exist (global lookup, no user_id)
+    const muscleIds = [...new Set(steps.map(s => s.muscle_id))]
+    const { data: validMuscles, error: validationError } = await supabase
+      .from('muscles')
+      .select('id')
+      .in('id', muscleIds)
+
+    if (validationError || !validMuscles || validMuscles.length !== muscleIds.length) {
+      console.error('Muscle validation failed:', validationError)
+      throw new Error('Invalid muscle selection detected.')
+    }
+
     const injectionsToInsert = steps.map((step: ProcedureStep) => {
       let sideCode = 'B';
       switch (step.side) {
@@ -96,12 +118,11 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
       }
 
       return {
-        user_id: user.id,
+        user_id: user.id, // injections still have user_id
         treatment_id: treatment.id,
-        muscle: step.target_structure,
+        muscle: step.muscle_id, // Map muscle_id to muscle column (FK)
         side: sideCode,
         units: step.numeric_value,
-        // volume_ml, notes - not in form currently, can add if needed
       };
     })
 
@@ -116,6 +137,87 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
     }
   }
 
+  // Insert assessments
+  if (assessments && Array.isArray(assessments) && assessments.length > 0) {
+    const assessmentsToInsert = assessments.map((assessment) => ({
+      user_id: user.id,
+      treatment_id: treatment.id,
+      timepoint: assessment.timepoint,
+      assessed_at: assessment.assessed_at,
+      scale: assessment.scale,
+      value: assessment.value,
+      notes: assessment.notes
+    }))
+
+    const { error: assessmentError } = await supabase
+      .from('assessments')
+      .insert(assessmentsToInsert)
+
+    if (assessmentError) {
+      console.error('Error creating assessments:', assessmentError)
+      // Log error but don't fail the whole transaction as treatment is created
+    }
+  }
+
   revalidatePath('/patients') // Revalidate patient list if new treatment added
   redirect(`/patients/${patient_id}`) // Redirect to patient details page
+}
+
+export async function getMuscles() {
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
+
+  const { data, error } = await supabase
+    .from('muscles')
+    .select('*')
+    .order('sort_order', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching muscles:', error)
+    return []
+  }
+
+  return data
+}
+
+export async function getMuscleRegions() {
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
+
+  const { data, error } = await supabase
+    .from('muscle_regions')
+    .select('*')
+    .order('sort_order', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching muscle regions:', error)
+    return []
+  }
+
+  return data
+}
+
+export async function getLatestTreatment(patientId: string) {
+    const cookieStore = await cookies()
+    const supabase = createClient(cookieStore)
+
+    const { data, error } = await supabase
+        .from('treatments')
+        .select(`
+            *,
+            injections (*)
+        `)
+        .eq('patient_id', patientId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+    if (error) {
+        if (error.code !== 'PGRST116') { // PGRST116 is "The result contains 0 rows"
+             console.error('Error fetching latest treatment:', error)
+        }
+        return null
+    }
+
+    return data
 }

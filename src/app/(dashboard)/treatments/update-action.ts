@@ -6,7 +6,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 interface ProcedureStep {
-  target_structure: string;
+  muscle_id: string; // Renamed from target_structure
   side: 'Left' | 'Right' | 'Bilateral' | 'Midline';
   numeric_value: number;
 }
@@ -91,6 +91,18 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
 
   // 2. Insert new
   if (steps && Array.isArray(steps) && steps.length > 0) {
+    // Validate muscles exist (global lookup, no user_id)
+    const muscleIds = [...new Set(steps.map(s => s.muscle_id))]
+    const { data: validMuscles, error: validationError } = await supabase
+      .from('muscles')
+      .select('id')
+      .in('id', muscleIds)
+
+    if (validationError || !validMuscles || validMuscles.length !== muscleIds.length) {
+      console.error('Muscle validation failed:', validationError)
+      throw new Error('Invalid muscle selection detected.')
+    }
+
     const injectionsToInsert = steps.map((step: ProcedureStep) => {
       let sideCode = 'B';
       switch (step.side) {
@@ -104,7 +116,7 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
       return {
         user_id: user.id,
         treatment_id: treatmentId,
-        muscle: step.target_structure,
+        muscle: step.muscle_id, // Map muscle_id to muscle column
         side: sideCode,
         units: step.numeric_value,
       };

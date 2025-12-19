@@ -13,16 +13,39 @@ import {
 import { RecordForm } from "@/components/record-form"
 import { getPatients } from "@/app/(dashboard)/patients/actions"
 import { Spinner } from "@/components/ui/spinner"
+import { ProcedureStep } from "@/components/procedure-steps-editor"
 
-interface TreatmentCreateDialogProps {
+interface InitialFormData {
+  location?: string;
+  subject_id?: string;
+  date?: string | Date;
+  category?: string;
+  product_label?: string;
+  notes?: string;
+  steps?: ProcedureStep[];
+}
+
+interface TreatmentDialogProps {
   children?: React.ReactNode
   open?: boolean
   onOpenChange?: (open: boolean) => void
   patients?: { id: string; patient_code: string }[]
   defaultPatientId?: string
+  treatmentId?: string
+  initialData?: InitialFormData
+  isEditing?: boolean
 }
 
-export function TreatmentCreateDialog({ children, open: controlledOpen, onOpenChange, patients, defaultPatientId }: TreatmentCreateDialogProps) {
+export function TreatmentDialog({ 
+  children, 
+  open: controlledOpen, 
+  onOpenChange, 
+  patients, 
+  defaultPatientId,
+  treatmentId,
+  initialData,
+  isEditing = false
+}: TreatmentDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [fetchedPatients, setFetchedPatients] = useState<{ id: string; patient_code: string }[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -34,6 +57,9 @@ export function TreatmentCreateDialog({ children, open: controlledOpen, onOpenCh
   useEffect(() => {
     let mounted = true;
     const fetchPatients = async () => {
+      // Fetch patients if not provided, regardless of editing mode, 
+      // because we might need to change the patient (unlikely for edit, but possible) 
+      // or at least display the current one correctly.
       if (isOpen && !patients) {
         setIsLoading(true)
         try {
@@ -61,9 +87,9 @@ export function TreatmentCreateDialog({ children, open: controlledOpen, onOpenCh
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New Treatment Record</DialogTitle>
+          <DialogTitle>{isEditing ? "Edit Treatment Record" : "New Treatment Record"}</DialogTitle>
           <DialogDescription>
-            Enter details for the new procedure.
+            {isEditing ? "Update details for this procedure." : "Enter details for the new procedure."}
           </DialogDescription>
         </DialogHeader>
         {isLoading ? (
@@ -74,6 +100,9 @@ export function TreatmentCreateDialog({ children, open: controlledOpen, onOpenCh
           <RecordForm 
             patients={effectivePatients}
             defaultSubjectId={defaultPatientId}
+            initialData={initialData}
+            treatmentId={treatmentId}
+            isEditing={isEditing}
             onCancel={() => setIsOpen && setIsOpen(false)}
             onSuccess={() => setIsOpen && setIsOpen(false)}
           />

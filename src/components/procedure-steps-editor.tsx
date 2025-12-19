@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Copy } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -19,10 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { MuscleSelector, Muscle, MuscleRegion } from "@/components/muscle-selector"
 
 export interface ProcedureStep {
   id: string
-  target_structure: string
+  muscle_id: string
   side: "Left" | "Right" | "Midline" | "Bilateral"
   numeric_value: number
 }
@@ -30,15 +31,25 @@ export interface ProcedureStep {
 interface ProcedureStepsEditorProps {
   steps: ProcedureStep[]
   onChange: (steps: ProcedureStep[]) => void
+  muscles: Muscle[]
+  regions: MuscleRegion[]
 }
 
-export function ProcedureStepsEditor({ steps, onChange }: ProcedureStepsEditorProps) {
+export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: ProcedureStepsEditorProps) {
   const addStep = () => {
     const newStep: ProcedureStep = {
       id: Math.random().toString(36).substr(2, 9),
-      target_structure: "",
+      muscle_id: "",
       side: "Left",
       numeric_value: 0,
+    }
+    onChange([...steps, newStep])
+  }
+
+  const duplicateStep = (step: ProcedureStep) => {
+    const newStep: ProcedureStep = {
+        ...step,
+        id: Math.random().toString(36).substr(2, 9),
     }
     onChange([...steps, newStep])
   }
@@ -70,7 +81,7 @@ export function ProcedureStepsEditor({ steps, onChange }: ProcedureStepsEditorPr
               <TableHead>Target Structure</TableHead>
               <TableHead className="w-[150px]">Side</TableHead>
               <TableHead className="w-[120px]">Units</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+              <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -84,16 +95,17 @@ export function ProcedureStepsEditor({ steps, onChange }: ProcedureStepsEditorPr
               steps.map((step) => (
                 <TableRow key={step.id}>
                   <TableCell>
-                    <Input
-                      value={step.target_structure}
-                      onChange={(e) => updateStep(step.id, "target_structure", e.target.value)}
-                      placeholder="e.g. Frontalis"
+                    <MuscleSelector 
+                        value={step.muscle_id}
+                        onSelect={(val) => updateStep(step.id, "muscle_id", val)}
+                        muscles={muscles}
+                        regions={regions}
                     />
                   </TableCell>
                   <TableCell>
                     <Select
                       value={step.side}
-                      onValueChange={(value) => updateStep(step.id, "side", value)}
+                      onValueChange={(value) => updateStep(step.id, "side", value as ProcedureStep["side"])}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -114,14 +126,25 @@ export function ProcedureStepsEditor({ steps, onChange }: ProcedureStepsEditorPr
                     />
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeStep(step.id)}
-                      type="button"
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                        <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => duplicateStep(step)}
+                        type="button"
+                        title="Duplicate row"
+                        >
+                        <Copy className="size-4" />
+                        </Button>
+                        <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeStep(step.id)}
+                        type="button"
+                        >
+                        <Trash2 className="size-4 text-destructive" />
+                        </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

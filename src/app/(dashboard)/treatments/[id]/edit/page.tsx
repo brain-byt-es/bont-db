@@ -60,8 +60,8 @@ export default async function EditTreatmentPage({ params }: PageProps) {
         notes: treatment.effect_notes,
         steps: (injections || []).map((inj: Injection) => ({
           id: inj.id,
-          target_structure: inj.muscle,
-          side: inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Midline',
+          muscle_id: inj.muscle, // Use muscle_id instead of target_structure
+          side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Midline') as "Left" | "Right" | "Bilateral" | "Midline",
           numeric_value: inj.units
         }))
       }

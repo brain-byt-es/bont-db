@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RecentRecordsTable } from "@/components/recent-records-table"
 import { Plus } from "lucide-react"
 // notFound will be handled in the server component
-import { TreatmentCreateDialog } from "@/components/treatment-create-dialog"
+import { TreatmentDialog } from "@/components/treatment-create-dialog"
 import { PatientHeader } from "./patient-header"
 
 interface Patient {
@@ -37,10 +37,10 @@ export default function PatientPage({ patient, treatments }: PatientPageProps) {
   const [treatmentDialogOpen, setTreatmentDialogOpen] = useState(false)
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 pt-6">
       <div className="flex items-center justify-between">
         <PatientHeader patient={patient} />
-        <TreatmentCreateDialog 
+        <TreatmentDialog 
           open={treatmentDialogOpen} 
           onOpenChange={setTreatmentDialogOpen} 
           defaultPatientId={patient.id}
@@ -50,7 +50,7 @@ export default function PatientPage({ patient, treatments }: PatientPageProps) {
             <Plus className="mr-2 size-4" />
             New Record
           </Button>
-        </TreatmentCreateDialog>
+        </TreatmentDialog>
       </div>
 
       <Tabs defaultValue="records" className="w-full">

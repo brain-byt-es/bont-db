@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, Save } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -34,9 +34,11 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { ProcedureStepsEditor, ProcedureStep } from "@/components/procedure-steps-editor"
-import { createTreatment } from "@/app/(dashboard)/treatments/actions"
+import { AssessmentManager, Assessment } from "@/components/assessment-manager"
+import { createTreatment, getMuscles, getMuscleRegions, getLatestTreatment } from "@/app/(dashboard)/treatments/actions"
 import { updateTreatment } from "@/app/(dashboard)/treatments/update-action"
 import { toast } from "sonner"
+import { Muscle, MuscleRegion } from "@/components/muscle-selector"
 
 const formSchema = z.object({
   subject_id: z.string().min(1, {
@@ -85,7 +87,11 @@ export function RecordForm({
   onSuccess
 }: RecordFormProps) {
   const [steps, setSteps] = useState<ProcedureStep[]>(initialData?.steps || [])
+  const [assessments, setAssessments] = useState<Assessment[]>([])
+  const [muscles, setMuscles] = useState<Muscle[]>([])
+  const [regions, setRegions] = useState<MuscleRegion[]>([])
   const [isPending, startTransition] = useTransition()
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const router = useRouter()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -93,22 +99,121 @@ export function RecordForm({
     defaultValues: {
       location: initialData?.location || "Main Clinic",
       subject_id: initialData?.subject_id || defaultSubjectId || "",
-      date: initialData?.date ? new Date(initialData.date) : undefined,
+      date: initialData?.date ? new Date(initialData.date) : new Date(),
       category: initialData?.category || "",
       product_label: initialData?.product_label || "",
       notes: initialData?.notes || "",
     },
   })
 
+  // Fetch Muscles and Regions
+  useEffect(() => {
+    const fetchData = async () => {
+        const [m, r] = await Promise.all([getMuscles(), getMuscleRegions()])
+        setMuscles(m)
+        setRegions(r)
+    }
+    fetchData()
+  }, [])
+
+  // Autosave & Load Draft
+  useEffect(() => {
+    if (isEditing) return
+
+    // Load draft
+    const savedDraft = localStorage.getItem("bont_treatment_draft")
+    if (savedDraft && !initialData) {
+        try {
+            const draft = JSON.parse(savedDraft)
+            // Only load if it's less than 24h old
+            if (new Date().getTime() - new Date(draft.timestamp).getTime() < 24 * 60 * 60 * 1000) {
+                const { values, steps: draftSteps, assessments: draftAssessments } = draft
+                // Only populate if form is mostly empty (default state)
+                if (!form.getValues("subject_id")) {
+                    form.reset({
+                        ...values,
+                        date: values.date ? new Date(values.date) : new Date()
+                    })
+                    if (draftSteps) setSteps(draftSteps)
+                    if (draftAssessments) setAssessments(draftAssessments.map((a: Assessment & { assessed_at: string }) => ({
+                        ...a,
+                        assessed_at: new Date(a.assessed_at)
+                    })))
+                    toast.info("Draft restored from local storage")
+                }
+            }
+        } catch (e) {
+            console.error("Failed to load draft", e)
+        }
+    }
+  }, [isEditing, initialData, form])
+
+  // Save draft on change
+  useEffect(() => {
+    if (isEditing) return
+
+    const subscription = form.watch((value) => {
+        const draft = {
+            values: value,
+            steps,
+            assessments,
+            timestamp: new Date()
+        }
+        localStorage.setItem("bont_treatment_draft", JSON.stringify(draft))
+        setLastSaved(new Date())
+    })
+    return () => subscription.unsubscribe()
+  }, [form, steps, assessments, isEditing])
+
+  // Fetch latest treatment for defaults
+  const subjectId = form.watch("subject_id")
+  useEffect(() => {
+    if (isEditing || !subjectId) return
+
+    const fetchLatest = async () => {
+        const latest = await getLatestTreatment(subjectId)
+        if (latest) {
+             // Only set if field is empty (or default)
+             const currentValues = form.getValues()
+             if (!currentValues.product_label) form.setValue("product_label", latest.product)
+             if (!currentValues.location || currentValues.location === "Main Clinic") form.setValue("location", latest.treatment_site)
+             if (!currentValues.category) form.setValue("category", latest.indication)
+             
+             // Toast suggestion for copying steps
+             // logic moved to button
+        }
+    }
+    fetchLatest()
+  }, [subjectId, isEditing, form])
+
+  const copyLastTreatmentInjections = async () => {
+      if (!subjectId) return
+      const latest = await getLatestTreatment(subjectId)
+      if (latest && latest.injections) {
+          const newSteps = latest.injections.map((inj: { muscle: string; side: string; units: number }) => ({
+              id: Math.random().toString(36).substr(2, 9),
+              muscle_id: inj.muscle, // Map 'muscle' column (which is now ID) to muscle_id
+              side: inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Bilateral', // Simplification
+              numeric_value: Number(inj.units)
+          }))
+          setSteps(newSteps)
+          toast.success("Injections copied from last treatment")
+      } else {
+          toast.info("No previous injections found")
+      }
+  }
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       try {
         if (isEditing && treatmentId) {
-          await updateTreatment(treatmentId, { ...values, steps })
+          // Update currently doesn't support assessments in this snippet, needs updateTreatment update too if needed
+          await updateTreatment(treatmentId, { ...values, steps }) 
           toast.success("Treatment updated")
         } else {
-          await createTreatment({ ...values, steps })
+          await createTreatment({ ...values, steps, assessments })
           toast.success("Treatment record saved")
+          localStorage.removeItem("bont_treatment_draft") // Clear draft
         }
         
         if (onSuccess) {
@@ -128,6 +233,14 @@ export function RecordForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        
+        {lastSaved && !isEditing && (
+            <div className="text-xs text-muted-foreground text-right flex items-center justify-end gap-1">
+                <Save className="h-3 w-3" />
+                Draft saved {format(lastSaved, "HH:mm:ss")}
+            </div>
+        )}
+
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
             control={form.control}
@@ -246,7 +359,28 @@ export function RecordForm({
           />
         </div>
         
-        <ProcedureStepsEditor steps={steps} onChange={setSteps} />
+        {/* Assessment Manager */}
+        <AssessmentManager 
+            assessments={assessments} 
+            onChange={setAssessments} 
+            indication={form.watch("category")} 
+        />
+
+        <div className="space-y-4">
+             <div className="flex justify-end">
+                {!isEditing && subjectId && (
+                    <Button variant="outline" size="sm" type="button" onClick={copyLastTreatmentInjections}>
+                        Copy from last treatment
+                    </Button>
+                )}
+             </div>
+             <ProcedureStepsEditor 
+                steps={steps} 
+                onChange={setSteps} 
+                muscles={muscles}
+                regions={regions}
+             />
+        </div>
 
         <div className="flex justify-end">
            <div className="text-xl font-bold">Total: {totalUnits} Units</div>

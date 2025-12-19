@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { PatientCreateDialog } from "@/components/patient-create-dialog"
-import { TreatmentCreateDialog } from "@/components/treatment-create-dialog"
+import { TreatmentDialog } from "@/components/treatment-create-dialog"
 
 export function NavMain({
   items,
@@ -36,7 +36,7 @@ export function NavMain({
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
         <PatientCreateDialog open={patientDialogOpen} onOpenChange={setPatientDialogOpen} />
-        <TreatmentCreateDialog open={treatmentDialogOpen} onOpenChange={setTreatmentDialogOpen} />
+        <TreatmentDialog open={treatmentDialogOpen} onOpenChange={setTreatmentDialogOpen} />
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
             <DropdownMenu>

@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { TreatmentDialog } from "@/components/treatment-create-dialog"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -26,7 +27,7 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
   // Fetch treatment details with patient info
   const { data: treatment, error: treatmentError } = await supabase
     .from('treatments')
-    .select('*, patients(*)')
+    .select('*, patients(id, patient_code)')
     .eq('id', id)
     .single()
 
@@ -37,7 +38,7 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
   // Fetch injections for this treatment
   const { data: injections } = await supabase
     .from('injections')
-    .select('*')
+    .select('*, muscles:muscle(name)') // Join using the 'muscle' column which stores the ID
     .eq('treatment_id', id)
 
   const indicationLabels: Record<string, string> = {
@@ -48,8 +49,31 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
     andere: "Other",
   }
 
+  const initialData = {
+    location: treatment.treatment_site,
+    subject_id: treatment.patient_id,
+    date: treatment.treatment_date,
+    category: treatment.indication,
+    product_label: treatment.product,
+    notes: treatment.effect_notes,
+    steps: (injections || []).map((inj: { id: string; muscle: string; side: string; units: number }) => ({
+      id: inj.id,
+      muscle_id: inj.muscle,
+      side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Midline') as "Left" | "Right" | "Bilateral" | "Midline",
+      numeric_value: inj.units
+    }))
+  }
+
+  interface InjectionWithMuscle {
+    id: string
+    muscle: string
+    muscles?: { name: string }
+    side: string
+    units: number
+  }
+
   return (
-    <div className="flex flex-col gap-6 p-4">
+    <div className="flex flex-col gap-4 pt-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href={`/patients/${treatment.patient_id}`}>
@@ -64,12 +88,18 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
             </p>
           </div>
         </div>
-        <Link href={`/treatments/${id}/edit`}>
+        <TreatmentDialog 
+          treatmentId={id} 
+          initialData={initialData} 
+          isEditing 
+          patients={[treatment.patients]}
+          defaultPatientId={treatment.patient_id}
+        >
           <Button variant="outline">
             <Edit className="mr-2 size-4" />
             Edit Record
           </Button>
-        </Link>
+        </TreatmentDialog>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -122,9 +152,9 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {injections?.map((inj) => (
+                {(injections as unknown as InjectionWithMuscle[])?.map((inj) => (
                   <TableRow key={inj.id}>
-                    <TableCell>{inj.muscle}</TableCell>
+                    <TableCell>{inj.muscles?.name || inj.muscle}</TableCell>
                     <TableCell>
                       {inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : inj.side}
                     </TableCell>
