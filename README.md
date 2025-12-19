@@ -1,193 +1,142 @@
-# 🚀 Next.js + shadcn/ui Starter Template
+# bont-docs
 
-A modern, production-ready starter powered by **Next.js (App Router)**, **shadcn/ui**, **Tailwind CSS**, and **next-themes** for dark/light mode.  
-Designed to be a clean foundation for any new project—SaaS, dashboards, landing pages, internal tools, and more.
+A web-based clinical documentation system for neurological botulinum toxin treatments.
 
----
-
-## ✨ Features
-
-- ⚡ **Next.js App Router** (latest version)
-- 🎨 **Tailwind CSS** with automatic class merging
-- 🧩 **shadcn/ui** — all components pre-installed & configured
-- 🌓 **Dark / Light / System theme** using `next-themes`
-- 🔤 **TypeScript-first** project with strict mode
-- 📁 Well-organized, scalable folder structure
-- 🛠️ ESLint + Prettier already set up (if using default Next.js config)
+The project focuses on **clean, efficient clinical workflows**, **certification-ready documentation**, and **research-friendly data structures**, without adding unnecessary friction to daily practice.
 
 ---
 
-## 📦 What's Included
+## 🎯 Goals
 
-### UI / Styling
-- Tailwind CSS
-- shadcn/ui components
-- Preconfigured `ThemeProvider`
-- Optional Theme toggle component included
-
-### Utility
-- `clsx` + `tailwind-merge` via shadcn’s `cn()` helper
-- `next-themes`
-
-### Structure
-
-```text
-app/
-  layout.tsx
-  page.tsx
-  globals.css
-components/
-  ui/               # shadcn components
-  theme-toggle.tsx  # (optional)
-lib/
-  utils.ts          # cn() helper (class merging)
-```
+- Structured documentation of botulinum toxin treatments (neurology)
+- Readiness for AK-BoNT certification requirements
+- Built-in support for outcome tracking (scores, follow-ups)
+- Research-capable real-world data (RWD) without disrupting clinical workflow
+- Clean, minimal, clinician-friendly UI
 
 ---
 
-## 🛠️ Getting Started
+## 🧠 Core Concepts
 
-### 1. Install dependencies
-
-```bash
-npm install
-# or
-yarn
-# or
-pnpm install
-```
-
-### 2. Run the dev server
-
-```bash
-npm run dev
-```
-
-App runs at:  
-👉 http://localhost:3000
+- **Patients** are pseudonymized (no names or addresses)
+- **Treatments** are the central entity
+- Each treatment can include:
+  - Multiple injection targets
+  - Optional follow-ups (success control)
+  - Structured outcome scores (assessments)
+- Scores are **recommended via UI hints**, not enforced by hard constraints
 
 ---
 
-## 🎨 Theming (next-themes)
+## 🧩 Tech Stack
 
-This template includes a working setup of next-themes integrated with shadcn/ui.
+### Frontend
+- Next.js (App Router)
+- shadcn/ui
+- TypeScript
+- Responsive, dashboard-based layout
 
-**ThemeProvider is placed in `app/layout.tsx`:**
-
-```tsx
-// app/layout.tsx
-import { ThemeProvider } from "@/components/theme-provider"
-
-export default function RootLayout({ children }) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-        </ThemeProvider>
-      </body>
-    </html>
-  )
-}
-```
-
-**Tailwind config includes `darkMode: "class"`:**
-
-```js
-// tailwind.config.js
-module.exports = {
-  darkMode: ["class"],
-  // ...
-}
-```
-
-**Optional: Theme toggle button**
-
-```tsx
-import { ThemeToggle } from "@/components/theme-toggle"
-
-<ThemeToggle />
-```
+### Backend
+- Supabase (Postgres + Auth)
+- Row Level Security (RLS)
+- SQL views for exports and statistics
 
 ---
 
-## 📁 Project Structure
+## 🗂️ Main Features
 
-```text
-.
-├── app/
-│   ├── layout.tsx
-│   ├── page.tsx
-│   └── globals.css
-├── components/
-│   ├── ui/                # shadcn components
-│   └── theme-toggle.tsx
-├── lib/
-│   └── utils.ts           # cn() helper
-├── public/
-├── tailwind.config.js
-├── tsconfig.json
-└── package.json
-```
+### Authentication
+- Email/password login
+- Protected routes
+- Login as start page, dashboard after authentication
 
----
+### Patients
+- Pseudonymized patient records
+- Overview table with quick access to treatment history
 
-## 🧑‍💻 Development Tips
+### Treatments
+- Create and manage treatments per patient
+- Inline editing of injection targets
+- Structured fields for product, dilution, dose, effects, and adverse events
 
-**Add new shadcn components**
+### Injections
+- Repeatable rows per treatment
+- Muscle selection via searchable, region-filtered dropdown
+- Support for favorites and recently used targets
 
-```bash
-npx shadcn@latest add button
-```
+### Follow-ups
+- Optional follow-up records
+- Used to mark clinical success control
+- Timepoint-based (baseline, peak effect, reinjection)
 
-**Update shadcn components**
+### Scores / Assessments
+- Structured outcome scores (e.g. MAS, TWSTRS, HIT-6)
+- Timepoint-aware (baseline / peak effect / follow-up)
+- UI warnings if recommended scores are missing (no hard blocking)
 
-```bash
-npx shadcn@latest update
-```
+### Dashboard
+- Key progress indicators:
+  - Total treatments
+  - Treatments with follow-up
+  - Indication breakdown
+- Traffic-light logic for certification readiness
 
-**Check TypeScript issues**
-
-```bash
-npm run build
-```
-
----
-
-## 🚀 Deploying
-
-This template works perfectly on:
-
-- Vercel (recommended)
-- Netlify
-- Docker
-- Any Node.js environment
-
-**Vercel detects everything automatically—no configuration needed.**
+### Export
+- **AK Certification (Minimal)** export
+- **AK + Follow-up** export
+- CSV format with fixed headers
+- Preview before download
 
 ---
 
-## 📚 Recommended Add-Ons (Optional)
+## 🧪 Research Readiness
 
-If you want to extend this template later:
+The data model is designed to support:
+- Longitudinal outcome analysis
+- Dose–response exploration
+- Indication- and diagnosis-based cohorts
+- Easy export to R / Python / SPSS
 
-**Forms & Validation**
-- `react-hook-form`
-- `zod`
-- `@hookform/resolvers`
-
-**Data Fetching**
-- `@tanstack/react-query`
-
-**Auth**
-- `next-auth` (Auth.js)
-
-**Dev Tools**
-- `husky` + `lint-staged`
-- `vitest` for unit testing
+Research functionality is **additive**, not intrusive.
 
 ---
 
-## 📝 License
+## 🔐 Privacy & Security
 
-MIT — feel free to use this template for personal or commercial projects.
+- Pseudonymized patient data only
+- No direct identifiers stored
+- Row Level Security enforced at database level
+- Single-user setup supported, multi-user possible later
+
+---
+
+## 🚧 Project Status
+
+- Backend schema: stable (v1)
+- Frontend: feature-complete, UI polishing ongoing
+- Research add-ons: implemented, expandable
+
+---
+
+## 📌 Design Principles
+
+- Hint, don’t block
+- Structure without bureaucracy
+- Clinical speed over theoretical perfection
+- Research as a byproduct of good documentation
+
+---
+
+## 🛣️ Possible Future Extensions
+
+- PDF export templates
+- Multi-center support
+- Configurable outcome scales
+- Bulk import of legacy data
+- Advanced analytics views
+
+---
+
+## 📄 License
+
+MIT License
