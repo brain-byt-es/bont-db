@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { TreatmentDialog } from "@/components/treatment-create-dialog"
+import { Badge } from "@/components/ui/badge"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -35,10 +36,16 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
     notFound()
   }
 
-  // Fetch injections for this treatment
+  // Fetch injections for this treatment with assessments
   const { data: injections } = await supabase
     .from('injections')
-    .select('*, muscles:muscle(name)') // Join using the 'muscle' column which stores the ID
+    .select('*, muscles:muscle(name), injection_assessments(*)')
+    .eq('treatment_id', id)
+
+  // Fetch global assessments
+  const { data: globalAssessments } = await supabase
+    .from('assessments')
+    .select('*')
     .eq('treatment_id', id)
 
   const indicationLabels: Record<string, string> = {
@@ -49,6 +56,12 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
     andere: "Other",
   }
 
+  // Helper to find MAS scores
+  const getMasScore = (injAssessments: any[], timepoint: string) => {
+      const score = injAssessments?.find((a: any) => a.scale === 'MAS' && a.timepoint === timepoint)
+      return score ? score.value_text : ""
+  }
+
   const initialData = {
     location: treatment.treatment_site,
     subject_id: treatment.patient_id,
@@ -56,20 +69,15 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
     category: treatment.indication,
     product_label: treatment.product,
     notes: treatment.effect_notes,
-    steps: (injections || []).map((inj: { id: string; muscle: string; side: string; units: number }) => ({
+    assessments: globalAssessments || [],
+    steps: (injections || []).map((inj: any) => ({
       id: inj.id,
       muscle_id: inj.muscle,
       side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Midline') as "Left" | "Right" | "Bilateral" | "Midline",
-      numeric_value: inj.units
+      numeric_value: inj.units,
+      mas_baseline: getMasScore(inj.injection_assessments, 'baseline'),
+      mas_peak: getMasScore(inj.injection_assessments, 'peak_effect')
     }))
-  }
-
-  interface InjectionWithMuscle {
-    id: string
-    muscle: string
-    muscles?: { name: string }
-    side: string
-    units: number
   }
 
   return (
@@ -138,6 +146,32 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
         </Card>
 
         <Card>
+           <CardHeader>
+             <CardTitle>Global Assessments</CardTitle>
+           </CardHeader>
+           <CardContent>
+              {globalAssessments && globalAssessments.length > 0 ? (
+                  <div className="space-y-4">
+                      {globalAssessments.map((a: any) => (
+                          <div key={a.id} className="flex justify-between items-center border-b pb-2 last:border-0">
+                              <div>
+                                  <div className="font-medium">{a.scale} <span className="text-muted-foreground text-sm font-normal">({a.timepoint})</span></div>
+                                  <div className="text-xs text-muted-foreground">{new Date(a.assessed_at).toLocaleDateString()}</div>
+                              </div>
+                              <div className="flex flex-col items-end">
+                                  <div className="font-bold text-lg">{a.value}</div>
+                                  {a.notes && <div className="text-xs text-muted-foreground max-w-[150px] truncate" title={a.notes}>{a.notes}</div>}
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              ) : (
+                  <div className="text-sm text-muted-foreground text-center py-4">No global assessments recorded.</div>
+              )}
+           </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Injection Sites</CardTitle>
             <CardDescription>{injections?.length || 0} sites treated</CardDescription>
@@ -148,22 +182,34 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
                 <TableRow>
                   <TableHead>Muscle</TableHead>
                   <TableHead>Side</TableHead>
+                  <TableHead>MAS Base</TableHead>
+                  <TableHead>MAS Peak</TableHead>
                   <TableHead className="text-right">Units</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(injections as unknown as InjectionWithMuscle[])?.map((inj) => (
-                  <TableRow key={inj.id}>
-                    <TableCell>{inj.muscles?.name || inj.muscle}</TableCell>
-                    <TableCell>
-                      {inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : inj.side}
-                    </TableCell>
-                    <TableCell className="text-right">{inj.units}</TableCell>
-                  </TableRow>
-                ))}
+                {(injections || []).map((inj: any) => {
+                   const masBase = getMasScore(inj.injection_assessments, 'baseline');
+                   const masPeak = getMasScore(inj.injection_assessments, 'peak_effect');
+                   return (
+                      <TableRow key={inj.id}>
+                        <TableCell>{inj.muscles?.name || inj.muscle}</TableCell>
+                        <TableCell>
+                          {inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : inj.side}
+                        </TableCell>
+                        <TableCell>
+                            {masBase ? <Badge variant="outline">{masBase}</Badge> : "-"}
+                        </TableCell>
+                        <TableCell>
+                            {masPeak ? <Badge variant="outline">{masPeak}</Badge> : "-"}
+                        </TableCell>
+                        <TableCell className="text-right">{inj.units}</TableCell>
+                      </TableRow>
+                   )
+                })}
                 {(!injections || injections.length === 0) && (
                    <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">No injection data.</TableCell>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">No injection data.</TableCell>
                    </TableRow>
                 )}
               </TableBody>

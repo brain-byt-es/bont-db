@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Save } from "lucide-react"
+import { CalendarIcon, Save, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -152,6 +152,7 @@ export function RecordForm({
   useEffect(() => {
     if (isEditing) return
 
+    // eslint-disable-next-line react-hooks/incompatible-library
     const subscription = form.watch((value) => {
         const draft = {
             values: value,
@@ -367,6 +368,12 @@ export function RecordForm({
         />
 
         <div className="space-y-4">
+             {form.watch("category") === "spastik" && !steps.some(s => s.mas_baseline) && (
+                 <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800 text-sm">
+                     <AlertTriangle className="h-4 w-4" />
+                     <span>Empfohlener Baseline-Score (MAS) fehlt (Injection-Level).</span>
+                 </div>
+             )}
              <div className="flex justify-end">
                 {!isEditing && subjectId && (
                     <Button variant="outline" size="sm" type="button" onClick={copyLastTreatmentInjections}>

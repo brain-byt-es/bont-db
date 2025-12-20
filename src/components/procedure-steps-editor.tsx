@@ -26,6 +26,8 @@ export interface ProcedureStep {
   muscle_id: string
   side: "Left" | "Right" | "Midline" | "Bilateral"
   numeric_value: number
+  mas_baseline?: string
+  mas_peak?: string
 }
 
 interface ProcedureStepsEditorProps {
@@ -42,6 +44,8 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
       muscle_id: "",
       side: "Left",
       numeric_value: 0,
+      mas_baseline: "",
+      mas_peak: ""
     }
     onChange([...steps, newStep])
   }
@@ -81,13 +85,15 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
               <TableHead>Target Structure</TableHead>
               <TableHead className="w-[150px]">Side</TableHead>
               <TableHead className="w-[120px]">Units</TableHead>
+              <TableHead className="w-[100px]">MAS Base</TableHead>
+              <TableHead className="w-[100px]">MAS Peak</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {steps.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No injection sites added.
                 </TableCell>
               </TableRow>
@@ -124,6 +130,42 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                       value={step.numeric_value}
                       onChange={(e) => updateStep(step.id, "numeric_value", parseFloat(e.target.value))}
                     />
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={step.mas_baseline || ""}
+                      onValueChange={(value) => updateStep(step.id, "mas_baseline", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="-" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">0</SelectItem>
+                        <SelectItem value="1">1</SelectItem>
+                        <SelectItem value="1+">1+</SelectItem>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="3">3</SelectItem>
+                        <SelectItem value="4">4</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={step.mas_peak || ""}
+                      onValueChange={(value) => updateStep(step.id, "mas_peak", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="-" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">0</SelectItem>
+                        <SelectItem value="1">1</SelectItem>
+                        <SelectItem value="1+">1+</SelectItem>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="3">3</SelectItem>
+                        <SelectItem value="4">4</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">

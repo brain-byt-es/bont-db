@@ -18,11 +18,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Eye, Edit, Trash } from "lucide-react"
+import { MoreHorizontal, Eye, Edit, Trash, ArrowUpDown } from "lucide-react"
 import Link from "next/link"
 import { deleteTreatment } from "@/app/(dashboard)/treatments/delete-action"
 import { toast } from "sonner"
-import { useTransition } from "react"
+import { useTransition, useState } from "react"
 
 export interface TreatmentRecord {
   id: string
@@ -38,6 +38,7 @@ export interface TreatmentRecord {
 
 interface RecentRecordsTableProps {
   records: TreatmentRecord[]
+  hideActions?: boolean
 }
 
 const indicationLabels: Record<string, string> = {
@@ -48,9 +49,40 @@ const indicationLabels: Record<string, string> = {
   andere: "Other",
 }
 
-export function RecentRecordsTable({ records }: RecentRecordsTableProps) {
+export function RecentRecordsTable({ records, hideActions = false }: RecentRecordsTableProps) {
   const [isPending, startTransition] = useTransition()
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
   const showPatientColumn = records.some(r => r.patient)
+
+  const sortedRecords = [...records].sort((a, b) => {
+    if (!sortConfig) return 0;
+    const { key, direction } = sortConfig;
+    
+    let aValue: any = (a as any)[key];
+    let bValue: any = (b as any)[key];
+
+    // Handle nested patient code
+    if (key === 'patient') {
+        aValue = a.patient?.patient_code || '';
+        bValue = b.patient?.patient_code || '';
+    }
+
+    if (aValue < bValue) {
+      return direction === 'ascending' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return direction === 'ascending' ? 1 : -1;
+    }
+    return 0;
+  });
+
+  const requestSort = (key: string) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
 
   const handleDelete = (id: string) => {
     startTransition(async () => {
@@ -66,24 +98,50 @@ export function RecentRecordsTable({ records }: RecentRecordsTableProps) {
     <Table>
       <TableHeader>
         <TableRow>
-          {showPatientColumn && <TableHead>Patient</TableHead>}
-          <TableHead className="w-[100px]">Date</TableHead>
-          <TableHead>Location</TableHead>
-          <TableHead>Indication</TableHead>
-          <TableHead>Product</TableHead>
-          <TableHead className="text-right">Total Units</TableHead>
-          <TableHead className="w-[50px]"></TableHead>
+          {showPatientColumn && (
+              <TableHead>
+                <Button variant="ghost" onClick={() => requestSort('patient')} className="hover:bg-transparent px-0 font-semibold">
+                  Patient <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+              </TableHead>
+          )}
+          <TableHead className="w-[120px]">
+            <Button variant="ghost" onClick={() => requestSort('treatment_date')} className="hover:bg-transparent px-0 font-semibold">
+              Date <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          </TableHead>
+          <TableHead>
+            <Button variant="ghost" onClick={() => requestSort('treatment_site')} className="hover:bg-transparent px-0 font-semibold">
+              Location <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          </TableHead>
+          <TableHead>
+             <Button variant="ghost" onClick={() => requestSort('indication')} className="hover:bg-transparent px-0 font-semibold">
+              Indication <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          </TableHead>
+          <TableHead>
+             <Button variant="ghost" onClick={() => requestSort('product')} className="hover:bg-transparent px-0 font-semibold">
+              Product <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          </TableHead>
+          <TableHead className="text-right">
+             <Button variant="ghost" onClick={() => requestSort('total_units')} className="hover:bg-transparent px-0 font-semibold">
+              Total Units <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          </TableHead>
+          {!hideActions && <TableHead className="w-[50px]"></TableHead>}
         </TableRow>
       </TableHeader>
       <TableBody>
-        {records.length === 0 ? (
+        {sortedRecords.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={showPatientColumn ? 7 : 6} className="h-24 text-center">
+            <TableCell colSpan={showPatientColumn ? (hideActions ? 6 : 7) : (hideActions ? 5 : 6)} className="h-24 text-center">
               No records found.
             </TableCell>
           </TableRow>
         ) : (
-          records.map((record) => (
+          sortedRecords.map((record) => (
             <TableRow key={record.id}>
             {showPatientColumn && <TableCell className="font-medium">{record.patient?.patient_code}</TableCell>}
             <TableCell className={!showPatientColumn ? "font-medium" : ""}>{record.treatment_date}</TableCell>
@@ -91,40 +149,42 @@ export function RecentRecordsTable({ records }: RecentRecordsTableProps) {
             <TableCell>{indicationLabels[record.indication] || record.indication}</TableCell>
             <TableCell>{record.product}</TableCell>
             <TableCell className="text-right">{record.total_units}</TableCell>
-            <TableCell>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem asChild>
-                    <Link href={`/treatments/${record.id}`}>
-                      <Eye className="mr-2 h-4 w-4" />
-                      View Details
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={`/treatments/${record.id}/edit`}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => handleDelete(record.id)}
-                    className="text-destructive focus:text-destructive"
-                    disabled={isPending}
-                  >
-                    <Trash className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
+            {!hideActions && (
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/treatments/${record.id}`}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Details
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/treatments/${record.id}/edit`}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => handleDelete(record.id)}
+                      className="text-destructive focus:text-destructive"
+                      disabled={isPending}
+                    >
+                      <Trash className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            )}
           </TableRow>
         )))}
       </TableBody>

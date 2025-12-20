@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Eye, MoreHorizontal, Edit, Trash } from "lucide-react"
+import { Eye, MoreHorizontal, Edit, Trash, ArrowUpDown } from "lucide-react"
 import Link from "next/link"
 import {
   DropdownMenu,
@@ -98,27 +98,68 @@ function PatientActions({ subject }: { subject: Subject }) {
 }
 
 export function SubjectsTable({ subjects }: SubjectsTableProps) {
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Subject; direction: 'ascending' | 'descending' } | null>(null);
+
+  const sortedSubjects = [...subjects].sort((a, b) => {
+    if (!sortConfig) return 0;
+    const { key, direction } = sortConfig;
+    if (a[key] === null || a[key] === undefined) return 1;
+    if (b[key] === null || b[key] === undefined) return -1;
+    
+    if (a[key]! < b[key]!) {
+      return direction === 'ascending' ? -1 : 1;
+    }
+    if (a[key]! > b[key]!) {
+      return direction === 'ascending' ? 1 : -1;
+    }
+    return 0;
+  });
+
+  const requestSort = (key: keyof Subject) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Patient Code</TableHead>
-          <TableHead>Birth Year</TableHead>
-          <TableHead>Records</TableHead>
-          <TableHead>Last Activity</TableHead>
+          <TableHead>
+            <Button variant="ghost" onClick={() => requestSort('patient_code')} className="hover:bg-transparent px-0 font-semibold">
+              Patient Code <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          </TableHead>
+          <TableHead>
+            <Button variant="ghost" onClick={() => requestSort('birth_year')} className="hover:bg-transparent px-0 font-semibold">
+              Birth Year <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          </TableHead>
+          <TableHead>
+            <Button variant="ghost" onClick={() => requestSort('record_count')} className="hover:bg-transparent px-0 font-semibold">
+              Records <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          </TableHead>
+          <TableHead>
+             <Button variant="ghost" onClick={() => requestSort('last_activity')} className="hover:bg-transparent px-0 font-semibold">
+              Last Activity <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          </TableHead>
           <TableHead>Notes</TableHead>
           <TableHead className="w-[50px]"></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {subjects.length === 0 ? (
+        {sortedSubjects.length === 0 ? (
           <TableRow>
             <TableCell colSpan={6} className="h-24 text-center">
               No patients found.
             </TableCell>
           </TableRow>
         ) : (
-          subjects.map((subject) => (
+          sortedSubjects.map((subject) => (
             <TableRow key={subject.id}>
             <TableCell className="font-medium">{subject.patient_code}</TableCell>
             <TableCell>{subject.birth_year}</TableCell>

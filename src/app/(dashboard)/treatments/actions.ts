@@ -17,6 +17,8 @@ interface ProcedureStep {
   muscle_id: string; // Renamed from target_structure
   side: 'Left' | 'Right' | 'Bilateral' | 'Midline';
   numeric_value: number;
+  mas_baseline?: string;
+  mas_peak?: string;
 }
 
 interface CreateTreatmentFormData {
@@ -126,14 +128,58 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
       };
     })
 
-    const { error: injectionsError } = await supabase
+    const { data: insertedInjections, error: injectionsError } = await supabase
       .from('injections')
       .insert(injectionsToInsert)
+      .select()
 
     if (injectionsError) {
       console.error('Error creating injections:', injectionsError)
       // Consider rolling back treatment if injections fail, or handle as partial success
       throw new Error(`Failed to create injections for treatment: ${injectionsError.message}`)
+    }
+
+    // Insert injection assessments (MAS scores)
+    const injectionAssessmentsToInsert: any[] = []
+    
+    steps.forEach((step, index) => {
+       const injectionId = insertedInjections[index].id
+       
+       if (step.mas_baseline) {
+           const valText = step.mas_baseline
+           const valNum = valText === "1+" ? 1.5 : parseFloat(valText)
+           injectionAssessmentsToInsert.push({
+               user_id: user.id,
+               injection_id: injectionId,
+               scale: 'MAS',
+               timepoint: 'baseline',
+               value_text: valText,
+               value_num: isNaN(valNum) ? null : valNum
+           })
+       }
+
+       if (step.mas_peak) {
+           const valText = step.mas_peak
+           const valNum = valText === "1+" ? 1.5 : parseFloat(valText)
+           injectionAssessmentsToInsert.push({
+               user_id: user.id,
+               injection_id: injectionId,
+               scale: 'MAS',
+               timepoint: 'peak_effect',
+               value_text: valText,
+               value_num: isNaN(valNum) ? null : valNum
+           })
+       }
+    })
+
+    if (injectionAssessmentsToInsert.length > 0) {
+        const { error: injAssessError } = await supabase
+            .from('injection_assessments')
+            .insert(injectionAssessmentsToInsert)
+        
+        if (injAssessError) {
+            console.error('Error creating injection assessments:', injAssessError)
+        }
     }
   }
 

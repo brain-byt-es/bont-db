@@ -55,6 +55,8 @@ export default async function Page() {
     spastikDystonieGoal: 25,
   }
 
+  const enableCompliance = user.user_metadata?.enable_compliance_views || false
+
   if (treatmentsError || followUpsError || indicationsError) {
     console.error("Error fetching dashboard data:", treatmentsError || followUpsError || indicationsError)
     return <div>Error loading dashboard data.</div>
@@ -76,18 +78,21 @@ export default async function Page() {
         indicationsCoveredGoal={goals.indicationsCoveredGoal}
         spastikDystonie={spastikDystonieCount}
         spastikDystonieGoal={goals.spastikDystonieGoal}
+        showGoals={enableCompliance}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 lg:px-6 mt-4">
         <IndicationBreakdown data={indicationBreakdownData} />
-        <GuidelinesChecklist
-          totalTreatments={totalTreatmentsCount || 0}
-          totalTreatmentsGoal={goals.totalTreatmentsGoal}
-          withFollowUp={followUpsCount || 0}
-          withFollowUpGoal={goals.withFollowUpGoal}
-          spastikDystonie={spastikDystonieCount}
-          spastikDystonieGoal={goals.spastikDystonieGoal}
-        />
+        {enableCompliance && (
+          <GuidelinesChecklist
+            totalTreatments={totalTreatmentsCount || 0}
+            totalTreatmentsGoal={goals.totalTreatmentsGoal}
+            withFollowUp={followUpsCount || 0}
+            withFollowUpGoal={goals.withFollowUpGoal}
+            spastikDystonie={spastikDystonieCount}
+            spastikDystonieGoal={goals.spastikDystonieGoal}
+          />
+        )}
       </div>
     </div>
   )

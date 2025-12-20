@@ -46,11 +46,11 @@ interface AssessmentManagerProps {
 }
 
 const SCALES = {
-  spastik: ["MAS", "Tardieu", "GAS"],
+  spastik: ["Tardieu", "GAS"],
   dystonie: ["TWSTRS", "Tsui"],
   kopfschmerz: ["HIT-6", "MIDAS"],
   autonom: ["HDSS"],
-  andere: ["MAS", "TWSTRS", "HIT-6", "HDSS", "Other"]
+  andere: ["TWSTRS", "HIT-6", "HDSS", "Other"]
 }
 
 const ALL_SCALES = Array.from(new Set(Object.values(SCALES).flat()))
@@ -63,9 +63,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
     const hasBaseline = (scale: string) => assessments.some(a => a.scale === scale && a.timepoint === "baseline")
     const hasAny = (scale: string) => assessments.some(a => a.scale === scale)
 
-    if (indication === "spastik") {
-      if (!hasBaseline("MAS")) newWarnings.push("Empfohlener Baseline-Score (MAS) fehlt")
-    } else if (indication === "dystonie") {
+    if (indication === "dystonie") {
       if (!hasBaseline("TWSTRS") && !hasBaseline("Tsui")) newWarnings.push("Empfohlener Baseline-Score (TWSTRS oder Tsui) fehlt")
     } else if (indication === "kopfschmerz") {
       if (!hasAny("HIT-6")) newWarnings.push("Empfohlener Score (HIT-6) fehlt")
@@ -80,7 +78,8 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
 
   const addAssessment = () => {
     // Determine default scale based on indication
-    let defaultScale = "MAS"
+    let defaultScale = "Other"
+    if (indication === "spastik") defaultScale = "Tardieu"
     if (indication === "dystonie") defaultScale = "TWSTRS"
     if (indication === "kopfschmerz") defaultScale = "HIT-6"
     if (indication === "autonom") defaultScale = "HDSS"
