@@ -100,33 +100,33 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
         <TableRow>
           {showPatientColumn && (
               <TableHead>
-                <Button variant="ghost" onClick={() => requestSort('patient')} className="hover:bg-transparent px-0 font-semibold">
+                <Button variant="ghost" onClick={() => requestSort('patient')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
                   Patient <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
               </TableHead>
           )}
           <TableHead className="w-[120px]">
-            <Button variant="ghost" onClick={() => requestSort('treatment_date')} className="hover:bg-transparent px-0 font-semibold">
+            <Button variant="ghost" onClick={() => requestSort('treatment_date')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
               Date <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>
           <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('treatment_site')} className="hover:bg-transparent px-0 font-semibold">
+            <Button variant="ghost" onClick={() => requestSort('treatment_site')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
               Location <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>
           <TableHead>
-             <Button variant="ghost" onClick={() => requestSort('indication')} className="hover:bg-transparent px-0 font-semibold">
+             <Button variant="ghost" onClick={() => requestSort('indication')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
               Indication <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>
           <TableHead>
-             <Button variant="ghost" onClick={() => requestSort('product')} className="hover:bg-transparent px-0 font-semibold">
+             <Button variant="ghost" onClick={() => requestSort('product')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
               Product <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>
           <TableHead className="text-right">
-             <Button variant="ghost" onClick={() => requestSort('total_units')} className="hover:bg-transparent px-0 font-semibold">
+             <Button variant="ghost" onClick={() => requestSort('total_units')} className="-mr-4 h-8 hover:bg-transparent font-semibold justify-end w-full">
               Total Units <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>

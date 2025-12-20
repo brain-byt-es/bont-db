@@ -128,22 +128,22 @@ export function SubjectsTable({ subjects }: SubjectsTableProps) {
       <TableHeader>
         <TableRow>
           <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('patient_code')} className="hover:bg-transparent px-0 font-semibold">
+            <Button variant="ghost" onClick={() => requestSort('patient_code')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
               Patient Code <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>
           <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('birth_year')} className="hover:bg-transparent px-0 font-semibold">
+            <Button variant="ghost" onClick={() => requestSort('birth_year')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
               Birth Year <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>
           <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('record_count')} className="hover:bg-transparent px-0 font-semibold">
+            <Button variant="ghost" onClick={() => requestSort('record_count')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
               Records <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>
           <TableHead>
-             <Button variant="ghost" onClick={() => requestSort('last_activity')} className="hover:bg-transparent px-0 font-semibold">
+             <Button variant="ghost" onClick={() => requestSort('last_activity')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
               Last Activity <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>

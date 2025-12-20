@@ -39,33 +39,33 @@ export function TreatmentsClient({ initialTreatments, patients }: TreatmentsClie
 
   return (
     <div className="flex flex-col gap-4 pt-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <div className="space-y-1">
-            <CardTitle className="text-2xl font-bold">Treatments</CardTitle>
-            <CardDescription>
-              Browse and manage all recorded Botulinum toxin procedures.
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative w-64">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight">Treatments</h1>
+          <p className="text-muted-foreground text-sm">
+            Browse and manage all recorded Botulinum toxin procedures.
+          </p>
+        </div>
+        <div className="flex w-full items-center gap-2 md:w-auto">
+            <div className="relative flex-1 md:w-64 md:flex-none">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
                   placeholder="Search treatments..."
-                  className="pl-8 h-9"
+                  className="pl-8 bg-background"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
             </div>
             <TreatmentDialog patients={patients}>
-              <Button size="sm">
+              <Button>
                 <Plus className="mr-2 size-4" />
                 New Treatment
               </Button>
             </TreatmentDialog>
-          </div>
-        </CardHeader>
+        </div>
+      </div>
+      <Card>
         <CardContent>
           <RecentRecordsTable records={filteredTreatments} />
         </CardContent>
