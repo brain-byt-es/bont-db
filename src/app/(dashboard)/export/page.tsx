@@ -26,11 +26,13 @@ import { CalendarIcon, Download, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { getExportData } from "./actions"
+import { getExportData, getResearchExportData } from "./actions"
 import { toast } from "sonner"
 import { getComplianceSettings } from "../settings/actions"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Rocket } from "lucide-react"
+import { UpgradeDialog } from "@/components/upgrade-dialog"
 
 interface ExportRecord {
   id: string
@@ -49,26 +51,45 @@ interface ExportRecord {
   }[]
 }
 
-type ExportPreset = "structured" | "compliance_minimal" | "compliance_followup"
+type ExportPreset = "structured" | "compliance_minimal" | "compliance_followup" | "research_flat"
 
 export default function ExportPage() {
   const [dateFrom, setDateFrom] = useState<Date>()
   const [dateTo, setDateTo] = useState<Date>()
   const [indicationFilter, setIndicationFilter] = useState<string>("all")
   const [records, setRecords] = useState<ExportRecord[]>([])
+  const [researchRecords, setResearchRecords] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [enableCompliance, setEnableCompliance] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState<ExportPreset>("structured")
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const [upgradeTitle, setUpgradeTitle] = useState("")
+  const [upgradeDesc, setUpgradeDesc] = useState("")
   const isPro = false // This should come from user metadata or billing state in production
+
+  const handlePresetChange = (preset: ExportPreset) => {
+    const isProTarget = preset === "research_flat" || preset === "compliance_minimal" || preset === "compliance_followup"
+    
+    if (isProTarget && !isPro) {
+        setUpgradeTitle(preset === "research_flat" ? "Research Export" : "Compliance Export")
+        setUpgradeDesc(`${preset === "research_flat" ? "Research exports" : "Compliance exports"} are available on InjexPro Docs Pro. Upgrade now to unlock injection-level data and regulatory formats.`)
+        setUpgradeOpen(true)
+        return
+    }
+    
+    setSelectedPreset(preset)
+  }
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [exportData, settings] = await Promise.all([
+        const [exportData, researchData, settings] = await Promise.all([
             getExportData(),
+            getResearchExportData(),
             getComplianceSettings()
         ])
         setRecords(exportData as unknown as ExportRecord[])
+        setResearchRecords(researchData)
         setEnableCompliance(settings.enable_compliance_views)
       } catch {
         toast.error("Failed to load export data")
@@ -88,7 +109,52 @@ export default function ExportPage() {
      return true
   })
 
+  const filteredResearchRecords = researchRecords.filter(r => {
+     const rDate = new Date(r.treatment_date)
+     if (dateFrom && rDate < dateFrom) return false
+     if (dateTo && rDate > dateTo) return false
+     if (indicationFilter !== "all" && r.indication !== indicationFilter) return false
+     return true
+  })
+
   const downloadCSV = () => {
+    if (selectedPreset === "research_flat" && !isPro) {
+        toast.error("Research exports are available on InjexPro Docs Pro.")
+        return
+    }
+
+    if (selectedPreset === "research_flat") {
+        if (!filteredResearchRecords.length) return
+        
+        const headers = [
+            "User ID", "Patient Code", "Treatment ID", "Treatment Date", "Indication", "Product", "Dilution",
+            "Injection ID", "Muscle ID", "Muscle Name", "Side", "Units",
+            "Follow-up Flag", "MAS Baseline (Txt)", "MAS Baseline (Num)", "MAS Peak (Txt)", "MAS Peak (Num)"
+        ]
+        
+        const rows = filteredResearchRecords.map(r => [
+            r.user_id, r.patient_code, r.treatment_id, r.treatment_date, r.indication, r.product, r.dilution,
+            r.injection_id, r.muscle_id, `"${r.muscle_name}"`, r.side, r.units,
+            r.followup_flag, r.MAS_baseline_text, r.MAS_baseline_num, r.MAS_peak_text, r.MAS_peak_num
+        ])
+
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(row => row.join(","))
+        ].join("\n")
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+        const link = document.createElement("a")
+        const url = URL.createObjectURL(blob)
+        link.setAttribute("href", url)
+        link.setAttribute("download", `research_export_${format(new Date(), "yyyy-MM-dd")}.csv`)
+        link.style.visibility = "hidden"
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        return
+    }
+
     if (!filteredRecords.length) return
     
     if ((selectedPreset === "compliance_minimal" || selectedPreset === "compliance_followup") && !isPro) {
@@ -171,32 +237,61 @@ export default function ExportPage() {
       patient: r.patients
   }))
 
-  const isCompliancePreset = selectedPreset === "compliance_minimal" || selectedPreset === "compliance_followup"
+  const isProPreset = selectedPreset === "compliance_minimal" || selectedPreset === "compliance_followup" || selectedPreset === "research_flat"
 
   return (
     <div className="flex flex-col gap-4 pt-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Export Data</h1>
-        <Button onClick={downloadCSV} disabled={loading || records.length === 0}>
-          <Download className="mr-2 size-4" />
-          {isCompliancePreset && !isPro ? "Upgrade to Pro" : "Download CSV"}
-        </Button>
+      <UpgradeDialog 
+        open={upgradeOpen} 
+        onOpenChange={setUpgradeOpen}
+        title={upgradeTitle}
+        description={upgradeDesc}
+      >
+        <div className="hidden" />
+      </UpgradeDialog>
+
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between px-4 lg:px-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight">Export Data</h1>
+          <p className="text-muted-foreground text-sm">
+            Configure and download your treatment records.
+          </p>
+        </div>
+        {!(isProPreset && !isPro) && (
+            <Button onClick={downloadCSV} disabled={loading || records.length === 0} className="w-full md:w-auto">
+            <Download className="mr-2 size-4" />
+            Download CSV
+            </Button>
+        )}
       </div>
 
-      {isCompliancePreset && !isPro && (
-          <Alert variant="default" className="bg-primary/5 border-primary/20">
-            <Rocket className="h-4 w-4 text-primary" />
-            <AlertTitle>Pro Feature</AlertTitle>
-            <AlertDescription className="flex items-center justify-between">
-              <span>Compliance exports are available on InjexPro Docs Pro.</span>
-              <Button size="sm" variant="outline" className="ml-4">Upgrade to Pro</Button>
-            </AlertDescription>
-          </Alert>
+      {isProPreset && !isPro && (
+          <div className="px-4 lg:px-6">
+            <Alert variant="default" className="bg-primary/5 border-primary/20">
+                <Rocket className="h-4 w-4 text-primary" />
+                <AlertTitle>Pro Feature</AlertTitle>
+                <AlertDescription className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <span>{selectedPreset === "research_flat" ? "Research exports" : "Compliance exports"} are available on InjexPro Docs Pro.</span>
+                <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="w-full md:w-auto"
+                    onClick={() => {
+                        setUpgradeTitle(selectedPreset === "research_flat" ? "Research Export" : "Compliance Export")
+                        setUpgradeDesc(`${selectedPreset === "research_flat" ? "Research exports" : "Compliance exports"} are available on InjexPro Docs Pro.`)
+                        setUpgradeOpen(true)
+                    }}
+                >
+                    Upgrade to Pro
+                </Button>
+                </AlertDescription>
+            </Alert>
+          </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-[300px_1fr]">
+      <div className="grid gap-6 md:grid-cols-[350px_1fr] px-4 lg:px-6 pb-8">
         <div className="flex flex-col gap-6">
-            <Card>
+            <Card className="overflow-hidden">
                 <CardHeader>
                 <CardTitle>Export Preset</CardTitle>
                 <CardDescription>Select format for your export.</CardDescription>
@@ -204,26 +299,66 @@ export default function ExportPage() {
                 <CardContent className="grid gap-2">
                     <Button 
                         variant={selectedPreset === "structured" ? "default" : "outline"} 
-                        className="justify-start"
-                        onClick={() => setSelectedPreset("structured")}
+                        className="justify-start h-9 text-left"
+                        onClick={() => handlePresetChange("structured")}
                     >
-                        Structured CSV Export
+                        <span className="truncate">Structured CSV</span>
+                    </Button>
+                    <Button 
+                        variant={selectedPreset === "research_flat" ? "default" : "outline"} 
+                        className="justify-start h-9 text-left group"
+                        onClick={() => handlePresetChange("research_flat")}
+                    >
+                        <span className="flex-1 truncate">Research (Flat)</span>
+                        <Badge 
+                            variant="secondary" 
+                            className={cn(
+                                "ml-2 shrink-0 text-[10px] px-1 h-4 transition-colors",
+                                selectedPreset === "research_flat" 
+                                    ? "bg-primary-foreground/20 text-primary-foreground" 
+                                    : "bg-primary/10 text-primary group-hover:bg-primary/20"
+                            )}
+                        >
+                            PRO
+                        </Badge>
                     </Button>
                     {enableCompliance && (
                         <>
                             <Button 
                                 variant={selectedPreset === "compliance_minimal" ? "default" : "outline"} 
-                                className="justify-start"
-                                onClick={() => setSelectedPreset("compliance_minimal")}
+                                className="justify-start h-9 text-left group"
+                                onClick={() => handlePresetChange("compliance_minimal")}
                             >
-                                Compliance Export (Minimal)
+                                <span className="flex-1 truncate">Compliance (Minimal)</span>
+                                <Badge 
+                                    variant="secondary" 
+                                    className={cn(
+                                        "ml-2 shrink-0 text-[10px] px-1 h-4 transition-colors",
+                                        selectedPreset === "compliance_minimal" 
+                                            ? "bg-primary-foreground/20 text-primary-foreground" 
+                                            : "bg-primary/10 text-primary group-hover:bg-primary/20"
+                                    )}
+                                >
+                                    PRO
+                                </Badge>
                             </Button>
                             <Button 
                                 variant={selectedPreset === "compliance_followup" ? "default" : "outline"} 
-                                className="justify-start"
-                                onClick={() => setSelectedPreset("compliance_followup")}
+                                className="justify-start h-9 text-left group"
+                                onClick={() => handlePresetChange("compliance_followup")}
                             >
-                                Compliance Export (With Follow-up)
+                                <span className="flex-1 truncate">Compliance (Follow-up)</span>
+                                <Badge 
+                                    variant="secondary" 
+                                    className={cn(
+                                        "ml-2 shrink-0 text-[10px] px-1 h-4 transition-colors",
+                                        selectedPreset === "compliance_followup" 
+                                            ? "bg-primary-foreground/20 text-primary-foreground" 
+                                            : "bg-primary/10 text-primary group-hover:bg-primary/20"
+                                    )}
+                                >
+                                    PRO
+                                </Badge>
                             </Button>
                             <p className="text-[10px] text-muted-foreground mt-2 px-1">
                                 These formats are commonly used for institutional or board documentation in some regions.
@@ -233,7 +368,7 @@ export default function ExportPage() {
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="overflow-hidden">
                 <CardHeader>
                 <CardTitle>Filters</CardTitle>
                 <CardDescription>Select range to filter preview.</CardDescription>
@@ -311,18 +446,20 @@ export default function ExportPage() {
             </Card>
         </div>
 
-        <Card className="h-fit">
+        <Card className="h-fit overflow-hidden">
             <CardHeader>
             <CardTitle>Preview</CardTitle>
             <CardDescription>
-                {loading ? "Loading..." : `Showing ${tableRecords.length} records for ${selectedPreset.replace('_', ' ')}.`}
+                {loading ? "Loading..." : `Showing ${tableRecords.length} records.`}
             </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto">
             {loading ? (
                 <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
             ) : (
-                <RecentRecordsTable records={tableRecords.slice(0, 50)} hideActions={true} />
+                <div className="min-w-0 w-full">
+                    <RecentRecordsTable records={tableRecords.slice(0, 50)} hideActions={true} />
+                </div>
             )}
             </CardContent>
         </Card>
