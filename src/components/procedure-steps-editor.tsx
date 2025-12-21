@@ -91,7 +91,123 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border">
+        {/* Mobile Layout (Cards) */}
+        <div className="space-y-4 md:hidden">
+          {steps.length === 0 ? (
+            <div className="h-24 flex items-center justify-center text-sm text-muted-foreground border border-dashed rounded-md">
+              No injection sites added.
+            </div>
+          ) : (
+            steps.map((step) => (
+              <div key={step.id} className="p-4 border rounded-md space-y-4 bg-muted/30">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Target Structure</label>
+                  <MuscleSelector 
+                      value={step.muscle_id}
+                      onSelect={(val) => updateStep(step.id, "muscle_id", val)}
+                      muscles={muscles}
+                      regions={regions}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">Side</label>
+                    <Select
+                      value={step.side}
+                      onValueChange={(value) => updateStep(step.id, "side", value as ProcedureStep["side"])}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Left">Left</SelectItem>
+                        <SelectItem value="Right">Right</SelectItem>
+                        <SelectItem value="Bilateral">Bilateral</SelectItem>
+                        <SelectItem value="Midline">Midline</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">Units</label>
+                    <Input
+                      type="number"
+                      value={step.numeric_value}
+                      onChange={(e) => updateStep(step.id, "numeric_value", parseFloat(e.target.value))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">MAS Base</label>
+                    <Select
+                      value={step.mas_baseline || ""}
+                      onValueChange={(value) => updateStep(step.id, "mas_baseline", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="-" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">0</SelectItem>
+                        <SelectItem value="1">1</SelectItem>
+                        <SelectItem value="1+">1+</SelectItem>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="3">3</SelectItem>
+                        <SelectItem value="4">4</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">MAS Peak</label>
+                    <Select
+                      value={step.mas_peak || ""}
+                      onValueChange={(value) => updateStep(step.id, "mas_peak", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="-" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">0</SelectItem>
+                        <SelectItem value="1">1</SelectItem>
+                        <SelectItem value="1+">1+</SelectItem>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="3">3</SelectItem>
+                        <SelectItem value="4">4</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => duplicateStep(step)}
+                    type="button"
+                    className="h-8"
+                  >
+                    <Copy className="mr-2 size-3" />
+                    Duplicate
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeStep(step.id)}
+                    type="button"
+                    className="h-8 text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="mr-2 size-3" />
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Layout (Table) */}
+        <div className="hidden md:block rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>

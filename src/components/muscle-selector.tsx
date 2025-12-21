@@ -142,7 +142,7 @@ export function MuscleSelector({
 
         </PopoverTrigger>
 
-        <PopoverContent className="w-[400px] p-0" align="start">
+        <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[400px] p-0" align="start">
 
           <Command className="h-auto" filter={filterMuscles}>
 

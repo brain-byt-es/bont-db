@@ -9,12 +9,14 @@ import { createClient } from '@/lib/supabase/server'
 export async function signInWithLinkedIn() {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
-  const origin = (await headers()).get('origin')
+  
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const redirectTo = `${siteUrl}/auth/callback`
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'linkedin_oidc',
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo,
     },
   })
 

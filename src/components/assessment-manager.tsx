@@ -148,11 +148,11 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
         ) : (
           <div className="space-y-4">
             {assessments.map((assessment) => (
-              <div key={assessment.id} className="grid gap-4 md:grid-cols-[1fr_1fr_100px_150px_auto] items-start border p-4 rounded-md bg-card">
+              <div key={assessment.id} className="grid gap-4 md:grid-cols-[1fr_1fr_100px_150px_auto] items-start border p-4 rounded-md bg-card relative">
                  
                  {/* Scale Selector */}
                  <div className="space-y-2">
-                    <span className="text-xs font-medium text-muted-foreground">Scale</span>
+                    <label className="text-xs font-medium text-muted-foreground">Scale</label>
                     <Select 
                         value={assessment.scale} 
                         onValueChange={(v) => updateAssessment(assessment.id, "scale", v)}
@@ -170,7 +170,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
 
                  {/* Timepoint Selector */}
                  <div className="space-y-2">
-                    <span className="text-xs font-medium text-muted-foreground">Timepoint</span>
+                    <label className="text-xs font-medium text-muted-foreground">Timepoint</label>
                     <Select 
                         value={assessment.timepoint} 
                         onValueChange={(v) => updateAssessment(assessment.id, "timepoint", v)}
@@ -189,7 +189,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
 
                  {/* Value Input */}
                  <div className="space-y-2">
-                    <span className="text-xs font-medium text-muted-foreground">Value</span>
+                    <label className="text-xs font-medium text-muted-foreground">Value</label>
                     <Input 
                         type="number" 
                         value={assessment.value}
@@ -199,7 +199,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
 
                  {/* Date Picker */}
                  <div className="space-y-2">
-                    <span className="text-xs font-medium text-muted-foreground">Date</span>
+                    <label className="text-xs font-medium text-muted-foreground">Date</label>
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button
@@ -217,7 +217,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
                                 <CalendarIcon className="ml-auto h-3 w-3 opacity-50" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className="w-[calc(100vw-4rem)] sm:w-auto p-0" align="start">
                             <Calendar
                                 mode="single"
                                 selected={assessment.assessed_at}
@@ -230,14 +230,16 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
                  </div>
 
                  {/* Actions */}
-                 <div className="pt-6">
+                 <div className="md:pt-6 flex justify-end">
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => removeAssessment(assessment.id)}
                         type="button"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Remove assessment</span>
                     </Button>
                  </div>
               </div>

@@ -530,11 +530,11 @@ export function RecordForm({
           )}
         />
 
-        <div className="flex gap-4">
-            <Button type="submit" disabled={isPending}>
+        <div className="flex flex-col sm:flex-row gap-4">
+            <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
               {isPending ? "Saving..." : isEditing ? "Save Changes" : "Save Record"}
             </Button>
-            <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()} className="w-full sm:w-auto">Cancel</Button>
         </div>
       </form>
     </Form>
