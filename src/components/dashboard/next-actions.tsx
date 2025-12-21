@@ -25,7 +25,7 @@ export function NextActions({ actions }: NextActionsProps) {
         <CardContent>
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <span>You're all caught up! Great job.</span>
+            <span>You&apos;re all caught up! Great job.</span>
           </div>
         </CardContent>
       </Card>

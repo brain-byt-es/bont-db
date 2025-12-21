@@ -74,6 +74,26 @@ interface InitialFormData {
   steps?: ProcedureStep[];
 }
 
+interface DBInjectionAssessment {
+  timepoint: string;
+  scale: string;
+  value_text: string;
+}
+
+interface DBInjection {
+  muscle: string;
+  side: string;
+  units: number;
+  injection_assessments: DBInjectionAssessment[];
+}
+
+interface DBAssessment {
+  scale: string;
+  timepoint: string;
+  value: number;
+  notes: string;
+}
+
 interface RecordFormProps {
   patients: { id: string; patient_code: string }[]
   defaultSubjectId?: string
@@ -214,14 +234,14 @@ export function RecordForm({
 
           // Injections
           if (latest.injections) {
-              const newSteps = latest.injections.map((inj: any) => {
-                  const masBase = inj.injection_assessments?.find((a: any) => a.timepoint === 'baseline' && a.scale === 'MAS')?.value_text
-                  const masPeak = inj.injection_assessments?.find((a: any) => a.timepoint === 'peak_effect' && a.scale === 'MAS')?.value_text
+              const newSteps = (latest.injections as unknown as DBInjection[]).map((inj) => {
+                  const masBase = inj.injection_assessments?.find((a) => a.timepoint === 'baseline' && a.scale === 'MAS')?.value_text
+                  const masPeak = inj.injection_assessments?.find((a) => a.timepoint === 'peak_effect' && a.scale === 'MAS')?.value_text
                   
                   return {
                     id: Math.random().toString(36).substr(2, 9),
                     muscle_id: inj.muscle,
-                    side: inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Bilateral',
+                    side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Bilateral') as "Left" | "Right" | "Bilateral" | "Midline",
                     numeric_value: Number(inj.units),
                     mas_baseline: masBase || "",
                     mas_peak: masPeak || ""
@@ -232,7 +252,7 @@ export function RecordForm({
 
           // Global Assessments
           if (latest.assessments) {
-              const newAssessments = latest.assessments.map((a: any) => ({
+              const newAssessments = (latest.assessments as unknown as DBAssessment[]).map((a) => ({
                   id: Math.random().toString(36).substr(2, 9),
                   scale: a.scale,
                   timepoint: a.timepoint,

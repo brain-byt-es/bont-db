@@ -26,7 +26,7 @@ import { CalendarIcon, Download, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { getExportData, getResearchExportData } from "./actions"
+import { getExportData, getResearchExportData, ResearchExportRecord } from "./actions"
 import { toast } from "sonner"
 import { getComplianceSettings } from "../settings/actions"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -58,7 +58,7 @@ export default function ExportPage() {
   const [dateTo, setDateTo] = useState<Date>()
   const [indicationFilter, setIndicationFilter] = useState<string>("all")
   const [records, setRecords] = useState<ExportRecord[]>([])
-  const [researchRecords, setResearchRecords] = useState<any[]>([])
+  const [researchRecords, setResearchRecords] = useState<ResearchExportRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [enableCompliance, setEnableCompliance] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState<ExportPreset>("structured")

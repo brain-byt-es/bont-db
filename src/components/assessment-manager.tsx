@@ -66,7 +66,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
     if (indication === "dystonie") {
       if (!hasBaseline("TWSTRS") && !hasBaseline("Tsui")) newWarnings.push("Recommended Baseline Score (TWSTRS or Tsui) missing")
     } else if (indication === "kopfschmerz") {
-      if (!hasAny("HIT-6")) newWarnings.push("Recommended Score (HIT-6) missing")
+      if (!hasAny("HIT-6") && !hasBaseline("MIDAS")) newWarnings.push("Recommended Score (HIT-6 or MIDAS) missing")
     }
 
     setWarnings(newWarnings)

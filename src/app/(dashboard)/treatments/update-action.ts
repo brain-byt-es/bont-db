@@ -23,6 +23,22 @@ interface UpdateTreatmentFormData {
   steps?: ProcedureStep[];
 }
 
+interface MuscleData {
+  region_id: string;
+  muscle_regions: {
+    name: string;
+  };
+}
+
+interface InjectionAssessmentInsert {
+  user_id: string;
+  injection_id: string;
+  scale: string;
+  timepoint: string;
+  value_text: string;
+  value_num: number | null;
+}
+
 export async function updateTreatment(treatmentId: string, formData: UpdateTreatmentFormData) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
@@ -59,10 +75,11 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
             .from('muscles')
             .select('region_id, muscle_regions(name)')
             .in('id', muscleIds)
+            .returns<MuscleData[]>()
         
         if (muscleData) {
             const regionNames = muscleData
-                .map((m: any) => m.muscle_regions?.name)
+                .map((m) => m.muscle_regions?.name)
                 .filter(Boolean)
             regions = [...new Set(regionNames)]
         }
@@ -156,7 +173,7 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     }
 
     // Insert injection assessments (MAS scores)
-    const injectionAssessmentsToInsert: any[] = []
+    const injectionAssessmentsToInsert: InjectionAssessmentInsert[] = []
     
     steps.forEach((step, index) => {
        // Assuming order is preserved, which is typical for single-batch inserts in Supabase

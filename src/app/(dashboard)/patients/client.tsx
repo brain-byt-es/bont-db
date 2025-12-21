@@ -9,9 +9,6 @@ import { PatientCreateDialog } from "@/components/patient-create-dialog"
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 
 interface PatientsClientProps {

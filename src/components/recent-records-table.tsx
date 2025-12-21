@@ -58,13 +58,23 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
     if (!sortConfig) return 0;
     const { key, direction } = sortConfig;
     
-    let aValue: any = (a as any)[key];
-    let bValue: any = (b as any)[key];
+    let aValue: string | number = '';
+    let bValue: string | number = '';
 
     // Handle nested patient code
     if (key === 'patient') {
         aValue = a.patient?.patient_code || '';
         bValue = b.patient?.patient_code || '';
+    } else {
+        const valA = a[key as keyof TreatmentRecord];
+        const valB = b[key as keyof TreatmentRecord];
+        
+        if (typeof valA === 'string' || typeof valA === 'number') {
+            aValue = valA;
+        }
+        if (typeof valB === 'string' || typeof valB === 'number') {
+            bValue = valB;
+        }
     }
 
     if (aValue < bValue) {

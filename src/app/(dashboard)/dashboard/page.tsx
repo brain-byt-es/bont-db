@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
-import { QualificationStats, GoalCard } from "@/components/dashboard/qualification-stats"
+import { QualificationStats } from "@/components/dashboard/qualification-stats"
 import { IndicationBreakdown } from "@/components/dashboard/indication-breakdown"
 import { GuidelinesChecklist } from "@/components/dashboard/guidelines-checklist"
 import { ClinicalActivity } from "@/components/dashboard/clinical-activity"
@@ -9,7 +9,7 @@ import { DocumentationQuality } from "@/components/dashboard/documentation-quali
 import { UpsellTeaser } from "@/components/dashboard/upsell-teaser"
 import { StatsCard } from "@/components/stats-card"
 import { getMuscles } from "@/app/(dashboard)/treatments/actions"
-import { format, subDays, isBefore, startOfMonth, parseISO } from "date-fns"
+import { format, subDays } from "date-fns"
 import { Calendar as CalendarIcon, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,6 +17,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+
+// Add type interfaces
+interface InjectionAssessment {
+  scale: string;
+  timepoint: string;
+}
 
 export default async function Page() {
   const cookieStore = await cookies()
@@ -141,8 +147,8 @@ export default async function Page() {
   if (spastikInjections) {
     spastikInjections.forEach(inj => {
       const assessments = inj.injection_assessments || []
-      if (assessments.some((a: any) => a.scale === 'MAS' && a.timepoint === 'baseline')) masBaselineCount++
-      if (assessments.some((a: any) => a.scale === 'MAS' && a.timepoint === 'peak_effect')) masPeakCount++
+      if (assessments.some((a: InjectionAssessment) => a.scale === 'MAS' && a.timepoint === 'baseline')) masBaselineCount++
+      if (assessments.some((a: InjectionAssessment) => a.scale === 'MAS' && a.timepoint === 'peak_effect')) masPeakCount++
     })
   }
   const masBaselineRate = totalSpastikInjectionsCount ? (masBaselineCount / totalSpastikInjectionsCount) * 100 : 0
@@ -172,7 +178,7 @@ export default async function Page() {
   // Logic: check recent spastik injections for missing baseline
   const missingBaselineCount = spastikInjections?.filter(inj => {
     const assessments = inj.injection_assessments || []
-    return !assessments.some((a: any) => a.scale === 'MAS' && a.timepoint === 'baseline')
+    return !assessments.some((a: InjectionAssessment) => a.scale === 'MAS' && a.timepoint === 'baseline')
   }).length || 0
   
   // Just show general alert if significant number

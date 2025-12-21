@@ -5,7 +5,6 @@ import * as React from "react"
 import {
   IconChartBar,
   IconDashboard,
-  IconInnerShadowTop,
   IconUsers,
   IconVaccine,
   IconSettings

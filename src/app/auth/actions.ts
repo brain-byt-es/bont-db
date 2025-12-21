@@ -64,3 +64,20 @@ export async function logout() {
   revalidatePath('/', 'layout')
   redirect('/login')
 }
+
+export async function updateProfile(formData: FormData) {
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
+  
+  const name = formData.get('name') as string
+  
+  const { error } = await supabase.auth.updateUser({
+    data: { full_name: name }
+  })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath('/', 'layout')
+}

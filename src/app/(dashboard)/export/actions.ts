@@ -24,6 +24,26 @@ export async function getExportData() {
   return treatments
 }
 
+export interface ResearchExportRecord {
+  user_id: string
+  patient_code: string
+  treatment_id: string
+  treatment_date: string
+  indication: string
+  product: string
+  dilution: string
+  injection_id: string
+  muscle_id: string
+  muscle_name: string
+  side: string
+  units: number
+  followup_flag: number
+  MAS_baseline_text: string
+  MAS_baseline_num: number | string
+  MAS_peak_text: string
+  MAS_peak_num: number | string
+}
+
 export async function getResearchExportData() {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
@@ -63,12 +83,15 @@ export async function getResearchExportData() {
   }
 
   // Transform to flat structure
-  const flatData = injections.map((inj: any) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const flatData: ResearchExportRecord[] = (injections as any[]).map((inj) => {
     const treatment = inj.treatments
     const patient = treatment.patients
     const assessments = inj.injection_assessments || []
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const masBaseline = assessments.find((a: any) => a.scale === 'MAS' && a.timepoint === 'baseline')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const masPeak = assessments.find((a: any) => a.scale === 'MAS' && a.timepoint === 'peak_effect')
 
     return {

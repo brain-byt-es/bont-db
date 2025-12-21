@@ -21,6 +21,34 @@ interface PageProps {
   params: Promise<{ id: string }>
 }
 
+interface InjectionAssessment {
+  scale: string;
+  timepoint: string;
+  value_text: string;
+}
+
+interface Muscle {
+  id: string;
+  name: string;
+}
+
+interface Injection {
+  id: string;
+  muscle: string;
+  side: string;
+  units: number;
+  injection_assessments: InjectionAssessment[];
+}
+
+interface Assessment {
+  id: string;
+  scale: string;
+  timepoint: string;
+  value: string | number;
+  assessed_at: string;
+  notes?: string;
+}
+
 export default async function ViewTreatmentPage({ params }: PageProps) {
   const { id } = await params
   const cookieStore = await cookies()
@@ -38,19 +66,23 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
   }
 
   // Fetch injections for this treatment with assessments
-  const { data: injections } = await supabase
+  const { data: injectionsData } = await supabase
     .from('injections')
     .select('*, injection_assessments(*)')
     .eq('treatment_id', id)
+    
+  const injections = injectionsData as unknown as Injection[]
 
   // Fetch global assessments
-  const { data: globalAssessments } = await supabase
+  const { data: globalAssessmentsData } = await supabase
     .from('assessments')
     .select('*')
     .eq('treatment_id', id)
+    
+  const globalAssessments = globalAssessmentsData as unknown as Assessment[]
 
   // Fetch muscles list for manual mapping
-  const musclesList = await getMuscles()
+  const musclesList = await getMuscles() as unknown as Muscle[]
 
   const indicationLabels: Record<string, string> = {
     kopfschmerz: "Headache",
@@ -61,8 +93,8 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
   }
 
   // Helper to find MAS scores
-  const getMasScore = (injAssessments: any[], timepoint: string) => {
-      const score = injAssessments?.find((a: any) => a.scale === 'MAS' && a.timepoint === timepoint)
+  const getMasScore = (injAssessments: InjectionAssessment[], timepoint: string) => {
+      const score = injAssessments?.find((a) => a.scale === 'MAS' && a.timepoint === timepoint)
       return score ? score.value_text : ""
   }
 
@@ -74,7 +106,7 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
     product_label: treatment.product,
     notes: treatment.effect_notes,
     assessments: globalAssessments || [],
-    steps: (injections || []).map((inj: any) => ({
+    steps: (injections || []).map((inj) => ({
       id: inj.id,
       muscle_id: inj.muscle,
       side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Midline') as "Left" | "Right" | "Bilateral" | "Midline",
@@ -156,7 +188,7 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
            <CardContent>
               {globalAssessments && globalAssessments.length > 0 ? (
                   <div className="space-y-4">
-                      {globalAssessments.map((a: any) => (
+                      {globalAssessments.map((a) => (
                           <div key={a.id} className="flex justify-between items-center border-b pb-2 last:border-0">
                               <div>
                                   <div className="font-medium">{a.scale} <span className="text-muted-foreground text-sm font-normal">({a.timepoint})</span></div>
@@ -192,11 +224,11 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(injections || []).map((inj: any) => {
+                {(injections || []).map((inj) => {
                    const masBase = getMasScore(inj.injection_assessments, 'baseline');
                    const masPeak = getMasScore(inj.injection_assessments, 'peak_effect');
                    // Manual muscle name lookup
-                   const muscleName = musclesList.find((m: any) => m.id === inj.muscle)?.name || inj.muscle;
+                   const muscleName = musclesList.find((m) => m.id === inj.muscle)?.name || inj.muscle;
                    
                    return (
                       <TableRow key={inj.id}>
