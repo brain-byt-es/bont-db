@@ -49,6 +49,26 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
   const product = product_label
   const effect_notes = notes || ""
   
+  // Derive regions from selected muscles
+  let regions: string[] = []
+  if (steps && Array.isArray(steps) && steps.length > 0) {
+    const muscleIds = [...new Set(steps.map(s => s.muscle_id).filter(Boolean))]
+    
+    if (muscleIds.length > 0) {
+        const { data: muscleData } = await supabase
+            .from('muscles')
+            .select('region_id, muscle_regions(name)')
+            .in('id', muscleIds)
+        
+        if (muscleData) {
+            const regionNames = muscleData
+                .map((m: any) => m.muscle_regions?.name)
+                .filter(Boolean)
+            regions = [...new Set(regionNames)]
+        }
+    }
+  }
+  
   let total_units = 0
   if (steps && Array.isArray(steps)) {
     total_units = steps.reduce((sum: number, step: ProcedureStep) => sum + (step.numeric_value || 0), 0)
@@ -68,6 +88,7 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
       indication,
       product,
       total_units,
+      regions,
       effect_notes,
       updated_at: new Date().toISOString(),
     })

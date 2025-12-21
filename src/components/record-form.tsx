@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Save, AlertTriangle } from "lucide-react"
+import { CalendarIcon, Save, AlertTriangle, ChevronDown } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 import { ProcedureStepsEditor, ProcedureStep } from "@/components/procedure-steps-editor"
 import { AssessmentManager, Assessment } from "@/components/assessment-manager"
@@ -39,6 +44,8 @@ import { createTreatment, getMuscles, getMuscleRegions, getLatestTreatment } fro
 import { updateTreatment } from "@/app/(dashboard)/treatments/update-action"
 import { toast } from "sonner"
 import { Muscle, MuscleRegion } from "@/components/muscle-selector"
+import { PiiWarningDialog } from "@/components/pii-warning-dialog"
+import { validatePII } from "@/lib/pii-validation"
 
 const formSchema = z.object({
   subject_id: z.string().min(1, {
@@ -94,6 +101,10 @@ export function RecordForm({
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const router = useRouter()
 
+  const [showPiiWarning, setShowPiiWarning] = useState(false)
+  const [piiDetected, setPiiDetected] = useState<string[]>([])
+  const [pendingValues, setPendingValues] = useState<z.infer<typeof formSchema> | null>(null)
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -105,6 +116,10 @@ export function RecordForm({
       notes: initialData?.notes || "",
     },
   })
+
+  // Watch notes for soft warning
+  const notesValue = form.watch("notes")
+  const piiResult = validatePII(notesValue)
 
   // Fetch Muscles and Regions
   useEffect(() => {
@@ -187,34 +202,63 @@ export function RecordForm({
     fetchLatest()
   }, [subjectId, isEditing, form])
 
-  const copyLastTreatmentInjections = async () => {
+  const copyLastTreatmentFull = async () => {
       if (!subjectId) return
       const latest = await getLatestTreatment(subjectId)
-      if (latest && latest.injections) {
-          const newSteps = latest.injections.map((inj: { muscle: string; side: string; units: number }) => ({
-              id: Math.random().toString(36).substr(2, 9),
-              muscle_id: inj.muscle, // Map 'muscle' column (which is now ID) to muscle_id
-              side: inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Bilateral', // Simplification
-              numeric_value: Number(inj.units)
-          }))
-          setSteps(newSteps)
-          toast.success("Injections copied from last treatment")
+      if (latest) {
+          // Fields
+          form.setValue("product_label", latest.product)
+          form.setValue("location", latest.treatment_site)
+          form.setValue("category", latest.indication)
+          if (latest.effect_notes) form.setValue("notes", latest.effect_notes)
+
+          // Injections
+          if (latest.injections) {
+              const newSteps = latest.injections.map((inj: any) => {
+                  const masBase = inj.injection_assessments?.find((a: any) => a.timepoint === 'baseline' && a.scale === 'MAS')?.value_text
+                  const masPeak = inj.injection_assessments?.find((a: any) => a.timepoint === 'peak_effect' && a.scale === 'MAS')?.value_text
+                  
+                  return {
+                    id: Math.random().toString(36).substr(2, 9),
+                    muscle_id: inj.muscle,
+                    side: inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Bilateral',
+                    numeric_value: Number(inj.units),
+                    mas_baseline: masBase || "",
+                    mas_peak: masPeak || ""
+                  }
+              })
+              setSteps(newSteps)
+          }
+
+          // Global Assessments
+          if (latest.assessments) {
+              const newAssessments = latest.assessments.map((a: any) => ({
+                  id: Math.random().toString(36).substr(2, 9),
+                  scale: a.scale,
+                  timepoint: a.timepoint,
+                  value: a.value,
+                  assessed_at: new Date(), 
+                  notes: a.notes
+              }))
+              setAssessments(newAssessments)
+          }
+
+          toast.success("Copied full treatment data from last visit")
       } else {
-          toast.info("No previous injections found")
+          toast.info("No previous treatment found")
       }
   }
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  const processSubmission = (values: z.infer<typeof formSchema>) => {
     startTransition(async () => {
       try {
         if (isEditing && treatmentId) {
-          // Update currently doesn't support assessments in this snippet, needs updateTreatment update too if needed
           await updateTreatment(treatmentId, { ...values, steps }) 
           toast.success("Treatment updated")
         } else {
           await createTreatment({ ...values, steps, assessments })
           toast.success("Treatment record saved")
-          localStorage.removeItem("bont_treatment_draft") // Clear draft
+          localStorage.removeItem("bont_treatment_draft")
         }
         
         if (onSuccess) {
@@ -229,12 +273,49 @@ export function RecordForm({
     })
   }
 
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    const validation = validatePII(values.notes)
+    if (validation.isCritical) {
+        setPiiDetected(validation.detected)
+        setPendingValues(values)
+        setShowPiiWarning(true)
+        return
+    }
+    processSubmission(values)
+  }
+
+  const handlePiiConfirm = () => {
+      setShowPiiWarning(false)
+      if (pendingValues) {
+          processSubmission(pendingValues)
+          setPendingValues(null)
+      }
+  }
+
   const totalUnits = steps.reduce((sum, step) => sum + (step.numeric_value || 0), 0)
 
   return (
+    <>
+    <PiiWarningDialog 
+        open={showPiiWarning} 
+        onOpenChange={setShowPiiWarning}
+        detectedTypes={piiDetected}
+        onConfirm={handlePiiConfirm}
+        onCancel={() => setShowPiiWarning(false)}
+    />
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         
+        {/* Header Actions */}
+        {!isEditing && subjectId && (
+            <div className="flex justify-end">
+                <Button variant="outline" type="button" onClick={copyLastTreatmentFull} className="w-full sm:w-auto bg-primary/5 border-primary/20 hover:bg-primary/10 text-primary">
+                    <Save className="mr-2 h-4 w-4" /> {/* Reusing Save icon or similar implies 'Load' */}
+                    Copy from last treatment
+                </Button>
+            </div>
+        )}
+
         {lastSaved && !isEditing && (
             <div className="text-xs text-muted-foreground text-right flex items-center justify-end gap-1">
                 <Save className="h-3 w-3" />
@@ -360,23 +441,11 @@ export function RecordForm({
           />
         </div>
         
-        {/* Assessment Manager */}
-        <AssessmentManager 
-            assessments={assessments} 
-            onChange={setAssessments} 
-            indication={form.watch("category")} 
-        />
-
         <div className="space-y-4">
-             {form.watch("category") === "spastik" && !steps.some(s => s.mas_baseline) && (
-                 <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800 text-sm">
-                     <AlertTriangle className="h-4 w-4" />
-                     <span>Empfohlener Baseline-Score (MAS) fehlt (Injection-Level).</span>
-                 </div>
-             )}
              <div className="flex justify-end">
                 {!isEditing && subjectId && (
-                    <Button variant="outline" size="sm" type="button" onClick={copyLastTreatmentInjections}>
+                    <Button variant="outline" size="sm" type="button" onClick={copyLastTreatmentFull} className="w-full sm:w-auto bg-primary/5 border-primary/20 hover:bg-primary/10 text-primary">
+                        <Save className="mr-2 h-4 w-4" /> {/* Reusing Save icon or similar implies 'Load' */}
                         Copy from last treatment
                     </Button>
                 )}
@@ -387,11 +456,35 @@ export function RecordForm({
                 muscles={muscles}
                 regions={regions}
              />
+             {form.watch("category") === "spastik" && steps.length > 0 && !steps.some(s => s.mas_baseline) && (
+                 <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800 text-sm">
+                     <AlertTriangle className="h-4 w-4" />
+                     <span>Recommended Baseline Score (MAS) missing.</span>
+                 </div>
+             )}
         </div>
 
         <div className="flex justify-end">
            <div className="text-xl font-bold">Total: {totalUnits} Units</div>
         </div>
+
+        <Collapsible>
+          <div className="flex items-center space-x-2">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-between">
+                Additional Assessments (Optional)
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent className="mt-4">
+            <AssessmentManager 
+                assessments={assessments} 
+                onChange={setAssessments} 
+                indication={form.watch("category")} 
+            />
+          </CollapsibleContent>
+        </Collapsible>
 
         <FormField
           control={form.control}
@@ -406,6 +499,12 @@ export function RecordForm({
                   {...field}
                 />
               </FormControl>
+              {piiResult.score > 0 && (
+                  <div className="text-xs text-yellow-600 flex items-center gap-1 mt-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      <span>Possible PII detected: {piiResult.detected.join(", ")}</span>
+                  </div>
+              )}
               <FormMessage />
             </FormItem>
           )}
@@ -419,5 +518,6 @@ export function RecordForm({
         </div>
       </form>
     </Form>
+    </>
   )
 }

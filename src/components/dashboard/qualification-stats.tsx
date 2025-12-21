@@ -6,8 +6,53 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Circle } from "lucide-react"
+import { Circle, CheckCircle2, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+interface GoalCardProps {
+  title: string
+  current: number
+  goal: number
+  showGoal?: boolean
+}
+
+export function GoalCard({ title, current, goal, showGoal = true }: GoalCardProps) {
+  const progress = Math.min((current / goal) * 100, 100)
+  
+  const getStatus = (c: number, g: number) => {
+    if (c >= g) return { text: "Completed", color: "text-green-500", icon: CheckCircle2 }
+    if (c >= g * 0.8) return { text: "On Track", color: "text-green-500", icon: Circle }
+    if (c >= g * 0.5) return { text: "In Progress", color: "text-yellow-500", icon: Circle }
+    return { text: "Action Needed", color: "text-red-500", icon: AlertCircle }
+  }
+
+  const status = getStatus(current, goal)
+  const StatusIcon = status.icon
+
+  return (
+    <Card className="relative overflow-hidden">
+      <CardHeader className="p-4 pb-2">
+        <div className="flex items-center justify-between mb-1">
+            <CardDescription className="text-xs font-medium uppercase tracking-wider">{title}</CardDescription>
+            {showGoal && (
+              <div className={cn("flex items-center gap-1 text-xs font-medium", status.color)}>
+                <StatusIcon className="h-3 w-3" />
+                <span>{status.text}</span>
+              </div>
+            )}
+        </div>
+        <CardTitle className="text-2xl font-bold tabular-nums">
+          {current} {showGoal && <span className="text-sm font-normal text-muted-foreground">/ {goal}</span>}
+        </CardTitle>
+      </CardHeader>
+      {showGoal && (
+        <CardFooter className="p-4 pt-0">
+          <Progress value={progress} className="h-2 w-full" indicatorClassName={status.color.replace("text-", "bg-")} />
+        </CardFooter>
+      )}
+    </Card>
+  )
+}
 
 interface QualificationStatsProps {
   totalTreatments: number
@@ -30,85 +75,34 @@ export function QualificationStats({
   indicationsCoveredGoal,
   spastikDystonie,
   spastikDystonieGoal,
-  showGoals = false,
+  showGoals = true,
 }: QualificationStatsProps) {
-  const totalTreatmentsProgress = Math.min((totalTreatments / totalTreatmentsGoal) * 100, 100);
-  const withFollowUpProgress = Math.min((withFollowUp / withFollowUpGoal) * 100, 100);
-  const indicationsCoveredProgress = Math.min((indicationsCovered / indicationsCoveredGoal) * 100, 100);
-  const spastikDystonieProgress = Math.min((spastikDystonie / spastikDystonieGoal) * 100, 100);
-
-  const getStatusColor = (current: number, goal: number) => {
-    if (current >= goal) return "text-green-500 fill-green-500"
-    if (current >= goal * 0.8) return "text-yellow-500 fill-yellow-500"
-    return "text-red-500 fill-red-500"
-  }
-
   return (
-    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardDescription>Total Treatments</CardDescription>
-            {showGoals && <Circle className={cn("h-3 w-3", getStatusColor(totalTreatments, totalTreatmentsGoal))} />}
-          </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {totalTreatments} {showGoals && <span className="text-sm font-normal text-muted-foreground">/ {totalTreatmentsGoal}</span>}
-          </CardTitle>
-          {showGoals && (
-            <CardFooter className="flex-col items-start gap-1.5 text-sm p-0 pt-2">
-              <Progress value={totalTreatmentsProgress} className="w-full" />
-            </CardFooter>
-          )}
-        </CardHeader>
-      </Card>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardDescription>With Follow-up</CardDescription>
-            {showGoals && <Circle className={cn("h-3 w-3", getStatusColor(withFollowUp, withFollowUpGoal))} />}
-          </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {withFollowUp} {showGoals && <span className="text-sm font-normal text-muted-foreground">/ {withFollowUpGoal}</span>}
-          </CardTitle>
-          {showGoals && (
-            <CardFooter className="flex-col items-start gap-1.5 text-sm p-0 pt-2">
-              <Progress value={withFollowUpProgress} className="w-full" />
-            </CardFooter>
-          )}
-        </CardHeader>
-      </Card>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardDescription>Indications Covered</CardDescription>
-            {showGoals && <Circle className={cn("h-3 w-3", getStatusColor(indicationsCovered, indicationsCoveredGoal))} />}
-          </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {indicationsCovered} {showGoals && <span className="text-sm font-normal text-muted-foreground">/ {indicationsCoveredGoal}</span>}
-          </CardTitle>
-          {showGoals && (
-            <CardFooter className="flex-col items-start gap-1.5 text-sm p-0 pt-2">
-              <Progress value={indicationsCoveredProgress} className="w-full" />
-            </CardFooter>
-          )}
-        </CardHeader>
-      </Card>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardDescription>Spastik/Dystonie</CardDescription>
-            {showGoals && <Circle className={cn("h-3 w-3", getStatusColor(spastikDystonie, spastikDystonieGoal))} />}
-          </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {spastikDystonie} {showGoals && <span className="text-sm font-normal text-muted-foreground">/ {spastikDystonieGoal}</span>}
-          </CardTitle>
-          {showGoals && (
-            <CardFooter className="flex-col items-start gap-1.5 text-sm p-0 pt-2">
-              <Progress value={spastikDystonieProgress} className="w-full" />
-            </CardFooter>
-          )}
-        </CardHeader>
-      </Card>
+    <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+      <GoalCard 
+        title="Total Treatments" 
+        current={totalTreatments} 
+        goal={totalTreatmentsGoal} 
+        showGoal={showGoals} 
+      />
+      <GoalCard 
+        title="With Follow-up" 
+        current={withFollowUp} 
+        goal={withFollowUpGoal} 
+        showGoal={showGoals} 
+      />
+      <GoalCard 
+        title="Indications" 
+        current={indicationsCovered} 
+        goal={indicationsCoveredGoal} 
+        showGoal={showGoals} 
+      />
+      <GoalCard 
+        title="Spastik/Dystonie" 
+        current={spastikDystonie} 
+        goal={spastikDystonieGoal} 
+        showGoal={showGoals} 
+      />
     </div>
   )
 }

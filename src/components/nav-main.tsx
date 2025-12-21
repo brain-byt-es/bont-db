@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { IconCirclePlusFilled, IconUserPlus, IconVaccine, type Icon } from "@tabler/icons-react"
-
+import { usePathname } from "next/navigation"
+import Link from "next/link"
 
 import {
   SidebarGroup,
@@ -31,6 +32,7 @@ export function NavMain({
 }) {
   const [patientDialogOpen, setPatientDialogOpen] = useState(false)
   const [treatmentDialogOpen, setTreatmentDialogOpen] = useState(false)
+  const pathname = usePathname()
 
   return (
     <SidebarGroup>
@@ -65,11 +67,11 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} asChild>
-                 <a href={item.url}>
+              <SidebarMenuButton tooltip={item.title} asChild isActive={pathname === item.url}>
+                 <Link href={item.url}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
-                 </a>
+                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

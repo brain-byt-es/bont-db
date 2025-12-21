@@ -14,6 +14,8 @@ import {
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { Logo } from "@/components/logo"
+import Link from "next/link"
 import {
   Sidebar,
   SidebarContent,
@@ -81,12 +83,11 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
+              className="data-[slot=sidebar-menu-button]:h-auto! p-2! hover:bg-transparent"
             >
-              <a href="/dashboard">
-                <IconInnerShadowTop className="size-5!" />
-                <span className="text-base font-semibold">BoNT-DB</span>
-              </a>
+              <Link href="/dashboard">
+                <Logo />
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

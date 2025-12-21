@@ -1,9 +1,22 @@
 import { createClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
-import { QualificationStats } from "@/components/dashboard/qualification-stats"
+import { QualificationStats, GoalCard } from "@/components/dashboard/qualification-stats"
 import { IndicationBreakdown } from "@/components/dashboard/indication-breakdown"
 import { GuidelinesChecklist } from "@/components/dashboard/guidelines-checklist"
-import { ResearchStats } from "@/components/dashboard/research-stats"
+import { ClinicalActivity } from "@/components/dashboard/clinical-activity"
+import { NextActions } from "@/components/dashboard/next-actions"
+import { DocumentationQuality } from "@/components/dashboard/documentation-quality"
+import { UpsellTeaser } from "@/components/dashboard/upsell-teaser"
+import { StatsCard } from "@/components/stats-card"
+import { getMuscles } from "@/app/(dashboard)/treatments/actions"
+import { format, subDays, isBefore, startOfMonth, parseISO } from "date-fns"
+import { Calendar as CalendarIcon, ChevronDown } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 export default async function Page() {
   const cookieStore = await cookies()
@@ -11,46 +24,119 @@ export default async function Page() {
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    // This should ideally be caught by middleware redirect, but good fallback
     return <div>Please log in</div>
   }
 
-  // Fetch stats
-  const { count: totalTreatmentsCount, error: treatmentsError } = await supabase
-    .from('treatments')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+  // Parallel data fetching for performance
+  const [
+    treatmentsResponse, 
+    followUpsResponse, 
+    spastikInjectionsResponse,
+    musclesList,
+    patientsResponse
+  ] = await Promise.all([
+    supabase
+      .from('treatments')
+      .select('id, treatment_date, indication, patient_id')
+      .eq('user_id', user.id)
+      .order('treatment_date', { ascending: true }),
+    supabase
+      .from('followups')
+      .select('treatment_id, created_at')
+      .eq('user_id', user.id),
+    supabase
+      .from('injections')
+      .select(`
+        id,
+        muscle,
+        treatments!inner(indication, treatment_date),
+        injection_assessments(scale, timepoint)
+      `)
+      .eq('treatments.indication', 'spastik')
+      .eq('user_id', user.id),
+    getMuscles(),
+    supabase
+      .from('treatments') 
+      .select('patient_id', { count: 'exact', head: false })
+      .eq('user_id', user.id)
+  ])
 
-  const { count: followUpsCount, error: followUpsError } = await supabase
-    .from('followups')
-    .select('treatment_id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+  const { data: treatments, error: treatmentsError } = treatmentsResponse
+  const { data: followUps, error: followUpsError } = followUpsResponse
+  const { data: spastikInjections, error: injectionsError } = spastikInjectionsResponse
+  
+  // Calculate distinct patients
+  const patientIds = new Set(patientsResponse.data?.map(t => t.patient_id));
+  const totalPatientsCount = patientIds.size;
 
-  const { data: indicationsData, error: indicationsError } = await supabase
-    .from('treatments')
-    .select('indication')
-    .eq('user_id', user.id)
+  if (treatmentsError || followUpsError || injectionsError) {
+    console.error("Error fetching dashboard data:", treatmentsError || followUpsError || injectionsError)
+    return <div>Error loading dashboard data.</div>
+  }
 
-  const distinctIndications = indicationsData ? [...new Set(indicationsData.map(t => t.indication))] : []
-  const indicationsCoveredCount = distinctIndications.length;
+  // --- Processing Data ---
 
-  const spastikDystonieCount = indicationsData ? indicationsData.filter(
-    t => t.indication === 'spastik' || t.indication === 'dystonie'
-  ).length : 0;
+  // 1. Core Counts
+  const totalTreatmentsCount = treatments?.length || 0
+  const followUpsCount = followUps?.length || 0
+  const followUpIds = new Set(followUps?.map(f => f.treatment_id))
 
-  const { data: spastikInjections } = await supabase
-    .from('injections')
-    .select(`
-      id,
-      treatments!inner(indication),
-      injection_assessments(scale, timepoint)
-    `)
-    .eq('treatments.indication', 'spastik')
-    .eq('user_id', user.id)
+  // 2. Indications
+  const indications = treatments?.map(t => t.indication) || []
+  const distinctIndications = [...new Set(indications)]
+  const indicationsCoveredCount = distinctIndications.length
+  const spastikDystonieCount = indications.filter(i => i === 'spastik' || i === 'dystonie').length
+  
+  const indicationCounts: { [key: string]: number } = {}
+  indications.forEach(i => {
+    indicationCounts[i] = (indicationCounts[i] || 0) + 1
+  })
+  const indicationBreakdownData = Object.entries(indicationCounts).map(([name, value]) => ({ name, value }))
 
+  // 3. Clinical Activity Trend (Treatments per Month)
+  const treatmentsByMonth: { [key: string]: number } = {}
+  treatments?.forEach(t => {
+    if (t.treatment_date) {
+      const date = new Date(t.treatment_date)
+      const key = format(date, 'MMM yyyy') // e.g., "Jan 2024"
+      treatmentsByMonth[key] = (treatmentsByMonth[key] || 0) + 1
+    }
+  })
+  const trendData = Object.entries(treatmentsByMonth).map(([date, count]) => ({ date, count }))
+
+  // 4. Top Muscles (Spastik)
+  const muscleCounts: { [key: string]: number } = {}
+  spastikInjections?.forEach(inj => {
+    if (inj.muscle) {
+      muscleCounts[inj.muscle] = (muscleCounts[inj.muscle] || 0) + 1
+    }
+  })
+  
+  const topMuscles = Object.entries(muscleCounts)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([id, count]) => {
+      const muscleDef = musclesList.find(m => m.id === id)
+      return {
+        name: muscleDef ? muscleDef.name : id, // Fallback to ID if name not found
+        count
+      }
+    })
+
+  // 5. Documentation Quality
+  // Overall Follow-up Rate
+  const followUpRate = totalTreatmentsCount ? (followUpsCount / totalTreatmentsCount) * 100 : 0
+
+  // Recent Follow-up Rate (Last 90 Days)
+  const ninetyDaysAgo = subDays(new Date(), 90)
+  const recentTreatments = treatments?.filter(t => new Date(t.treatment_date) >= ninetyDaysAgo) || []
+  const recentFollowUps = recentTreatments.filter(t => followUpIds.has(t.id)).length
+  const recentFollowUpRate = recentTreatments.length ? (recentFollowUps / recentTreatments.length) * 100 : 0
+
+  // MAS stats
   let masBaselineCount = 0
   let masPeakCount = 0
-  const totalSpastikInjections = spastikInjections?.length || 0
+  const totalSpastikInjectionsCount = spastikInjections?.length || 0
 
   if (spastikInjections) {
     spastikInjections.forEach(inj => {
@@ -59,77 +145,173 @@ export default async function Page() {
       if (assessments.some((a: any) => a.scale === 'MAS' && a.timepoint === 'peak_effect')) masPeakCount++
     })
   }
+  const masBaselineRate = totalSpastikInjectionsCount ? (masBaselineCount / totalSpastikInjectionsCount) * 100 : 0
+  const masPeakRate = totalSpastikInjectionsCount ? (masPeakCount / totalSpastikInjectionsCount) * 100 : 0
 
-  const followUpRate = totalTreatmentsCount ? (followUpsCount || 0) / totalTreatmentsCount * 100 : 0
-  const masBaselineRate = totalSpastikInjections ? masBaselineCount / totalSpastikInjections * 100 : 0
-  const masPeakRate = totalSpastikInjections ? masPeakCount / totalSpastikInjections * 100 : 0
+  // 6. Next Actions
+  const actions: { id: string, label: string, count: number, href: string, type: 'warning' | 'info' | 'success' }[] = []
 
-  // Indication Breakdown data
-  const indicationCounts: { [key: string]: number } = {}
-  if (indicationsData) {
-    indicationsData.forEach(t => {
-      indicationCounts[t.indication] = (indicationCounts[t.indication] || 0) + 1
+  // Action: Missing Follow-ups (Treatments older than 28 days with no follow-up)
+  const twentyEightDaysAgo = subDays(new Date(), 28)
+  const overdueFollowUps = treatments?.filter(t => 
+    new Date(t.treatment_date) < twentyEightDaysAgo && 
+    !followUpIds.has(t.id)
+  ).length || 0
+
+  if (overdueFollowUps > 0) {
+    actions.push({
+      id: 'missing-followups',
+      label: 'treatments overdue for follow-up',
+      count: overdueFollowUps,
+      href: '/treatments?filter=missing-followup', // Hypothetical filter
+      type: 'warning'
     })
   }
-  const indicationBreakdownData = Object.entries(indicationCounts).map(([name, value]) => ({ name, value }))
 
+  // Action: Missing Baseline Assessments (Recent Spastik injections without baseline)
+  // Logic: check recent spastik injections for missing baseline
+  const missingBaselineCount = spastikInjections?.filter(inj => {
+    const assessments = inj.injection_assessments || []
+    return !assessments.some((a: any) => a.scale === 'MAS' && a.timepoint === 'baseline')
+  }).length || 0
+  
+  // Just show general alert if significant number
+  if (missingBaselineCount > 0) {
+     actions.push({
+      id: 'missing-baseline',
+      label: 'injections missing MAS baseline',
+      count: missingBaselineCount,
+      href: '/treatments?indication=spastik',
+      type: 'info'
+    })
+  }
 
-  // Goals (hardcoded for now)
+  // Goals
   const goals = {
     totalTreatmentsGoal: 100,
     withFollowUpGoal: 50,
-    indicationsCoveredGoal: 2, // User specified 2 distinct areas
+    indicationsCoveredGoal: 2,
     spastikDystonieGoal: 25,
   }
-
-  const enableCompliance = user.user_metadata?.enable_compliance_views || false
-
-  if (treatmentsError || followUpsError || indicationsError) {
-    console.error("Error fetching dashboard data:", treatmentsError || followUpsError || indicationsError)
-    return <div>Error loading dashboard data.</div>
-  }
+  const enableCompliance = user.user_metadata?.enable_compliance_views || false // This controls DEFAULT open state now
 
   return (
-    <div className="@container/main flex flex-1 flex-col gap-4 pt-6">
-      <div className="flex flex-col gap-2 px-4 lg:px-6">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Qualification Progress Tracker</p>
+    <div className="@container/main flex flex-1 flex-col gap-6 pt-6 pb-8">
+      
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 lg:px-6">
+        <div className="flex flex-col gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">Clinical Activity & Progress</p>
+        </div>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" className="h-9 gap-2 text-sm font-normal">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <span>Last 90 Days</span>
+                <ChevronDown className="h-3 w-3 opacity-50" />
+            </Button>
+        </div>
       </div>
       
-      <QualificationStats
-        totalTreatments={totalTreatmentsCount || 0}
-        totalTreatmentsGoal={goals.totalTreatmentsGoal}
-        withFollowUp={followUpsCount || 0}
-        withFollowUpGoal={goals.withFollowUpGoal}
-        indicationsCovered={indicationsCoveredCount}
-        indicationsCoveredGoal={goals.indicationsCoveredGoal}
-        spastikDystonie={spastikDystonieCount}
-        spastikDystonieGoal={goals.spastikDystonieGoal}
-        showGoals={enableCompliance}
-      />
-      
-      <div className="flex flex-col gap-2 px-4 lg:px-6 mt-4">
-        <h2 className="text-lg font-semibold tracking-tight">Research Quality KPIs</h2>
+      {/* 1. Overview Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-4 lg:px-6">
+         <StatsCard 
+            title="Total Patients" 
+            value={totalPatientsCount} 
+            subtext="Distinct patients treated"
+         />
+         <StatsCard 
+            title="Total Treatments" 
+            value={totalTreatmentsCount} 
+            subtext="All records logged"
+         />
+         <StatsCard 
+            title="Follow-up Rate (90d)" 
+            value={`${Math.round(recentFollowUpRate)}%`}
+            subtext="Treatments in last 3 months"
+         />
       </div>
-      <ResearchStats 
-        followUpRate={followUpRate}
-        masBaselineRate={masBaselineRate}
-        masPeakRate={masPeakRate}
-      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 lg:px-6 mt-4">
-        <IndicationBreakdown data={indicationBreakdownData} />
-        {enableCompliance && (
-          <GuidelinesChecklist
-            totalTreatments={totalTreatmentsCount || 0}
-            totalTreatmentsGoal={goals.totalTreatmentsGoal}
-            withFollowUp={followUpsCount || 0}
-            withFollowUpGoal={goals.withFollowUpGoal}
-            spastikDystonie={spastikDystonieCount}
-            spastikDystonieGoal={goals.spastikDystonieGoal}
-          />
-        )}
+      {/* 2. Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-4 lg:px-6">
+        
+        {/* Left Column (2/3) - Charts */}
+        <div className="lg:col-span-2 space-y-6">
+            <ClinicalActivity 
+              trendData={trendData} 
+              topMuscles={topMuscles} 
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <IndicationBreakdown data={indicationBreakdownData} />
+                 {/* Top Muscles could go here if spastik dominates, or Upsell */}
+            </div>
+        </div>
+
+        {/* Right Column (1/3) - Actions & Readiness */}
+        <div className="space-y-6">
+            <NextActions actions={actions} />
+            <DocumentationQuality 
+                followUpRateOverall={followUpRate}
+                followUpRateRecent={recentFollowUpRate}
+                masBaselineRate={masBaselineRate}
+                masPeakRate={masPeakRate}
+            />
+        </div>
       </div>
+
+      {/* Upsell Teaser - Full Width */}
+      <div className="px-4 lg:px-6 mt-6">
+         <UpsellTeaser />
+      </div>
+
+      {/* 3. Qualification & Compliance Subsection */}
+      <div className="px-4 lg:px-6 mt-4">
+        <Collapsible defaultOpen={enableCompliance} className="space-y-2">
+            <div className="flex items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
+                <div className="flex flex-col gap-1">
+                    <h3 className="font-semibold leading-none tracking-tight">Qualification & Compliance</h3>
+                    <p className="text-sm text-muted-foreground">Certification requirements and guidelines.</p>
+                </div>
+                <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="w-9 p-0">
+                        <ChevronDown className="h-4 w-4" />
+                        <span className="sr-only">Toggle</span>
+                    </Button>
+                </CollapsibleTrigger>
+            </div>
+            <CollapsibleContent className="space-y-4 pt-2">
+                <div className="rounded-lg border bg-card p-6 shadow-sm space-y-6">
+                    <QualificationStats
+                        totalTreatments={totalTreatmentsCount}
+                        totalTreatmentsGoal={goals.totalTreatmentsGoal}
+                        withFollowUp={followUpsCount}
+                        withFollowUpGoal={goals.withFollowUpGoal}
+                        indicationsCovered={indicationsCoveredCount}
+                        indicationsCoveredGoal={goals.indicationsCoveredGoal}
+                        spastikDystonie={spastikDystonieCount}
+                        spastikDystonieGoal={goals.spastikDystonieGoal}
+                        showGoals={true}
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <GuidelinesChecklist
+                            totalTreatments={totalTreatmentsCount}
+                            totalTreatmentsGoal={goals.totalTreatmentsGoal}
+                            withFollowUp={followUpsCount}
+                            withFollowUpGoal={goals.withFollowUpGoal}
+                            spastikDystonie={spastikDystonieCount}
+                            spastikDystonieGoal={goals.spastikDystonieGoal}
+                        />
+                         {/* Placeholder for explanation or other content if needed */}
+                         <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
+                            <h4 className="font-medium text-foreground mb-2">Why this matters?</h4>
+                            <p>To achieve full qualification, you need to demonstrate a broad range of treatments and consistent follow-up documentation. Use the filtered lists to identify gaps.</p>
+                         </div>
+                    </div>
+                </div>
+            </CollapsibleContent>
+        </Collapsible>
+      </div>
+
     </div>
   )
 }

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table"
 import { TreatmentDialog } from "@/components/treatment-create-dialog"
 import { Badge } from "@/components/ui/badge"
+import { getMuscles } from "@/app/(dashboard)/treatments/actions"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -39,7 +40,7 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
   // Fetch injections for this treatment with assessments
   const { data: injections } = await supabase
     .from('injections')
-    .select('*, muscles:muscle(name), injection_assessments(*)')
+    .select('*, injection_assessments(*)')
     .eq('treatment_id', id)
 
   // Fetch global assessments
@@ -47,6 +48,9 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
     .from('assessments')
     .select('*')
     .eq('treatment_id', id)
+
+  // Fetch muscles list for manual mapping
+  const musclesList = await getMuscles()
 
   const indicationLabels: Record<string, string> = {
     kopfschmerz: "Headache",
@@ -191,9 +195,12 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
                 {(injections || []).map((inj: any) => {
                    const masBase = getMasScore(inj.injection_assessments, 'baseline');
                    const masPeak = getMasScore(inj.injection_assessments, 'peak_effect');
+                   // Manual muscle name lookup
+                   const muscleName = musclesList.find((m: any) => m.id === inj.muscle)?.name || inj.muscle;
+                   
                    return (
                       <TableRow key={inj.id}>
-                        <TableCell>{inj.muscles?.name || inj.muscle}</TableCell>
+                        <TableCell>{muscleName}</TableCell>
                         <TableCell>
                           {inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : inj.side}
                         </TableCell>

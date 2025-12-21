@@ -60,7 +60,26 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
   const effect_notes = notes || ""
   const ae_notes = 'keine' // Default from schema
   const dilution = 'N/A' // Placeholder, should be added to form if needed
-  const regions: string[] = [] // Placeholder, should be added to form if needed
+  
+  // Derive regions from selected muscles
+  let regions: string[] = []
+  if (steps && Array.isArray(steps) && steps.length > 0) {
+    const muscleIds = [...new Set(steps.map(s => s.muscle_id).filter(Boolean))]
+    
+    if (muscleIds.length > 0) {
+        const { data: muscleData } = await supabase
+            .from('muscles')
+            .select('region_id, muscle_regions(name)')
+            .in('id', muscleIds)
+        
+        if (muscleData) {
+            const regionNames = muscleData
+                .map((m: any) => m.muscle_regions?.name)
+                .filter(Boolean)
+            regions = [...new Set(regionNames)]
+        }
+    }
+  }
 
   let total_units = 0
   if (steps && Array.isArray(steps)) {
@@ -251,7 +270,11 @@ export async function getLatestTreatment(patientId: string) {
         .from('treatments')
         .select(`
             *,
-            injections (*)
+            injections (
+                *,
+                injection_assessments (*)
+            ),
+            assessments (*)
         `)
         .eq('patient_id', patientId)
         .order('created_at', { ascending: false })

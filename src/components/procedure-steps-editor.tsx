@@ -19,6 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from "@/components/ui/card"
 import { MuscleSelector, Muscle, MuscleRegion } from "@/components/muscle-selector"
 
 export interface ProcedureStep {
@@ -70,130 +77,137 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Injection Sites</h3>
-        <Button onClick={addStep} variant="outline" size="sm" type="button">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="space-y-1">
+          <CardTitle>Injection Sites</CardTitle>
+          <CardDescription>
+             Define target muscles and dosage.
+          </CardDescription>
+        </div>
+        <Button onClick={addStep} size="sm" type="button">
           <Plus className="mr-2 size-4" />
           Add Site
         </Button>
-      </div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Target Structure</TableHead>
-              <TableHead className="w-[150px]">Side</TableHead>
-              <TableHead className="w-[120px]">Units</TableHead>
-              <TableHead className="w-[100px]">MAS Base</TableHead>
-              <TableHead className="w-[100px]">MAS Peak</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {steps.length === 0 ? (
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
-                  No injection sites added.
-                </TableCell>
+                <TableHead>Target Structure</TableHead>
+                <TableHead className="w-[150px]">Side</TableHead>
+                <TableHead className="w-[120px]">Units</TableHead>
+                <TableHead className="w-[100px]">MAS Base</TableHead>
+                <TableHead className="w-[100px]">MAS Peak</TableHead>
+                <TableHead className="w-[100px]"></TableHead>
               </TableRow>
-            ) : (
-              steps.map((step) => (
-                <TableRow key={step.id}>
-                  <TableCell>
-                    <MuscleSelector 
-                        value={step.muscle_id}
-                        onSelect={(val) => updateStep(step.id, "muscle_id", val)}
-                        muscles={muscles}
-                        regions={regions}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={step.side}
-                      onValueChange={(value) => updateStep(step.id, "side", value as ProcedureStep["side"])}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Left">Left</SelectItem>
-                        <SelectItem value="Right">Right</SelectItem>
-                        <SelectItem value="Bilateral">Bilateral</SelectItem>
-                        <SelectItem value="Midline">Midline</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      value={step.numeric_value}
-                      onChange={(e) => updateStep(step.id, "numeric_value", parseFloat(e.target.value))}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={step.mas_baseline || ""}
-                      onValueChange={(value) => updateStep(step.id, "mas_baseline", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="-" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">0</SelectItem>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="1+">1+</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                        <SelectItem value="4">4</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={step.mas_peak || ""}
-                      onValueChange={(value) => updateStep(step.id, "mas_peak", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="-" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">0</SelectItem>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="1+">1+</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                        <SelectItem value="4">4</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                        <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => duplicateStep(step)}
-                        type="button"
-                        title="Duplicate row"
-                        >
-                        <Copy className="size-4" />
-                        </Button>
-                        <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeStep(step.id)}
-                        type="button"
-                        >
-                        <Trash2 className="size-4 text-destructive" />
-                        </Button>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {steps.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    No injection sites added.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+              ) : (
+                steps.map((step) => (
+                  <TableRow key={step.id}>
+                    <TableCell>
+                      <MuscleSelector 
+                          value={step.muscle_id}
+                          onSelect={(val) => updateStep(step.id, "muscle_id", val)}
+                          muscles={muscles}
+                          regions={regions}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={step.side}
+                        onValueChange={(value) => updateStep(step.id, "side", value as ProcedureStep["side"])}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Left">Left</SelectItem>
+                          <SelectItem value="Right">Right</SelectItem>
+                          <SelectItem value="Bilateral">Bilateral</SelectItem>
+                          <SelectItem value="Midline">Midline</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={step.numeric_value}
+                        onChange={(e) => updateStep(step.id, "numeric_value", parseFloat(e.target.value))}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={step.mas_baseline || ""}
+                        onValueChange={(value) => updateStep(step.id, "mas_baseline", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="-" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">0</SelectItem>
+                          <SelectItem value="1">1</SelectItem>
+                          <SelectItem value="1+">1+</SelectItem>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
+                          <SelectItem value="4">4</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={step.mas_peak || ""}
+                        onValueChange={(value) => updateStep(step.id, "mas_peak", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="-" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">0</SelectItem>
+                          <SelectItem value="1">1</SelectItem>
+                          <SelectItem value="1+">1+</SelectItem>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
+                          <SelectItem value="4">4</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                          <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => duplicateStep(step)}
+                          type="button"
+                          title="Duplicate row"
+                          >
+                          <Copy className="size-4" />
+                          </Button>
+                          <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeStep(step.id)}
+                          type="button"
+                          >
+                          <Trash2 className="size-4 text-destructive" />
+                          </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

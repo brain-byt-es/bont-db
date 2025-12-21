@@ -1,6 +1,6 @@
 "use client"
 
-import { useTransition } from "react"
+import { useTransition, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/dialog"
 import { updatePatient } from "@/app/(dashboard)/patients/update-action"
 import { toast } from "sonner"
+import { PiiWarningDialog } from "@/components/pii-warning-dialog"
+import { validatePII } from "@/lib/pii-validation"
+import { AlertTriangle } from "lucide-react"
 
 export interface PatientEditDialogProps {
   patient: {
@@ -25,13 +28,19 @@ export interface PatientEditDialogProps {
   }
   open: boolean
   onOpenChange: (open: boolean) => void
-  children?: React.ReactNode // To act as trigger if needed, or controlled externally
+  children?: React.ReactNode 
 }
 
 export function PatientEditDialog({ patient, open, onOpenChange, children }: PatientEditDialogProps) {
   const [isPending, startTransition] = useTransition()
+  const [notesValue, setNotesValue] = useState(patient.notes || "")
+  const [showPiiWarning, setShowPiiWarning] = useState(false)
+  const [piiDetected, setPiiDetected] = useState<string[]>([])
+  const [pendingFormData, setPendingFormData] = useState<FormData | null>(null)
 
-  async function handleSubmit(formData: FormData) {
+  const piiResult = validatePII(notesValue)
+
+  async function processSubmission(formData: FormData) {
     startTransition(async () => {
       try {
         await updatePatient(patient.id, formData)
@@ -43,7 +52,40 @@ export function PatientEditDialog({ patient, open, onOpenChange, children }: Pat
     })
   }
 
+  const onFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+    const notes = formData.get("notes") as string
+    
+    const validation = validatePII(notes)
+    
+    if (validation.isCritical) {
+      setPiiDetected(validation.detected)
+      setPendingFormData(formData)
+      setShowPiiWarning(true)
+      return
+    }
+
+    processSubmission(formData)
+  }
+
+  const handlePiiConfirm = () => {
+    setShowPiiWarning(false)
+    if (pendingFormData) {
+      processSubmission(pendingFormData)
+      setPendingFormData(null)
+    }
+  }
+
   return (
+    <>
+    <PiiWarningDialog 
+      open={showPiiWarning} 
+      onOpenChange={setShowPiiWarning}
+      detectedTypes={piiDetected}
+      onConfirm={handlePiiConfirm}
+      onCancel={() => setShowPiiWarning(false)}
+    />
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children}
       <DialogContent className="sm:max-w-[425px]">
@@ -53,7 +95,7 @@ export function PatientEditDialog({ patient, open, onOpenChange, children }: Pat
             Update patient details.
           </DialogDescription>
         </DialogHeader>
-        <form action={handleSubmit}>
+        <form onSubmit={onFormSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="patient_code" className="text-right">
@@ -84,12 +126,20 @@ export function PatientEditDialog({ patient, open, onOpenChange, children }: Pat
               <Label htmlFor="notes" className="text-right">
                 Notes
               </Label>
-              <Textarea 
-                id="notes" 
-                name="notes" 
-                defaultValue={patient.notes || ""} 
-                className="col-span-3" 
-              />
+              <div className="col-span-3 space-y-2">
+                <Textarea 
+                  id="notes" 
+                  name="notes" 
+                  value={notesValue}
+                  onChange={(e) => setNotesValue(e.target.value)}
+                />
+                {piiResult.score > 0 && (
+                  <div className="text-xs text-yellow-600 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      <span>Possible PII: {piiResult.detected.join(", ")}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -100,5 +150,6 @@ export function PatientEditDialog({ patient, open, onOpenChange, children }: Pat
         </form>
       </DialogContent>
     </Dialog>
+    </>
   )
 }
