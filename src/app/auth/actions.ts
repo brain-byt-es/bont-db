@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { cookies, headers } from 'next/headers'
+import { cookies } from 'next/headers'
 
 import { createClient } from '@/lib/supabase/server'
 
@@ -22,6 +22,34 @@ export async function signInWithLinkedIn() {
 
   if (error) {
     console.error('LinkedIn sign in error:', error)
+    return redirect(`/login?message=${encodeURIComponent(error.message)}`)
+  }
+
+  if (data.url) {
+    redirect(data.url)
+  }
+}
+
+export async function signInWithGoogle() {
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
+  
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const redirectTo = `${siteUrl}/auth/callback`
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      },
+    },
+  })
+
+  if (error) {
+    console.error('Google sign in error:', error)
     return redirect(`/login?message=${encodeURIComponent(error.message)}`)
   }
 
