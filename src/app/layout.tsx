@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "InjexPro | Docs",
+  title: "InjexPro | Docu",
   description: "Clinical database for botulinum toxin treatments, powered by InjexPro",
 };
 

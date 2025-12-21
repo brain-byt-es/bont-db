@@ -2,9 +2,31 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 
 import { createClient } from '@/lib/supabase/server'
+
+export async function signInWithLinkedIn() {
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
+  const origin = (await headers()).get('origin')
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'linkedin_oidc',
+    options: {
+      redirectTo: `${origin}/auth/callback`,
+    },
+  })
+
+  if (error) {
+    console.error('LinkedIn sign in error:', error)
+    return redirect(`/login?message=${encodeURIComponent(error.message)}`)
+  }
+
+  if (data.url) {
+    redirect(data.url)
+  }
+}
 
 export async function login(formData: FormData) {
   const cookieStore = await cookies()
