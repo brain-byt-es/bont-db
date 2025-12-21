@@ -27,6 +27,7 @@ export function Logo({ className }: { className?: string }) {
       <span className="text-2xl">
         <span className="font-normal">Injex</span>
         <span className="font-bold">Pro</span>
+        <span className="font-normal"> | Docu</span>
       </span>
     </div>
   )

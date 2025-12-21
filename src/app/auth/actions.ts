@@ -34,9 +34,14 @@ export async function signup(formData: FormData) {
   const password = formData.get('password') as string
   const confirmPassword = formData.get('confirm-password') as string
   const fullName = formData.get('name') as string
+  const terms = formData.get('terms')
 
   if (password !== confirmPassword) {
     return redirect('/signup?message=Passwords do not match')
+  }
+
+  if (!terms) {
+    return redirect('/signup?message=You must accept the Terms and Privacy Policy')
   }
 
   const { error } = await supabase.auth.signUp({

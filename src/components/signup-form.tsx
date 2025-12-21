@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Field,
   FieldDescription,
@@ -55,6 +56,15 @@ export function SignupForm({
           <Input id="confirm-password" name="confirm-password" type="password" required />
           <FieldDescription>Please confirm your password.</FieldDescription>
         </Field>
+        <div className="flex items-start space-x-2">
+          <Checkbox id="terms" name="terms" required />
+          <label
+            htmlFor="terms"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 pt-1"
+          >
+            I accept the <a href="/terms" className="underline hover:text-primary">Terms of Service</a> and <a href="/privacy" className="underline hover:text-primary">Privacy Policy</a>
+          </label>
+        </div>
         <Field>
           <Button type="submit">Create Account</Button>
         </Field>
