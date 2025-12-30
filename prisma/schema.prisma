@@ -39,23 +39,42 @@ enum EncounterStatus { DRAFT SIGNED VOID }
 
 enum Timepoint { baseline peak_effect reinjection followup other }
 
+enum AuthProvider { azure_ad google linkedin }
+
 /* =========================
    Global Users (Entra)
    ========================= */
 
 model User {
   id              String @id @default(uuid()) @db.Uuid
-  entraUserId     String @unique
+  entraUserId     String? @unique
   email           String
   displayName     String
   profilePhotoUrl String?
 
+  identities UserIdentity[]
+  memberships     OrganizationMembership[]
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  memberships     OrganizationMembership[]
-
   @@index([email])
+}
+
+model UserIdentity {
+  id              String @id @default(uuid()) @db.Uuid
+
+  userId          String @db.Uuid
+  user            User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider        AuthProvider
+  providerSubject String
+
+  emailAtAuth     String?
+  createdAt       DateTime @default(now())
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
 }
 
 /* =========================

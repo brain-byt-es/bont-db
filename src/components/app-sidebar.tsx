@@ -29,7 +29,7 @@ import {
 const defaultUser = {
   name: "User",
   email: "user@example.com",
-  avatar: "/avatars/shadcn.jpg",
+  avatar: "",
 }
 
 const data = {

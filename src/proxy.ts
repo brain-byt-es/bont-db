@@ -1,8 +1,30 @@
-import { type NextRequest } from 'next/server'
-import { updateSession } from '@/lib/supabase/middleware'
+import { NextResponse, type NextRequest } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 
 export async function proxy(request: NextRequest) {
-  return await updateSession(request)
+  const { pathname } = request.nextUrl
+
+  // Allow public paths
+  if (
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/api/auth')
+  ) {
+    return NextResponse.next()
+  }
+
+  // Check for session
+  const token = await getToken({ req: request })
+
+  if (!token) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    // Optional: Add callbackUrl to redirect back after login
+    url.searchParams.set('callbackUrl', request.nextUrl.href)
+    return NextResponse.redirect(url)
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {

@@ -4,22 +4,25 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { createClient } from "@/lib/supabase/server"
-import { cookies } from "next/headers"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { redirect } from "next/navigation"
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
-  const { data: { user } } = await supabase.auth.getUser()
+  const session = await getServerSession(authOptions)
+  
+  if (!session) {
+    redirect("/login")
+  }
 
-  const appUser = user ? {
-    name: user.user_metadata?.full_name || "User",
-    email: user.email || "",
-    avatar: user.user_metadata?.avatar_url || "/avatars/shadcn.jpg",
+  const appUser = session.user ? {
+    name: session.user.name || "User",
+    email: session.user.email || "",
+    avatar: session.user.image || "",
   } : undefined
 
   return (

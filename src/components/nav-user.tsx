@@ -8,6 +8,7 @@ import {
   IconUserCircle,
 } from "@tabler/icons-react"
 import { useState } from "react"
+import { signOut } from "next-auth/react"
 
 import {
   Avatar,
@@ -29,7 +30,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { logout } from "@/app/auth/actions"
 import { AccountDialog } from "@/components/account-dialog"
 import { BillingDialog } from "@/components/billing-dialog"
 
@@ -99,13 +99,9 @@ export function NavUser({
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                  <form action={logout} className="w-full cursor-pointer">
-                      <button type="submit" className="flex w-full items-center">
-                          <IconLogout className="mr-2 size-4" />
-                          Log out
-                      </button>
-                  </form>
+              <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })} className="cursor-pointer">
+                <IconLogout className="mr-2 size-4" />
+                Log out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
