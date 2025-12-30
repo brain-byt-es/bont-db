@@ -43,7 +43,7 @@ export const authOptions: AuthOptions = {
         params: { scope: "openid profile email" },
       },
       jwks_endpoint: "https://www.linkedin.com/oauth/openid/jwks",
-      profile(profile, tokens) {
+      profile(profile) {
         const defaultImage =
           "https://cdn-icons-png.flaticon.com/512/174/174857.png"
         return {
@@ -59,6 +59,7 @@ export const authOptions: AuthOptions = {
     async jwt({ token, profile, account }) {
       // 1. Initial Mapping (Standard)
       if (profile) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const p = profile as any
         token.entraUserId = p.oid || p.sub
         token.email = p.email || p.preferred_username
@@ -79,6 +80,7 @@ export const authOptions: AuthOptions = {
           else if (provider === 'linkedin') authProvider = 'linkedin'
 
           if (authProvider) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const p = profile as any
             const providerSubject = (authProvider === 'azure_ad') 
               ? (p.oid || p.sub) 
@@ -88,7 +90,7 @@ export const authOptions: AuthOptions = {
 
             if (providerSubject && email) {
               // a) Lookup UserIdentity
-              let identity = await prisma.userIdentity.findUnique({
+              const identity = await prisma.userIdentity.findUnique({
                 where: {
                   provider_providerSubject: {
                     provider: authProvider,
@@ -98,7 +100,7 @@ export const authOptions: AuthOptions = {
                 include: { user: true }
               })
 
-              let user = identity?.user
+              let user = identity?.user ?? null
 
               // b) If not found, try finding User by email
               if (!user) {

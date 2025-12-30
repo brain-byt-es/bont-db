@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { QualificationStats } from "@/components/dashboard/qualification-stats"
