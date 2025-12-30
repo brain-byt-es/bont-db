@@ -1,0 +1,510 @@
+// prisma/schema.prisma
+// Canonical v1 FINAL — Azure Postgres + Prisma (with operational hardening)
+// - Multi-schema: public + phi
+// - PatientIdentifier stored in schema "phi" (PHI isolation)
+// - Organization.timezone mandatory with default "UTC"
+// - Injection denormalizes organizationId (org-match enforced via composite FK SQL migration)
+// Notes:
+// - Composite FK constraints + GRANTS/immutability are applied via SQL migration pack.
+// - App-layer gates still required (date-only validation, email normalization, invite atomic accept).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+  schemas  = ["public", "phi"]
+}
+
+/* =========================
+   Enums
+   ========================= */
+
+enum Region { EU US }
+
+enum OrganizationStatus { ACTIVE SUSPENDED CLOSED }
+
+enum MembershipRole { OWNER CLINIC_ADMIN PROVIDER ASSISTANT READONLY }
+
+enum MembershipStatus { ACTIVE INVITED DISABLED }
+
+enum PatientStatus { ACTIVE INACTIVE ARCHIVED }
+
+enum BodySide { L R B }
+
+enum EncounterStatus { DRAFT SIGNED VOID }
+
+enum Timepoint { baseline peak_effect reinjection followup other }
+
+/* =========================
+   Global Users (Entra)
+   ========================= */
+
+model User {
+  id              String @id @default(uuid()) @db.Uuid
+  entraUserId     String @unique
+  email           String
+  displayName     String
+  profilePhotoUrl String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  memberships     OrganizationMembership[]
+
+  @@index([email])
+}
+
+/* =========================
+   Organizations + Memberships
+   ========================= */
+
+model Organization {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String
+  region    Region
+  status    OrganizationStatus @default(ACTIVE)
+
+  timezone  String @default("UTC")
+
+  billingExternalId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships OrganizationMembership[]
+  invites     OrganizationInvite[]
+  patients    Patient[]
+  encounters  Encounter[]
+  products    Product[]
+  lots        InventoryLot[]
+  auditLogs   AuditLog[]
+
+  @@index([region])
+  @@index([status])
+}
+
+model OrganizationMembership {
+  id             String @id @default(uuid()) @db.Uuid
+
+  organizationId String @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  userId         String @db.Uuid
+  user           User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  role           MembershipRole
+  status         MembershipStatus @default(INVITED)
+
+  mfaEnforced    Boolean @default(true)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  createdEncounters  Encounter[] @relation("EncounterCreatedByMembership")
+  providerEncounters Encounter[] @relation("EncounterProviderMembership")
+  createdInvites     OrganizationInvite[] @relation("InviteCreatedByMembership")
+  auditLogs          AuditLog[]
+
+  @@unique([organizationId, userId])
+  @@unique([organizationId, id]) // technical: enables composite FK targets
+  @@index([organizationId, role])
+  @@index([organizationId, status])
+}
+
+/* =========================
+   Invitations (v1)
+   ========================= */
+
+model OrganizationInvite {
+  id                    String @id @default(uuid()) @db.Uuid
+
+  organizationId        String @db.Uuid
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  email                 String // app stores lowercase+trim
+  role                  MembershipRole
+
+  tokenHash             String // store only hash
+  expiresAt             DateTime @db.Timestamptz(6)
+
+  createdByMembershipId String @db.Uuid
+  createdByMembership   OrganizationMembership @relation("InviteCreatedByMembership", fields: [createdByMembershipId], references: [id], onDelete: Restrict)
+
+  acceptedAt            DateTime? @db.Timestamptz(6)
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([organizationId, email])
+  @@unique([tokenHash])
+  @@index([expiresAt])
+}
+
+/* =========================
+   Patients (pseudonymous) + Identifiers (PHI)
+   ========================= */
+
+model Patient {
+  id             String @id @default(uuid()) @db.Uuid
+
+  organizationId String @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  status         PatientStatus @default(ACTIVE)
+
+  systemLabel    String?
+  notes          String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  identifiers    PatientIdentifier?
+  encounters     Encounter[]
+
+  @@unique([organizationId, systemLabel]) // multiple NULLs ok
+  @@unique([organizationId, id])          // technical: enables composite FK targets
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+}
+
+model PatientIdentifier {
+  patientId      String @id @db.Uuid
+  patient        Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  organizationId String @db.Uuid
+  ehrPatientId   String
+  dateOfBirth    DateTime? @db.Date
+  birthYear      Int?
+  sourceSystem   String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, ehrPatientId])
+  @@index([organizationId, birthYear])
+  @@index([organizationId, dateOfBirth])
+
+  @@schema("phi")
+}
+
+/* =========================
+   Clinical root: Encounter (= Treatment)
+   ========================= */
+
+model Encounter {
+  id                    String @id @default(uuid()) @db.Uuid
+
+  organizationId        String @db.Uuid
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  patientId             String @db.Uuid
+  patient               Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
+
+  createdByMembershipId String @db.Uuid
+  createdByMembership   OrganizationMembership @relation("EncounterCreatedByMembership", fields: [createdByMembershipId], references: [id], onDelete: Restrict)
+
+  providerMembershipId  String @db.Uuid
+  providerMembership    OrganizationMembership @relation("EncounterProviderMembership", fields: [providerMembershipId], references: [id], onDelete: Restrict)
+
+  encounterAt           DateTime @db.Timestamptz(6)
+  encounterLocalDate    DateTime @db.Date
+
+  status                EncounterStatus @default(DRAFT)
+
+  treatmentSite         String
+  indication            String
+
+  productId             String? @db.Uuid
+  product               Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  dilutionText          String
+  dilutionUnitsPerMl    Decimal? @db.Numeric(12, 4)
+  totalUnits            Decimal @db.Numeric(10, 2)
+
+  effectNotes           String?
+  adverseEventNotes     String?
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  injections            Injection[]
+  assessments           Assessment[]
+  followups             Followup[]
+  diagnoses             EncounterDiagnosis[]
+  regions               EncounterRegion[]
+
+  @@unique([organizationId, id]) // technical: enables composite FK targets
+  @@index([organizationId, encounterLocalDate])
+  @@index([organizationId, encounterAt])
+  @@index([organizationId, patientId, encounterAt])
+  @@index([organizationId, providerMembershipId, encounterAt])
+  @@index([organizationId, status])
+  @@index([organizationId, createdByMembershipId, encounterAt]) // recommended
+}
+
+/* =========================
+   Derived: Injections (denormalized orgId)
+   ========================= */
+
+model Injection {
+  id             String @id @default(uuid()) @db.Uuid
+
+  organizationId String @db.Uuid
+  encounterId    String @db.Uuid
+  encounter      Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  muscleId       String? @db.Uuid
+  muscle         Muscle? @relation(fields: [muscleId], references: [id], onDelete: SetNull)
+
+  side           BodySide @default(B)
+  units          Decimal @db.Numeric(10, 2)
+  volumeMl       Decimal? @db.Numeric(10, 3)
+
+  notes          String?
+
+  lotId          String? @db.Uuid
+  lot            InventoryLot? @relation(fields: [lotId], references: [id], onDelete: SetNull)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  injectionAssessments InjectionAssessment[]
+
+  @@index([organizationId, encounterId])
+  @@index([encounterId])
+  @@index([muscleId])
+  @@index([lotId])
+}
+
+/* =========================
+   Derived: Assessments
+   ========================= */
+
+model Assessment {
+  id          String @id @default(uuid()) @db.Uuid
+
+  encounterId String @db.Uuid
+  encounter   Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  timepoint   Timepoint @default(other)
+  assessedAt  DateTime @db.Date
+
+  scale       String
+  valueNum    Decimal? @db.Numeric(12, 4)
+  valueText   String?
+  unit        String?
+  notes       String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([encounterId, assessedAt])
+  @@index([encounterId, timepoint])
+  @@index([scale])
+}
+
+model InjectionAssessment {
+  id          String @id @default(uuid()) @db.Uuid
+
+  injectionId String @db.Uuid
+  injection   Injection @relation(fields: [injectionId], references: [id], onDelete: Cascade)
+
+  timepoint   Timepoint
+  scale       String
+
+  valueText   String
+  valueNum    Decimal? @db.Numeric(12, 4)
+  notes       String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([injectionId, timepoint])
+  @@index([scale])
+}
+
+model Followup {
+  id                String @id @default(uuid()) @db.Uuid
+
+  encounterId       String @db.Uuid
+  encounter         Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  followupDate      DateTime @db.Date
+  outcome           String?
+  assessmentNotes   String?
+  adverseEventNotes String?
+
+  createdAt         DateTime @default(now())
+
+  @@index([encounterId, followupDate])
+}
+
+model EncounterRegion {
+  id          String @id @default(uuid()) @db.Uuid
+
+  encounterId String @db.Uuid
+  encounter   Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  regionCode  String
+
+  @@unique([encounterId, regionCode])
+  @@index([regionCode])
+}
+
+/* =========================
+   Global muscles
+   ========================= */
+
+model MuscleRegion {
+  id        String @id @default(uuid()) @db.Uuid
+  name      String
+  sortOrder Int @default(0)
+
+  muscles   Muscle[]
+
+  @@unique([name])
+  @@index([sortOrder])
+}
+
+model Muscle {
+  id        String @id @default(uuid()) @db.Uuid
+
+  regionId  String @db.Uuid
+  region    MuscleRegion @relation(fields: [regionId], references: [id], onDelete: Restrict)
+
+  name      String
+  synonyms  String[] @default([])
+  sortOrder Int @default(0)
+
+  injections Injection[]
+  orgPrefs   OrganizationMusclePreference[]
+
+  @@unique([name])
+  @@index([regionId, sortOrder])
+}
+
+model OrganizationMusclePreference {
+  id             String @id @default(uuid()) @db.Uuid
+
+  organizationId String @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  muscleId       String @db.Uuid
+  muscle         Muscle @relation(fields: [muscleId], references: [id], onDelete: Cascade)
+
+  alias          String?
+  isFavorite     Boolean @default(false)
+
+  @@unique([organizationId, muscleId])
+  @@index([organizationId, isFavorite])
+}
+
+/* =========================
+   Global diagnoses
+   ========================= */
+
+model Diagnosis {
+  id         String @id @default(uuid()) @db.Uuid
+  codeSystem String
+  code       String
+  label      String
+
+  createdAt  DateTime @default(now())
+
+  encounterLinks EncounterDiagnosis[]
+
+  @@unique([codeSystem, code])
+  @@index([codeSystem])
+}
+
+model EncounterDiagnosis {
+  id          String @id @default(uuid()) @db.Uuid
+
+  encounterId String @db.Uuid
+  encounter   Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  diagnosisId String @db.Uuid
+  diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id], onDelete: Restrict)
+
+  createdAt   DateTime @default(now())
+
+  @@unique([encounterId, diagnosisId])
+  @@index([diagnosisId])
+}
+
+/* =========================
+   Products + Inventory lots
+   ========================= */
+
+model Product {
+  id             String @id @default(uuid()) @db.Uuid
+
+  organizationId String @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  manufacturer   String?
+  name           String
+  unitsPerVial   Int?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  encounters     Encounter[]
+  lots           InventoryLot[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model InventoryLot {
+  id             String @id @default(uuid()) @db.Uuid
+
+  organizationId String @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  productId      String @db.Uuid
+  product        Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  lotNumber      String
+  expiresOn      DateTime? @db.Date
+  receivedAt     DateTime? @db.Timestamptz(6)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  injections     Injection[]
+
+  @@unique([organizationId, productId, lotNumber])
+  @@index([organizationId, expiresOn])
+  @@index([productId])
+}
+
+/* =========================
+   Audit log
+   ========================= */
+
+model AuditLog {
+  id                String @id @default(uuid()) @db.Uuid
+
+  organizationId    String @db.Uuid
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  actorMembershipId String? @db.Uuid
+  actorMembership   OrganizationMembership? @relation(fields: [actorMembershipId], references: [id], onDelete: SetNull)
+
+  action            String
+  resourceType      String?
+  resourceId        String? @db.Uuid
+
+  occurredAt        DateTime @default(now()) @db.Timestamptz(6)
+
+  ipHash            String?
+  userAgent         String?
+  details           Json?
+
+  @@index([organizationId, occurredAt])
+  @@index([organizationId, action, occurredAt])
+  @@index([organizationId, resourceType, resourceId])
+}
