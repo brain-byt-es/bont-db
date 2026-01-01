@@ -54,7 +54,7 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
   }
 
   if (total_units <= 0) {
-    throw new Error("Total units must be greater than 0. Please add at least one injection step.")
+    return { error: "Total units must be greater than 0. Please add at least one injection step." }
   }
   
   // Prepare Injections Nested Create

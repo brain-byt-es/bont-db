@@ -43,7 +43,7 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
   }
   
   if (total_units <= 0) {
-    throw new Error("Total units must be greater than 0.")
+    return { error: "Total units must be greater than 0. Please add at least one injection step." }
   }
 
   // Transaction: Update Encounter + Replace Injections

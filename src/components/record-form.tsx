@@ -273,14 +273,20 @@ export function RecordForm({
   const processSubmission = (values: z.infer<typeof formSchema>) => {
     startTransition(async () => {
       try {
+        let result;
         if (isEditing && treatmentId) {
-          await updateTreatment(treatmentId, { ...values, steps }) 
-          toast.success("Treatment updated")
+          result = await updateTreatment(treatmentId, { ...values, steps }) 
         } else {
-          await createTreatment({ ...values, steps, assessments })
-          toast.success("Treatment record saved")
-          localStorage.removeItem("bont_treatment_draft")
+          result = await createTreatment({ ...values, steps, assessments })
         }
+
+        if (result && 'error' in result) {
+          toast.error(result.error)
+          return
+        }
+
+        toast.success(isEditing ? "Treatment updated" : "Treatment record saved")
+        if (!isEditing) localStorage.removeItem("bont_treatment_draft")
         
         if (onSuccess) {
           onSuccess()
