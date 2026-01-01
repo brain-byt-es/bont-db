@@ -152,7 +152,53 @@ export function RecordForm({
     fetchData()
   }, [])
 
-  // Autosave & Load Draft
+  // Watch category for Smart Defaults
+  const categoryValue = form.watch("category")
+  useEffect(() => {
+    if (isEditing || !categoryValue || steps.length > 0 || muscles.length === 0) return
+
+    if (categoryValue === "kopfschmerz") {
+        // PREMPT-like protocol defaults
+        const templateMuscles = [
+            { name: "M. corrugator supercilii", side: "Left" as const, units: 5 },
+            { name: "M. corrugator supercilii", side: "Right" as const, units: 5 },
+            { name: "M. procerus", side: "Midline" as const, units: 5 },
+            { name: "M. frontalis", side: "Left" as const, units: 10 },
+            { name: "M. frontalis", side: "Right" as const, units: 10 },
+            { name: "M. temporalis", side: "Left" as const, units: 20 },
+            { name: "M. temporalis", side: "Right" as const, units: 20 },
+            { name: "M. trapezius", side: "Left" as const, units: 15 },
+            { name: "M. trapezius", side: "Right" as const, units: 15 }
+        ]
+
+        const newSteps = templateMuscles.map((t): ProcedureStep | null => {
+            const muscleDef = muscles.find(m => m.name === t.name)
+            if (!muscleDef) return null
+            
+            return {
+                id: Math.random().toString(36).substr(2, 9),
+                muscle_id: muscleDef.id,
+                side: t.side as any, // side is "Left" | "Right" | "Midline" which matches
+                numeric_value: t.units,
+                mas_baseline: "",
+                mas_peak: ""
+            }
+        }).filter((item): item is ProcedureStep => item !== null)
+
+        if (newSteps.length > 0) {
+            toast("Smart Template Loaded", {
+                description: "Standard migraine protocol loaded. You can adjust it below.",
+                action: {
+                    label: "Clear",
+                    onClick: () => setSteps([])
+                }
+            })
+            setSteps(newSteps)
+        }
+    }
+  }, [categoryValue, muscles, isEditing, steps.length])
+
+  // ... existing Autosave & Load Draft
   useEffect(() => {
     if (isEditing) return
 
