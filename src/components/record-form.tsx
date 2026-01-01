@@ -74,17 +74,18 @@ interface InitialFormData {
   steps?: ProcedureStep[];
 }
 
-interface DBInjectionAssessment {
+interface InjectionAssessment {
   timepoint: string;
   scale: string;
-  value_text: string;
+  valueText: string;
 }
 
-interface DBInjection {
-  muscle: string;
+interface InjectionData {
+  muscleId: string | null;
+  muscle?: string | null;
   side: string;
   units: number;
-  injection_assessments: DBInjectionAssessment[];
+  injectionAssessments: InjectionAssessment[];
 }
 
 interface DBAssessment {
@@ -234,13 +235,13 @@ export function RecordForm({
 
           // Injections
           if (latest.injections) {
-              const newSteps = (latest.injections as unknown as DBInjection[]).map((inj) => {
-                  const masBase = inj.injection_assessments?.find((a) => a.timepoint === 'baseline' && a.scale === 'MAS')?.value_text
-                  const masPeak = inj.injection_assessments?.find((a) => a.timepoint === 'peak_effect' && a.scale === 'MAS')?.value_text
+              const newSteps = (latest.injections as unknown as InjectionData[]).map((inj) => {
+                  const masBase = inj.injectionAssessments?.find((a) => a.timepoint === 'baseline' && a.scale === 'MAS')?.valueText
+                  const masPeak = inj.injectionAssessments?.find((a) => a.timepoint === 'peak_effect' && a.scale === 'MAS')?.valueText
                   
                   return {
                     id: Math.random().toString(36).substr(2, 9),
-                    muscle_id: inj.muscle,
+                    muscle_id: inj.muscleId || inj.muscle || '', // Handle both Prisma and Legacy if needed
                     side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Bilateral') as "Left" | "Right" | "Bilateral" | "Midline",
                     numeric_value: Number(inj.units),
                     mas_baseline: masBase || "",
