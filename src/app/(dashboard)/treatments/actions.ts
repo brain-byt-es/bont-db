@@ -278,35 +278,176 @@ export async function getTreatment(treatmentId: string) {
 
 
 export async function getLatestTreatment(patientId: string) {
+
+
+
   const { organizationId } = await getOrganizationContext()
 
+
+
+
+
+
+
   const treatment = await prisma.encounter.findFirst({
+
+
+
     where: {
+
+
+
       patientId,
+
+
+
       organizationId
+
+
+
     },
+
+
+
     include: {
+
+
+
       product: { select: { name: true } },
+
+
+
       injections: {
+
+
+
         include: {
+
+
+
           injectionAssessments: true
+
+
+
         }
+
+
+
       },
+
+
+
       assessments: true
+
+
+
     },
+
+
+
     orderBy: {
+
+
+
       encounterAt: 'desc'
+
+
+
     }
+
+
+
   })
+
+
+
+
+
+
 
   if (!treatment) return null
 
+
+
+
+
+
+
   // Map to legacy structure for RecordForm compatibility
+
+
+
+  // AND convert Decimals to numbers
+
+
+
   return {
+
+
+
     ...treatment,
+
+
+
+    totalUnits: treatment.totalUnits.toNumber(), // Convert totalUnits
+
+
+
     product: treatment.product?.name || '',
+
+
+
     treatment_site: treatment.treatmentSite,
+
+
+
     indication: treatment.indication,
-    effect_notes: treatment.effectNotes
+
+
+
+    effect_notes: treatment.effectNotes,
+
+
+
+    injections: treatment.injections.map(inj => ({
+
+
+
+      ...inj,
+
+
+
+      units: inj.units.toNumber(), // Convert units
+
+
+
+      volumeMl: inj.volumeMl?.toNumber() ?? null // Convert volumeMl
+
+
+
+    })),
+
+
+
+    assessments: treatment.assessments.map(a => ({
+
+
+
+      ...a,
+
+
+
+      valueNum: a.valueNum?.toNumber() ?? null // Convert assessment values
+
+
+
+    }))
+
+
+
   }
+
+
+
 }
+
