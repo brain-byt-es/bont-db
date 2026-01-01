@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Save, AlertTriangle, ChevronDown } from "lucide-react"
+import { CalendarIcon, Save, AlertTriangle, ChevronDown, Wand2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -152,27 +152,25 @@ export function RecordForm({
     fetchData()
   }, [])
 
-  // Watch category for Smart Defaults
+  // Watch category for button visibility
   const categoryValue = form.watch("category")
-  useEffect(() => {
-    if (isEditing || !categoryValue || steps.length > 0 || muscles.length === 0) return
 
-    if (categoryValue === "kopfschmerz") {
-        // PREMPT-like protocol defaults
+  // Manual Template Loader
+  const loadMigraineTemplate = () => {
         const templateMuscles: { name: string; side: ProcedureStep["side"]; units: number }[] = [
-            { name: "M. corrugator supercilii", side: "Left", units: 5 },
-            { name: "M. corrugator supercilii", side: "Right", units: 5 },
-            { name: "M. procerus", side: "Midline", units: 5 },
-            { name: "M. frontalis", side: "Left", units: 10 },
-            { name: "M. frontalis", side: "Right", units: 10 },
-            { name: "M. temporalis", side: "Left", units: 20 },
-            { name: "M. temporalis", side: "Right", units: 20 },
-            { name: "M. occipitalis", side: "Left", units: 15 },
-            { name: "M. occipitalis", side: "Right", units: 15 },
-            { name: "M. trapezius", side: "Left", units: 15 },
-            { name: "M. trapezius", side: "Right", units: 15 },
-            { name: "M. paraspinalis (cervical)", side: "Left", units: 10 },
-            { name: "M. paraspinalis (cervical)", side: "Right", units: 10 }
+            { name: "M. corrugator supercilii", side: "Left" as const, units: 5 },
+            { name: "M. corrugator supercilii", side: "Right" as const, units: 5 },
+            { name: "M. procerus", side: "Midline" as const, units: 5 },
+            { name: "M. frontalis", side: "Left" as const, units: 10 },
+            { name: "M. frontalis", side: "Right" as const, units: 10 },
+            { name: "M. temporalis", side: "Left" as const, units: 20 },
+            { name: "M. temporalis", side: "Right" as const, units: 20 },
+            { name: "M. occipitalis", side: "Left" as const, units: 15 },
+            { name: "M. occipitalis", side: "Right" as const, units: 15 },
+            { name: "M. trapezius", side: "Left" as const, units: 15 },
+            { name: "M. trapezius", side: "Right" as const, units: 15 },
+            { name: "M. paraspinalis (cervical)", side: "Left" as const, units: 10 },
+            { name: "M. paraspinalis (cervical)", side: "Right" as const, units: 10 }
         ]
 
         const newSteps = templateMuscles.map((t): ProcedureStep | null => {
@@ -189,19 +187,13 @@ export function RecordForm({
             }
         }).filter((item): item is ProcedureStep => item !== null)
 
-
         if (newSteps.length > 0) {
-            toast("Smart Template Loaded", {
-                description: "Standard migraine protocol loaded. You can adjust it below.",
-                action: {
-                    label: "Clear",
-                    onClick: () => setSteps([])
-                }
-            })
             setSteps(newSteps)
+            toast.success("Standard migraine protocol loaded.")
+        } else {
+            toast.error("Could not load template. Muscles not found.")
         }
-    }
-  }, [categoryValue, muscles, isEditing, steps.length])
+  }
 
   // ... existing Autosave & Load Draft
   useEffect(() => {
@@ -278,11 +270,13 @@ export function RecordForm({
       if (!subjectId) return
       const latest = await getLatestTreatment(subjectId)
       if (latest) {
-          // Fields
-          form.setValue("product_label", latest.product)
-          form.setValue("location", latest.treatment_site)
-          form.setValue("category", latest.indication)
-          if (latest.effect_notes) form.setValue("notes", latest.effect_notes)
+          console.log("Copying latest treatment:", latest)
+          // Fields - explicit type casting/checking helps debug
+          // Also set options to trigger validation/dirty state if needed
+          if (latest.product) form.setValue("product_label", latest.product, { shouldValidate: true, shouldDirty: true })
+          if (latest.treatment_site) form.setValue("location", latest.treatment_site, { shouldValidate: true, shouldDirty: true })
+          if (latest.indication) form.setValue("category", latest.indication, { shouldValidate: true, shouldDirty: true })
+          if (latest.effect_notes) form.setValue("notes", latest.effect_notes, { shouldValidate: true, shouldDirty: true })
 
           // Injections
           if (latest.injections) {
@@ -521,12 +515,20 @@ export function RecordForm({
         </div>
         
         <div className="space-y-4">
-             <div className="flex justify-end">
+             <div className="flex justify-end gap-2">
                 {!isEditing && subjectId && (
+                    <>
+                    {categoryValue === 'kopfschmerz' && (
+                        <Button variant="secondary" size="sm" type="button" onClick={loadMigraineTemplate} className="w-full sm:w-auto">
+                            <Wand2 className="mr-2 h-4 w-4" />
+                            Load PREMPT
+                        </Button>
+                    )}
                     <Button variant="outline" size="sm" type="button" onClick={copyLastTreatmentFull} className="w-full sm:w-auto bg-primary/5 border-primary/20 hover:bg-primary/10 text-primary">
-                        <Save className="mr-2 h-4 w-4" /> {/* Reusing Save icon or similar implies 'Load' */}
-                        Copy from last treatment
+                        <Save className="mr-2 h-4 w-4" /> 
+                        Copy last
                     </Button>
+                    </>
                 )}
              </div>
              <ProcedureStepsEditor 
