@@ -42,12 +42,27 @@ Use the dedicated `migrator_admin` connection string.
 npx prisma migrate dev
 ```
 
-### Server Actions
-All data mutations happen via Server Actions in `src/app/**/actions.ts`.
-- ALWAYS verify `organizationId` context.
-- Use `prisma.$transaction` for multi-table writes (e.g., Encounter + Injections).
+### Seeding (Reference Data)
+Muscles and Regions must be populated for the dropdowns to work.
+The seed script is configured in `prisma.config.ts`.
+
+```bash
+npx prisma db seed
+```
+
+### Server Actions & Error Handling
+- **No Redirect Throws:** Do NOT `throw redirect()` inside a `try/catch` block in client components. Instead, return a plain object `{ success: true, ... }` or `{ error: "message" }`.
+- **Decimal Serialization:** Prisma `Decimal` types are NOT serializable to Client Components. You MUST convert them to `number` or `string` in the Server Action before returning.
+  ```typescript
+  // Example mapping in Server Action
+  return {
+    ...data,
+    units: data.units.toNumber()
+  }
+  ```
 
 ## 5. Key Directories
+- `src/generated/client`: **Important!** The Prisma Client is generated here, NOT in `node_modules`. Import from `@/generated/client/client`.
 - `src/lib/prisma.ts`: Singleton PrismaClient instance.
 - `src/lib/auth-context.ts`: Security helpers (`getUserContext`, `getOrganizationContext`).
 - `prisma/schema.prisma`: The source of truth.
