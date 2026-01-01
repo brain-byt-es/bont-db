@@ -159,7 +159,10 @@ const rawMuscles = [
   {"id":"f2476ecf-0241-4a6a-ad4e-f78b38e69185","region_id":"6fe2d7f7-3e00-49fc-a75b-468075fd86ec","name":"M. multifidus","synonyms":["Vielgefiederter Muskel"],"sort_order":120},
   {"id":"f3fa9e05-2f22-44a9-ba11-2a412fa7b844","region_id":"6fe2d7f7-3e00-49fc-a75b-468075fd86ec","name":"M. diaphragma","synonyms":["Zwerchfell"],"sort_order":240},
   {"id":"fbe9d734-a956-4dca-b8a6-f43a68c2a6d6","region_id":"87b02b90-8234-430e-83e1-6231e57aaa45","name":"M. zygomaticus minor","synonyms":["Kleiner Jochbeinmuskel"],"sort_order":80},
-  {"id":"fee08091-67a6-409f-b52f-dd042d77bf62","region_id":"f38c9aa9-1fc9-4b15-8eec-5627a53374ab","name":"Mm. interossei palmares","synonyms":["Hohlhandseitige Zwischenknochenmuskeln"],"sort_order":320}
+  {"id":"fee08091-67a6-409f-b52f-dd042d77bf62","region_id":"f38c9aa9-1fc9-4b15-8eec-5627a53374ab","name":"Mm. interossei palmares","synonyms":["Hohlhandseitige Zwischenknochenmuskeln"],"sort_order":320},
+  // Manual additions for Migraine Protocol
+  {"id":"manual-occipitalis","region_id":"87b02b90-8234-430e-83e1-6231e57aaa45","name":"M. occipitalis","synonyms":["Hinterhauptsmuskel"],"sort_order":410},
+  {"id":"manual-paraspinalis","region_id":"87b02b90-8234-430e-83e1-6231e57aaa45","name":"M. paraspinalis (cervical)","synonyms":["Nackenmuskulatur", "Paravertebral"],"sort_order":420}
 ]
 
 async function main() {
