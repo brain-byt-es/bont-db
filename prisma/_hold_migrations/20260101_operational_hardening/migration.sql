@@ -1,20 +1,28 @@
--- Canonical v1 — Operational Hardening Pack (FINAL)
+-- Canonical v1 — Operational Hardening Pack (FINAL, deploy-safe)
 -- Applies:
 -- 1) Ensure schema "phi" exists + move PatientIdentifier there if it exists in public (brownfield)
 -- 2) Composite FK enforcement to prevent org drift (incl. Encounter<->Patient)
 -- 3) Optional DB-level gates: pending invite uniqueness
--- 4) Least privilege roles + grants
+-- 4) Least privilege roles + grants (assumes roles pre-created server-side)
 -- 5) DB-level immutability via column-level UPDATE privileges (no triggers)
 --
 -- IMPORTANT OPS MODEL:
 -- - Run migrations with a migrator/admin DB user (DDL + GRANT/REVOKE capable)
 -- - Run the app at runtime with a restricted principal (member of app_rw)
 -- Do NOT point prisma migrate deploy at the restricted runtime principal.
+--
+-- IMPORTANT:
+-- - Roles `app_rw` and `reporting_ro` MUST already exist (created server-side as you did).
+--   This migration intentionally does NOT create roles (Azure often blocks CREATEROLE).
 
 BEGIN;
 
 -- 0) Ensure PHI schema exists
 CREATE SCHEMA IF NOT EXISTS phi;
+
+-- Optional stabilization: ensure owner (safe if migrator_admin runs this migration)
+-- If you run as another admin, this makes ownership explicit.
+ALTER SCHEMA phi OWNER TO migrator_admin;
 
 -- 1) Move PatientIdentifier from public -> phi if needed (brownfield only)
 DO $$
@@ -87,17 +95,9 @@ ON "public"."OrganizationInvite" ("organizationId", "email")
 WHERE "acceptedAt" IS NULL;
 
 -- 5) Least privilege roles + grants
-
 -- 5.1 Roles
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_rw') THEN
-    CREATE ROLE app_rw;
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'reporting_ro') THEN
-    CREATE ROLE reporting_ro;
-  END IF;
-END $$;
+-- NOTE: Roles are provisioned server-side in Azure (one-time).
+-- Expect: app_rw, reporting_ro already exist.
 
 -- 5.2 Lock down schema access for PUBLIC
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
@@ -124,19 +124,10 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO reporting_ro
 -- none for reporting_ro in phi
 
 -- 5.6 GLUE STEP (MANDATORY): attach your runtime login/principal to app_rw
--- Replace <RUNTIME_LOGIN> with your actual DB login user/principal (e.g., "app_user").
--- If using Entra/managed identity DB auth, grant to that mapped role/principal.
---
--- Examples:
---   GRANT app_rw TO "app_user";
---   ALTER ROLE "app_user" SET ROLE app_rw;
---
--- !!! You must set this correctly or runtime will hit permission denied.
--- NOTE: We cannot auto-detect the runtime login name here.
 GRANT app_rw TO "runtime_user";
 ALTER ROLE "runtime_user" SET ROLE app_rw;
 
--- 6) DB-level immutability via column-level UPDATE (no triggers)
+-- 6) DB-level immutability via column-level UPDATE privileges (no triggers)
 -- Strategy: revoke broad UPDATE, then grant UPDATE only for safe columns.
 
 -- Injection: organizationId and encounterId immutable
