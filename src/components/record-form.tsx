@@ -287,7 +287,8 @@ export function RecordForm({
           router.push(values.subject_id ? `/patients/${values.subject_id}` : "/patients")
         }
       } catch (error) {
-        toast.error("Failed to save record")
+        const message = error instanceof Error ? error.message : "Failed to save record"
+        toast.error(message)
         console.error(error)
       }
     })
