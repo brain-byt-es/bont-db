@@ -50,7 +50,7 @@ export default async function EditTreatmentPage({ params }: PageProps) {
       id: inj.id,
       muscle_id: inj.muscleId || '', 
       side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Midline') as "Left" | "Right" | "Bilateral" | "Midline",
-      numeric_value: inj.units.toNumber(),
+      numeric_value: inj.units,
       mas_baseline: getMasScore(inj.injectionAssessments, 'baseline'),
       mas_peak: getMasScore(inj.injectionAssessments, 'peak_effect')
     }))

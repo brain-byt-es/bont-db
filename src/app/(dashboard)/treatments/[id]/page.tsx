@@ -57,7 +57,7 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
       id: inj.id,
       muscle_id: inj.muscleId || '',
       side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Midline') as "Left" | "Right" | "Bilateral" | "Midline",
-      numeric_value: inj.units.toNumber(),
+      numeric_value: inj.units,
       mas_baseline: getMasScore(inj.injectionAssessments, 'baseline'),
       mas_peak: getMasScore(inj.injectionAssessments, 'peak_effect')
     }))
@@ -120,7 +120,7 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Total Units</div>
-                <div className="text-xl font-bold">{treatment.totalUnits.toNumber()}</div>
+                <div className="text-xl font-bold">{treatment.totalUnits}</div>
               </div>
             </div>
             <div>
@@ -191,7 +191,7 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
                         <TableCell>
                             {masPeak ? <Badge variant="outline">{masPeak}</Badge> : "-"}
                         </TableCell>
-                        <TableCell className="text-right">{inj.units.toNumber()}</TableCell>
+                        <TableCell className="text-right">{inj.units}</TableCell>
                       </TableRow>
                    )
                 })}

@@ -231,61 +231,48 @@ export async function getTreatments() {
 }
 
 export async function getTreatment(treatmentId: string) {
-
   const { organizationId } = await getOrganizationContext()
 
-
-
   const treatment = await prisma.encounter.findUnique({
-
     where: {
-
       id: treatmentId,
-
       organizationId
-
     },
-
     include: {
-
       patient: {
-
         select: { 
-
           id: true,
-
           systemLabel: true 
-
         }
-
       },
-
       product: {
-
         select: { name: true }
-
       },
-
       injections: {
-
         include: {
-
           injectionAssessments: true
-
         }
-
       },
-
       assessments: true
-
     }
-
   })
 
+  if (!treatment) return null
 
-
-  return treatment
-
+  // Convert Decimals to numbers for client serialization
+  return {
+    ...treatment,
+    totalUnits: treatment.totalUnits.toNumber(),
+    injections: treatment.injections.map(inj => ({
+      ...inj,
+      units: inj.units.toNumber(),
+      volumeMl: inj.volumeMl?.toNumber() ?? null
+    })),
+    assessments: treatment.assessments.map(a => ({
+      ...a,
+      valueNum: a.valueNum?.toNumber() ?? null
+    }))
+  }
 }
 
 
