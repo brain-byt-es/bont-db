@@ -1,7 +1,6 @@
 "use server"
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { BodySide, Timepoint } from "@/generated/client/client"
@@ -161,7 +160,8 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
   })
 
   revalidatePath('/patients')
-  redirect(`/patients/${subject_id}`)
+  // Return success info instead of redirecting
+  return { success: true, patientId: subject_id }
 }
 
 function mapTimepoint(t: string): Timepoint {

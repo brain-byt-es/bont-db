@@ -1,7 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { BodySide, Timepoint } from "@/generated/client/client"
@@ -145,5 +144,6 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
 
   revalidatePath(`/treatments/${treatmentId}`)
   revalidatePath(`/patients/${subject_id}`)
-  redirect(`/patients/${subject_id}`)
+  
+  return { success: true, patientId: subject_id }
 }
