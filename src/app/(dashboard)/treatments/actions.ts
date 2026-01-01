@@ -1,9 +1,10 @@
-'use server'
+"use server"
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { getOrganizationContext } from "@/lib/auth-context"
+import prisma from "@/lib/prisma"
+import { BodySide, Timepoint } from "@/generated/client/client"
 
 interface AssessmentData {
   scale: string;
@@ -14,7 +15,7 @@ interface AssessmentData {
 }
 
 interface ProcedureStep {
-  muscle_id: string; // Renamed from target_structure
+  muscle_id: string; 
   side: 'Left' | 'Right' | 'Bilateral' | 'Midline';
   numeric_value: number;
   mas_baseline?: string;
@@ -32,25 +33,8 @@ interface CreateTreatmentFormData {
   assessments?: AssessmentData[];
 }
 
-interface MuscleData {
-  region_id: string;
-  muscle_regions: {
-    name: string;
-  };
-}
-
-interface InjectionAssessmentInsert {
-  user_id: string;
-  injection_id: string;
-  scale: string;
-  timepoint: string;
-  value_text: string;
-  value_num: number | null;
-}
-
 export async function createTreatment(formData: CreateTreatmentFormData) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const { organizationId, membership } = await getOrganizationContext()
 
   const {
     subject_id,
@@ -63,41 +47,7 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
     assessments
   } = formData
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    throw new Error('User not authenticated')
-  }
-
-  const patient_id = subject_id
-  const treatment_date = date
-  const treatment_site = location || "N/A"
-  const indication = category
-  const product = product_label
-  const effect_notes = notes || ""
-  const ae_notes = 'keine' // Default from schema
-  const dilution = 'N/A' // Placeholder, should be added to form if needed
-  
-  // Derive regions from selected muscles
-  let regions: string[] = []
-  if (steps && Array.isArray(steps) && steps.length > 0) {
-    const muscleIds = [...new Set(steps.map(s => s.muscle_id).filter(Boolean))]
-    
-    if (muscleIds.length > 0) {
-        const { data: muscleData } = await supabase
-            .from('muscles')
-            .select('region_id, muscle_regions(name)')
-            .in('id', muscleIds)
-            .returns<MuscleData[]>()
-        
-        if (muscleData) {
-            const regionNames = muscleData
-                .map((m) => m.muscle_regions?.name)
-                .filter(Boolean)
-            regions = [...new Set(regionNames)]
-        }
-    }
-  }
-
+  // Calculate total units
   let total_units = 0
   if (steps && Array.isArray(steps)) {
     total_units = steps.reduce((sum: number, step: ProcedureStep) => sum + (step.numeric_value || 0), 0)
@@ -106,204 +56,270 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
   if (total_units <= 0) {
     throw new Error("Total units must be greater than 0. Please add at least one injection step.")
   }
-
-  // Insert into treatments table
-  const { data: treatment, error: treatmentError } = await supabase
-    .from('treatments')
-    .insert({
-      user_id: user.id,
-      patient_id,
-      treatment_date,
-      treatment_site,
-      indication,
-      product,
-      dilution,
-      total_units,
-      regions,
-      effect_notes,
-      ae_notes,
-    })
-    .select()
-    .single()
-
-  if (treatmentError) {
-    console.error('Error creating treatment:', treatmentError)
-    throw new Error(`Failed to create treatment record: ${treatmentError.message}`)
-  }
-
-  // Insert into injections table
-  if (steps && Array.isArray(steps) && steps.length > 0) {
-    // Validate muscles exist (global lookup, no user_id)
-    const muscleIds = [...new Set(steps.map(s => s.muscle_id))]
-    const { data: validMuscles, error: validationError } = await supabase
-      .from('muscles')
-      .select('id')
-      .in('id', muscleIds)
-
-    if (validationError || !validMuscles || validMuscles.length !== muscleIds.length) {
-      console.error('Muscle validation failed:', validationError)
-      throw new Error('Invalid muscle selection detected.')
-    }
-
-    const injectionsToInsert = steps.map((step: ProcedureStep) => {
-      let sideCode = 'B';
-      switch (step.side) {
-        case 'Left': sideCode = 'L'; break;
-        case 'Right': sideCode = 'R'; break;
-        case 'Bilateral': sideCode = 'B'; break;
-        case 'Midline': sideCode = 'B'; break; // Fallback or assume B for now
-        default: sideCode = 'B';
-      }
-
-      return {
-        user_id: user.id, // injections still have user_id
-        treatment_id: treatment.id,
-        muscle: step.muscle_id, // Map muscle_id to muscle column (FK)
-        side: sideCode,
-        units: step.numeric_value,
-      };
-    })
-
-    const { data: insertedInjections, error: injectionsError } = await supabase
-      .from('injections')
-      .insert(injectionsToInsert)
-      .select()
-
-    if (injectionsError) {
-      console.error('Error creating injections:', injectionsError)
-      // Consider rolling back treatment if injections fail, or handle as partial success
-      throw new Error(`Failed to create injections for treatment: ${injectionsError.message}`)
-    }
-
-    // Insert injection assessments (MAS scores)
-    const injectionAssessmentsToInsert: InjectionAssessmentInsert[] = []
+  
+  // Prepare Injections Nested Create
+  const injectionsCreate = (steps || []).map(step => {
+    let side: BodySide = BodySide.B;
+    if (step.side === 'Left') side = BodySide.L;
+    if (step.side === 'Right') side = BodySide.R;
     
-    steps.forEach((step, index) => {
-       const injectionId = insertedInjections[index].id
-       
-       if (step.mas_baseline) {
-           const valText = step.mas_baseline
-           const valNum = valText === "1+" ? 1.5 : parseFloat(valText)
-           injectionAssessmentsToInsert.push({
-               user_id: user.id,
-               injection_id: injectionId,
-               scale: 'MAS',
-               timepoint: 'baseline',
-               value_text: valText,
-               value_num: isNaN(valNum) ? null : valNum
-           })
-       }
+    // Prepare Injection Assessments (MAS)
+    const injAssessments = []
+    
+    if (step.mas_baseline) {
+       const valNum = step.mas_baseline === "1+" ? 1.5 : parseFloat(step.mas_baseline)
+       injAssessments.push({
+           scale: 'MAS',
+           timepoint: Timepoint.baseline,
+           valueText: step.mas_baseline,
+           valueNum: isNaN(valNum) ? null : valNum
+       })
+    }
 
-       if (step.mas_peak) {
-           const valText = step.mas_peak
-           const valNum = valText === "1+" ? 1.5 : parseFloat(valText)
-           injectionAssessmentsToInsert.push({
-               user_id: user.id,
-               injection_id: injectionId,
-               scale: 'MAS',
-               timepoint: 'peak_effect',
-               value_text: valText,
-               value_num: isNaN(valNum) ? null : valNum
-           })
-       }
-    })
+    if (step.mas_peak) {
+       const valText = step.mas_peak
+       const valNum = valText === "1+" ? 1.5 : parseFloat(valText)
+       injAssessments.push({
+           scale: 'MAS',
+           timepoint: Timepoint.peak_effect,
+           valueText: valText,
+           valueNum: isNaN(valNum) ? null : valNum
+       })
+    }
 
-    if (injectionAssessmentsToInsert.length > 0) {
-        const { error: injAssessError } = await supabase
-            .from('injection_assessments')
-            .insert(injectionAssessmentsToInsert)
-        
-        if (injAssessError) {
-            console.error('Error creating injection assessments:', injAssessError)
+    return {
+      organizationId,
+      muscleId: step.muscle_id,
+      side: side,
+      units: step.numeric_value,
+      injectionAssessments: {
+        create: injAssessments
+      }
+    }
+  })
+
+  // Prepare Encounter Assessments Nested Create
+  const assessmentsCreate = (assessments || []).map(a => ({
+    timepoint: mapTimepoint(a.timepoint),
+    assessedAt: new Date(a.assessed_at),
+    scale: a.scale,
+    valueNum: a.value,
+    notes: a.notes,
+    valueText: a.value.toString()
+  }))
+
+  // Derived Regions logic could be handled here or via trigger/app logic.
+  // For now we rely on EncounterRegion model if we want to store them, 
+  // but the current schema uses `EncounterRegion` table. 
+  // We can populate it if needed, but let's stick to core data first.
+
+  // Handle Product Lookup/Creation
+  let productId: string | null = null
+  if (product_label) {
+    const product = await prisma.product.upsert({
+      where: {
+        organizationId_name: {
+          organizationId,
+          name: product_label
         }
-    }
+      },
+      update: {},
+      create: {
+        organizationId,
+        name: product_label
+      }
+    })
+    productId = product.id
   }
 
-  // Insert assessments
-  if (assessments && Array.isArray(assessments) && assessments.length > 0) {
-    const assessmentsToInsert = assessments.map((assessment) => ({
-      user_id: user.id,
-      treatment_id: treatment.id,
-      timepoint: assessment.timepoint,
-      assessed_at: assessment.assessed_at,
-      scale: assessment.scale,
-      value: assessment.value,
-      notes: assessment.notes
-    }))
-
-    const { error: assessmentError } = await supabase
-      .from('assessments')
-      .insert(assessmentsToInsert)
-
-    if (assessmentError) {
-      console.error('Error creating assessments:', assessmentError)
-      // Log error but don't fail the whole transaction as treatment is created
+  // Create Encounter with ALL nested data
+  await prisma.encounter.create({
+    data: {
+      organizationId,
+      patientId: subject_id,
+      createdByMembershipId: membership.id,
+      providerMembershipId: membership.id, // Assuming creator is provider for now
+      encounterAt: date,
+      encounterLocalDate: date,
+      status: "SIGNED", // Default to signed/completed for now
+      treatmentSite: location || "N/A",
+      indication: category,
+      productId: productId,
+      
+      dilutionText: "N/A",
+      totalUnits: total_units,
+      effectNotes: notes,
+      adverseEventNotes: "keine",
+      
+      injections: {
+        create: injectionsCreate
+      },
+      assessments: {
+        create: assessmentsCreate
+      }
     }
-  }
+  })
 
-  revalidatePath('/patients') // Revalidate patient list if new treatment added
-  redirect(`/patients/${patient_id}`) // Redirect to patient details page
+  revalidatePath('/patients')
+  redirect(`/patients/${subject_id}`)
+}
+
+function mapTimepoint(t: string): Timepoint {
+  switch(t) {
+    case 'baseline': return Timepoint.baseline
+    case 'peak_effect': return Timepoint.peak_effect
+    case 'reinjection': return Timepoint.reinjection
+    case 'followup': return Timepoint.followup
+    default: return Timepoint.other
+  }
 }
 
 export async function getMuscles() {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
-
-  const { data, error } = await supabase
-    .from('muscles')
-    .select('*')
-    .order('sort_order', { ascending: true })
-
-  if (error) {
-    console.error('Error fetching muscles:', error)
-    return []
-  }
-
-  return data
+  const muscles = await prisma.muscle.findMany({
+    orderBy: { sortOrder: 'asc' }
+  })
+  return muscles.map(m => ({
+    ...m,
+    region_id: m.regionId,
+    sort_order: m.sortOrder
+  }))
 }
 
 export async function getMuscleRegions() {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
-
-  const { data, error } = await supabase
-    .from('muscle_regions')
-    .select('*')
-    .order('sort_order', { ascending: true })
-
-  if (error) {
-    console.error('Error fetching muscle regions:', error)
-    return []
-  }
-
-  return data
+  const regions = await prisma.muscleRegion.findMany({
+    orderBy: { sortOrder: 'asc' }
+  })
+  return regions.map(r => ({
+    ...r,
+    sort_order: r.sortOrder
+  }))
 }
 
-export async function getLatestTreatment(patientId: string) {
-    const cookieStore = await cookies()
-    const supabase = createClient(cookieStore)
+export async function getTreatments() {
+  const { organizationId } = await getOrganizationContext()
 
-    const { data, error } = await supabase
-        .from('treatments')
-        .select(`
-            *,
-            injections (
-                *,
-                injection_assessments (*)
-            ),
-            assessments (*)
-        `)
-        .eq('patient_id', patientId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+  const treatments = await prisma.encounter.findMany({
+    where: {
+      organizationId,
+      status: { not: "VOID" }
+    },
+    include: {
+      patient: {
+        select: { systemLabel: true }
+      },
+      product: {
+        select: { name: true }
+      }
+    },
+    orderBy: {
+      encounterAt: 'desc'
+    }
+  })
 
-    if (error) {
-        if (error.code !== 'PGRST116') { // PGRST116 is "The result contains 0 rows"
-             console.error('Error fetching latest treatment:', error)
+  // Map to UI interface
+  return treatments.map(t => ({
+    id: t.id,
+    treatment_date: t.encounterLocalDate.toISOString(), // or encounterAt
+    treatment_site: t.treatmentSite,
+    indication: t.indication,
+    product: t.product?.name || 'N/A', // Handle linked product
+    total_units: t.totalUnits.toNumber(),
+    patient: {
+      patient_code: t.patient.systemLabel || 'Unknown'
+    }
+  }))
+}
+
+export async function getTreatment(treatmentId: string) {
+
+  const { organizationId } = await getOrganizationContext()
+
+
+
+  const treatment = await prisma.encounter.findUnique({
+
+    where: {
+
+      id: treatmentId,
+
+      organizationId
+
+    },
+
+    include: {
+
+      patient: {
+
+        select: { 
+
+          id: true,
+
+          systemLabel: true 
+
         }
-        return null
+
+      },
+
+      product: {
+
+        select: { name: true }
+
+      },
+
+      injections: {
+
+        include: {
+
+          injectionAssessments: true
+
+        }
+
+      },
+
+      assessments: true
+
     }
 
-    return data
+  })
+
+
+
+  return treatment
+
+}
+
+
+
+export async function getLatestTreatment(patientId: string) {
+  const { organizationId } = await getOrganizationContext()
+
+  const treatment = await prisma.encounter.findFirst({
+    where: {
+      patientId,
+      organizationId
+    },
+    include: {
+      product: { select: { name: true } },
+      injections: {
+        include: {
+          injectionAssessments: true
+        }
+      },
+      assessments: true
+    },
+    orderBy: {
+      encounterAt: 'desc'
+    }
+  })
+
+  if (!treatment) return null
+
+  // Map to legacy structure for RecordForm compatibility
+  return {
+    ...treatment,
+    product: treatment.product?.name || '',
+    treatment_site: treatment.treatmentSite,
+    indication: treatment.indication,
+    effect_notes: treatment.effectNotes
+  }
 }

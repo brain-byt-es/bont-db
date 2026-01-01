@@ -6,9 +6,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { createClient } from "@/lib/supabase/server"
-import { cookies } from "next/headers"
 import { notFound } from "next/navigation"
+import { getTreatment } from "../../actions"
+import { getPatients } from "../../../patients/actions"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -16,55 +16,46 @@ interface PageProps {
 
 export default async function EditTreatmentPage({ params }: PageProps) {
   const { id } = await params
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
 
   // Fetch treatment details
-  const { data: treatment, error: treatmentError } = await supabase
-    .from('treatments')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const treatment = await getTreatment(id)
 
-  if (treatmentError || !treatment) {
+  if (!treatment) {
     notFound()
   }
 
-  // Fetch injections for this treatment
-  const { data: injections } = await supabase
-    .from('injections')
-    .select('*')
-    .eq('treatment_id', id)
-
   // Fetch all patients for the select list
-  const { data: patients } = await supabase
-    .from('patients')
-    .select('id, patient_code')
-    .order('patient_code', { ascending: true })
+  const patientsRaw = await getPatients()
+  const patients = patientsRaw.map(p => ({
+    id: p.id,
+    patient_code: p.patient_code
+  }))
 
-  interface Injection {
-    id: string;
-    muscle: string;
-    side: 'L' | 'R' | 'B'; // Assuming these are the possible values for side
-    units: number;
+  // Helper to find MAS scores
+  const getMasScore = (injAssessments: { scale: string; timepoint: string; valueText: string }[], timepoint: string) => {
+      const score = injAssessments?.find((a) => a.scale === 'MAS' && a.timepoint === timepoint)
+      return score ? score.valueText : ""
   }
-  
-      // Transform data for the form
-      const initialData = {
-        ...treatment,
-        subject_id: treatment.patient_id,
-        date: new Date(treatment.treatment_date),
-        location: treatment.treatment_site,
-        category: treatment.indication,
-        product_label: treatment.product,
-        notes: treatment.effect_notes,
-        steps: (injections || []).map((inj: Injection) => ({
-          id: inj.id,
-          muscle_id: inj.muscle, // Use muscle_id instead of target_structure
-          side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Midline') as "Left" | "Right" | "Bilateral" | "Midline",
-          numeric_value: inj.units
-        }))
-      }
+
+  // Transform data for the form
+  const initialData = {
+    subject_id: treatment.patientId,
+    date: treatment.encounterLocalDate,
+    location: treatment.treatmentSite,
+    category: treatment.indication,
+    product_label: treatment.product?.name || '',
+    notes: treatment.effectNotes ?? undefined,
+    assessments: treatment.assessments || [],
+    steps: (treatment.injections || []).map((inj) => ({
+      id: inj.id,
+      muscle_id: inj.muscleId || '', 
+      side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Midline') as "Left" | "Right" | "Bilateral" | "Midline",
+      numeric_value: inj.units.toNumber(),
+      mas_baseline: getMasScore(inj.injectionAssessments, 'baseline'),
+      mas_peak: getMasScore(inj.injectionAssessments, 'peak_effect')
+    }))
+  }
+
   return (
     <div className="mx-auto max-w-4xl p-4">
        <Card>
@@ -74,8 +65,8 @@ export default async function EditTreatmentPage({ params }: PageProps) {
         </CardHeader>
         <CardContent>
           <RecordForm 
-            patients={patients || []} 
-            defaultSubjectId={treatment.patient_id}
+            patients={patients} 
+            defaultSubjectId={treatment.patientId}
             initialData={initialData}
             treatmentId={id}
             isEditing

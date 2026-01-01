@@ -1,12 +1,11 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
+import { getOrganizationContext } from '@/lib/auth-context'
+import prisma from '@/lib/prisma'
 
 export async function updatePatient(patientId: string, formData: FormData) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const { organizationId } = await getOrganizationContext()
 
   const patient_code = formData.get('patient_code') as string
   const birth_year = parseInt(formData.get('birth_year') as string)
@@ -17,19 +16,38 @@ export async function updatePatient(patientId: string, formData: FormData) {
     throw new Error("Missing required fields")
   }
 
-  const { error } = await supabase
-    .from('patients')
-    .update({
-      patient_code,
-      birth_year,
-      notes,
-    })
-    .eq('id', patientId)
+  // Verify existence and ownership first (optional but good for error messages)
+  // or just let the updateMany/update fail silently or return count 0.
+  // We'll use a transaction to update both schemas.
 
-  if (error) {
-    console.error('Error updating patient:', error)
-    throw new Error('Failed to update patient')
-  }
+  await prisma.$transaction(async (tx) => {
+    // 1. Update Public Data
+    const publicUpdate = await tx.patient.updateMany({
+      where: {
+        id: patientId,
+        organizationId: organizationId
+      },
+      data: {
+        systemLabel: patient_code,
+        notes: notes
+      }
+    })
+
+    if (publicUpdate.count === 0) {
+      throw new Error("Patient not found or access denied")
+    }
+
+    // 2. Update PHI Data
+    await tx.patientIdentifier.updateMany({
+      where: {
+        patientId: patientId,
+        organizationId: organizationId
+      },
+      data: {
+        birthYear: birth_year
+      }
+    })
+  })
 
   revalidatePath(`/patients/${patientId}`)
   revalidatePath('/patients')

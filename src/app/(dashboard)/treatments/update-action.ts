@@ -1,12 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { getOrganizationContext } from "@/lib/auth-context"
+import prisma from "@/lib/prisma"
+import { BodySide, Timepoint } from "@/generated/client/client"
 
 interface ProcedureStep {
-  muscle_id: string; // Renamed from target_structure
+  muscle_id: string; 
   side: 'Left' | 'Right' | 'Bilateral' | 'Midline';
   numeric_value: number;
   mas_baseline?: string;
@@ -23,25 +24,8 @@ interface UpdateTreatmentFormData {
   steps?: ProcedureStep[];
 }
 
-interface MuscleData {
-  region_id: string;
-  muscle_regions: {
-    name: string;
-  };
-}
-
-interface InjectionAssessmentInsert {
-  user_id: string;
-  injection_id: string;
-  scale: string;
-  timepoint: string;
-  value_text: string;
-  value_num: number | null;
-}
-
 export async function updateTreatment(treatmentId: string, formData: UpdateTreatmentFormData) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const { organizationId } = await getOrganizationContext()
 
   const {
     subject_id,
@@ -53,39 +37,6 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     steps
   } = formData
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    throw new Error('User not authenticated')
-  }
-
-  const patient_id = subject_id
-  const treatment_date = date
-  const treatment_site = location || "N/A"
-  const indication = category
-  const product = product_label
-  const effect_notes = notes || ""
-  
-  // Derive regions from selected muscles
-  let regions: string[] = []
-  if (steps && Array.isArray(steps) && steps.length > 0) {
-    const muscleIds = [...new Set(steps.map(s => s.muscle_id).filter(Boolean))]
-    
-    if (muscleIds.length > 0) {
-        const { data: muscleData } = await supabase
-            .from('muscles')
-            .select('region_id, muscle_regions(name)')
-            .in('id', muscleIds)
-            .returns<MuscleData[]>()
-        
-        if (muscleData) {
-            const regionNames = muscleData
-                .map((m) => m.muscle_regions?.name)
-                .filter(Boolean)
-            regions = [...new Set(regionNames)]
-        }
-    }
-  }
-  
   let total_units = 0
   if (steps && Array.isArray(steps)) {
     total_units = steps.reduce((sum: number, step: ProcedureStep) => sum + (step.numeric_value || 0), 0)
@@ -95,129 +46,104 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     throw new Error("Total units must be greater than 0.")
   }
 
-  // Update treatment record
-  const { error: treatmentError } = await supabase
-    .from('treatments')
-    .update({
-      patient_id,
-      treatment_date,
-      treatment_site,
-      indication,
-      product,
-      total_units,
-      regions,
-      effect_notes,
-      updated_at: new Date().toISOString(),
+  // Transaction: Update Encounter + Replace Injections
+  await prisma.$transaction(async (tx) => {
+    // 1. Verify existence & Update main fields
+    const encounter = await tx.encounter.findUnique({
+      where: { id: treatmentId, organizationId }
     })
-    .eq('id', treatmentId)
-    .eq('user_id', user.id)
-
-  if (treatmentError) {
-    console.error('Error updating treatment:', treatmentError)
-    throw new Error(`Failed to update treatment: ${treatmentError.message}`)
-  }
-
-  // Handle injections: simpler to delete all and recreate for now (transactionally ideal, but step-by-step here)
-  // 1. Delete existing
-  const { error: deleteError } = await supabase
-    .from('injections')
-    .delete()
-    .eq('treatment_id', treatmentId)
-  
-  if (deleteError) {
-     console.error('Error deleting old injections:', deleteError)
-     throw new Error('Failed to update injection details')
-  }
-
-  // 2. Insert new
-  if (steps && Array.isArray(steps) && steps.length > 0) {
-    // Validate muscles exist (global lookup, no user_id)
-    const muscleIds = [...new Set(steps.map(s => s.muscle_id))]
-    const { data: validMuscles, error: validationError } = await supabase
-      .from('muscles')
-      .select('id')
-      .in('id', muscleIds)
-
-    if (validationError || !validMuscles || validMuscles.length !== muscleIds.length) {
-      console.error('Muscle validation failed:', validationError)
-      throw new Error('Invalid muscle selection detected.')
-    }
-
-    const injectionsToInsert = steps.map((step: ProcedureStep) => {
-      let sideCode = 'B';
-      switch (step.side) {
-        case 'Left': sideCode = 'L'; break;
-        case 'Right': sideCode = 'R'; break;
-        case 'Bilateral': sideCode = 'B'; break;
-        case 'Midline': sideCode = 'B'; break;
-        default: sideCode = 'B';
-      }
-
-      return {
-        user_id: user.id,
-        treatment_id: treatmentId,
-        muscle: step.muscle_id, // Map muscle_id to muscle column
-        side: sideCode,
-        units: step.numeric_value,
-      };
-    })
-
-    const { data: insertedInjections, error: injectionsError } = await supabase
-      .from('injections')
-      .insert(injectionsToInsert)
-      .select()
-
-    if (injectionsError) {
-      console.error('Error creating injections:', injectionsError)
-      throw new Error(`Failed to update injections: ${injectionsError.message}`)
-    }
-
-    // Insert injection assessments (MAS scores)
-    const injectionAssessmentsToInsert: InjectionAssessmentInsert[] = []
     
-    steps.forEach((step, index) => {
-       // Assuming order is preserved, which is typical for single-batch inserts in Supabase
-       const injectionId = insertedInjections[index].id
-       
-       if (step.mas_baseline) {
-           const valText = step.mas_baseline
-           const valNum = valText === "1+" ? 1.5 : parseFloat(valText)
-           injectionAssessmentsToInsert.push({
-               user_id: user.id,
-               injection_id: injectionId,
-               scale: 'MAS',
-               timepoint: 'baseline',
-               value_text: valText,
-               value_num: isNaN(valNum) ? null : valNum
-           })
-       }
+    if (!encounter) {
+      throw new Error("Treatment not found or access denied")
+    }
 
-       if (step.mas_peak) {
+    // Handle Product
+    let productId: string | null = encounter.productId // keep existing if not changed, or logic below
+    if (product_label) {
+         const product = await tx.product.upsert({
+          where: {
+            organizationId_name: { organizationId, name: product_label }
+          },
+          update: {},
+          create: { organizationId, name: product_label }
+        })
+        productId = product.id
+    }
+
+    await tx.encounter.update({
+      where: { id: treatmentId },
+      data: {
+        patientId: subject_id, // technically shouldn't change often but allowed
+        encounterAt: date,
+        encounterLocalDate: date,
+        treatmentSite: location || "N/A",
+        indication: category,
+        productId,
+        totalUnits: total_units,
+        effectNotes: notes,
+        updatedAt: new Date()
+      }
+    })
+
+    // 2. Replace Injections (Delete all old, Create new)
+    // Note: This also deletes related InjectionAssessments via Cascade if configured in DB.
+    // Our DB schema has ON DELETE CASCADE for Injection -> Encounter? 
+    // Wait, Injection -> Encounter is CASCADE. But here we delete Injections directly.
+    // InjectionAssessment -> Injection is CASCADE.
+    await tx.injection.deleteMany({
+      where: { encounterId: treatmentId }
+    })
+
+    if (steps && steps.length > 0) {
+      const injectionsCreate = steps.map(step => {
+        let side: BodySide = BodySide.B;
+        if (step.side === 'Left') side = BodySide.L;
+        if (step.side === 'Right') side = BodySide.R;
+        
+        const injAssessments = []
+        if (step.mas_baseline) {
+           const valNum = step.mas_baseline === "1+" ? 1.5 : parseFloat(step.mas_baseline)
+           injAssessments.push({
+               scale: 'MAS',
+               timepoint: Timepoint.baseline,
+               valueText: step.mas_baseline,
+               valueNum: isNaN(valNum) ? null : valNum
+           })
+        }
+        if (step.mas_peak) {
            const valText = step.mas_peak
            const valNum = valText === "1+" ? 1.5 : parseFloat(valText)
-           injectionAssessmentsToInsert.push({
-               user_id: user.id,
-               injection_id: injectionId,
+           injAssessments.push({
                scale: 'MAS',
-               timepoint: 'peak_effect',
-               value_text: valText,
-               value_num: isNaN(valNum) ? null : valNum
+               timepoint: Timepoint.peak_effect,
+               valueText: valText,
+               valueNum: isNaN(valNum) ? null : valNum
            })
-       }
-    })
-
-    if (injectionAssessmentsToInsert.length > 0) {
-        const { error: injAssessError } = await supabase
-            .from('injection_assessments')
-            .insert(injectionAssessmentsToInsert)
-        
-        if (injAssessError) {
-            console.error('Error creating injection assessments:', injAssessError)
         }
+
+        return {
+          organizationId,
+          encounterId: treatmentId, // Link to existing encounter
+          muscleId: step.muscle_id,
+          side: side,
+          units: step.numeric_value,
+          injectionAssessments: {
+             create: injAssessments
+          }
+        }
+      })
+      
+      // We cannot use createMany with nested creates (injectionAssessments).
+      // So we map promise array.
+      for (const inj of injectionsCreate) {
+        await tx.injection.create({
+          data: inj
+        })
+      }
     }
-  }
+  })
 
   revalidatePath(`/treatments/${treatmentId}`)
-  revalidatePath(`/patients/${patient_id}`)
-  redirect(`/patients/${patient_id}`)
+  revalidatePath(`/patients/${subject_id}`)
+  redirect(`/patients/${subject_id}`)
 }

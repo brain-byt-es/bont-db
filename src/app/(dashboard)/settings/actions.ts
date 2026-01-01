@@ -1,35 +1,21 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 
+// Note: Compliance settings were stored in Supabase Auth Metadata.
+// In our new schema, we don't have a direct "user settings" JSON field yet.
+// For now, we will treat this as a no-op or default to enabled/disabled.
+// Future: Add 'settings' Json field to User or OrganizationMembership.
+
 export async function updateComplianceSettings(enabled: boolean) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const { error } = await supabase.auth.updateUser({
-    data: { enable_compliance_views: enabled }
-  })
-
-  if (error) {
-    console.error('Error updating settings:', error)
-    throw new Error('Failed to update settings')
-  }
-
+  // TODO: Persist this preference to DB
+  console.log("Update compliance settings:", enabled)
   revalidatePath('/')
 }
 
 export async function getComplianceSettings() {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
-
-  const { data: { user } } = await supabase.auth.getUser()
-  
+  // Default to false for now until we add persistence
   return {
-    enable_compliance_views: user?.user_metadata?.enable_compliance_views || false
+    enable_compliance_views: false
   }
 }

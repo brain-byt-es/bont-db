@@ -1,27 +1,49 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
+import { getOrganizationContext } from "@/lib/auth-context"
+import prisma from "@/lib/prisma"
 
 export async function getExportData() {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const { organizationId } = await getOrganizationContext()
 
-  const { data: treatments, error } = await supabase
-    .from('treatments')
-    .select(`
-      *,
-      patients (patient_code, birth_year),
-      followups (followup_date, outcome)
-    `)
-    .order('treatment_date', { ascending: false })
+  const treatments = await prisma.encounter.findMany({
+    where: {
+      organizationId,
+      status: { not: "VOID" }
+    },
+    include: {
+      patient: {
+        select: { systemLabel: true, identifiers: true }
+      },
+      product: {
+        select: { name: true }
+      },
+      followups: {
+        select: { followupDate: true, outcome: true }
+      }
+    },
+    orderBy: {
+      encounterAt: 'desc'
+    }
+  })
 
-  if (error) {
-    console.error('Error fetching export data:', error)
-    return []
-  }
-
-  return treatments
+  return treatments.map(t => ({
+    id: t.id,
+    treatment_date: t.encounterLocalDate.toISOString(),
+    treatment_site: t.treatmentSite,
+    indication: t.indication,
+    product: t.product?.name || 'N/A',
+    total_units: t.totalUnits.toNumber(),
+    // Legacy mapping for UI compatibility
+    patients: {
+      patient_code: t.patient.systemLabel || 'Unknown',
+      birth_year: t.patient.identifiers?.birthYear || 0
+    },
+    followups: t.followups.map(f => ({
+        followup_date: f.followupDate.toISOString(),
+        outcome: f.outcome
+    }))
+  }))
 }
 
 export interface ResearchExportRecord {
@@ -45,73 +67,59 @@ export interface ResearchExportRecord {
 }
 
 export async function getResearchExportData() {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const { organizationId } = await getOrganizationContext()
 
-  // Fetch injections with related treatment, patient, and assessments info
-  const { data: injections, error } = await supabase
-    .from('injections')
-    .select(`
-      id,
-      muscle,
-      side,
-      units,
-      muscles:muscle (name),
-      treatments!inner (
-        id,
-        treatment_date,
-        treatment_site,
-        indication,
-        product,
-        dilution,
-        user_id,
-        patients (patient_code, birth_year),
-        followups (id)
-      ),
-      injection_assessments (
-        scale,
-        timepoint,
-        value_text,
-        value_num
-      )
-    `)
-    .order('treatments(treatment_date)', { ascending: false })
-
-  if (error) {
-    console.error('Error fetching research export data:', error)
-    return []
-  }
+  // Fetch all injections with deep relations
+  // Note: This can be heavy. In production, consider cursor pagination or specialized query.
+  const injections = await prisma.injection.findMany({
+    where: {
+      organizationId,
+      encounter: { status: { not: "VOID" } }
+    },
+    include: {
+      muscle: true,
+      encounter: {
+        include: {
+          patient: { select: { systemLabel: true } },
+          product: { select: { name: true } },
+          followups: { select: { id: true } }, // Just to check existence
+          providerMembership: { select: { userId: true } }
+        }
+      },
+      injectionAssessments: true
+    },
+    orderBy: {
+      encounter: { encounterAt: 'desc' }
+    }
+  })
 
   // Transform to flat structure
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const flatData: ResearchExportRecord[] = (injections as any[]).map((inj) => {
-    const treatment = inj.treatments
-    const patient = treatment.patients
-    const assessments = inj.injection_assessments || []
+  const flatData: ResearchExportRecord[] = injections.map((inj) => {
+    const treatment = inj.encounter
+    const patient = treatment.patient
+    const assessments = inj.injectionAssessments || []
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const masBaseline = assessments.find((a: any) => a.scale === 'MAS' && a.timepoint === 'baseline')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const masPeak = assessments.find((a: any) => a.scale === 'MAS' && a.timepoint === 'peak_effect')
+    const masBaseline = assessments.find((a) => a.scale === 'MAS' && a.timepoint === 'baseline')
+    const masPeak = assessments.find((a) => a.scale === 'MAS' && a.timepoint === 'peak_effect')
 
     return {
-      user_id: treatment.user_id,
-      patient_code: patient?.patient_code || 'UNKNOWN',
+      user_id: treatment.providerMembership.userId,
+      patient_code: patient?.systemLabel || 'UNKNOWN',
       treatment_id: treatment.id,
-      treatment_date: treatment.treatment_date,
+      treatment_date: treatment.encounterLocalDate.toISOString().split('T')[0],
       indication: treatment.indication,
-      product: treatment.product,
-      dilution: treatment.dilution || 'N/A',
+      product: treatment.product?.name || 'N/A',
+      dilution: treatment.dilutionText || 'N/A',
       injection_id: inj.id,
-      muscle_id: inj.muscle,
-      muscle_name: inj.muscles?.name || inj.muscle,
+      muscle_id: inj.muscleId || '',
+      muscle_name: inj.muscle?.name || 'Unknown',
       side: inj.side,
-      units: inj.units,
-      followup_flag: treatment.followups && treatment.followups.length > 0 ? 1 : 0,
-      MAS_baseline_text: masBaseline?.value_text || '',
-      MAS_baseline_num: masBaseline?.value_num !== null ? masBaseline?.value_num : '',
-      MAS_peak_text: masPeak?.value_text || '',
-      MAS_peak_num: masPeak?.value_num !== null ? masPeak?.value_num : '',
+      units: inj.units.toNumber(),
+      followup_flag: treatment.followups.length > 0 ? 1 : 0,
+      MAS_baseline_text: masBaseline?.valueText || '',
+      MAS_baseline_num: masBaseline?.valueNum !== null && masBaseline?.valueNum !== undefined ? masBaseline.valueNum.toNumber() : '',
+      MAS_peak_text: masPeak?.valueText || '',
+      MAS_peak_num: masPeak?.valueNum !== null && masPeak?.valueNum !== undefined ? masPeak.valueNum.toNumber() : '',
     }
   })
 

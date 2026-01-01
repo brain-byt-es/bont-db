@@ -1,31 +1,24 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
+import { getOrganizationContext } from '@/lib/auth-context'
+import prisma from '@/lib/prisma'
 
 export async function deleteTreatment(treatmentId: string) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const { organizationId } = await getOrganizationContext()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    throw new Error('User not authenticated')
+  // Verify and delete
+  const result = await prisma.encounter.deleteMany({
+    where: {
+      id: treatmentId,
+      organizationId: organizationId
+    }
+  })
+
+  if (result.count === 0) {
+    throw new Error('Treatment not found or access denied')
   }
 
-  // Delete associated injections first (though cascade might handle it, safer to be explicit or rely on FK cascade)
-  // Assuming FK cascade is ON for injections -> treatment_id
-  
-  const { error } = await supabase
-    .from('treatments')
-    .delete()
-    .eq('id', treatmentId)
-    .eq('user_id', user.id) // Security: Ensure user owns the record
-
-  if (error) {
-    console.error('Error deleting treatment:', error)
-    throw new Error(`Failed to delete treatment: ${error.message}`)
-  }
-
+  revalidatePath('/treatments')
   revalidatePath('/patients')
 }
