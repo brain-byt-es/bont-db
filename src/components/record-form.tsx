@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Save, AlertTriangle, ChevronDown, Wand2 } from "lucide-react"
+import { CalendarIcon, Save, ChevronDown, Wand2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -88,21 +88,12 @@ interface InjectionData {
   injectionAssessments: InjectionAssessment[];
 }
 
-interface DBAssessment {
-  scale: string;
-  timepoint: string;
-  value: number;
-  notes: string;
-}
-
 interface RecordFormProps {
   patients: { id: string; patient_code: string }[]
   defaultSubjectId?: string
   initialData?: InitialFormData
   treatmentId?: string
   isEditing?: boolean
-  onCancel?: () => void
-  onSuccess?: () => void
 }
 
 export function RecordForm({ 
@@ -110,16 +101,13 @@ export function RecordForm({
   defaultSubjectId, 
   initialData, 
   treatmentId, 
-  isEditing = false,
-  onCancel,
-  onSuccess
+  isEditing = false
 }: RecordFormProps) {
   const [steps, setSteps] = useState<ProcedureStep[]>(initialData?.steps || [])
   const [assessments, setAssessments] = useState<Assessment[]>([])
   const [muscles, setMuscles] = useState<Muscle[]>([])
   const [regions, setRegions] = useState<MuscleRegion[]>([])
   const [isPending, startTransition] = useTransition()
-  const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const router = useRouter()
 
   const [showPiiWarning, setShowPiiWarning] = useState(false)
@@ -138,11 +126,8 @@ export function RecordForm({
     },
   })
 
-  // Watch notes for soft warning
-  const notesValue = form.watch("notes")
-  const piiResult = validatePII(notesValue)
+  const categoryValue = form.watch("category")
 
-  // Fetch Muscles and Regions
   useEffect(() => {
     const fetchData = async () => {
         const [m, r] = await Promise.all([getMuscles(), getMuscleRegions()])
@@ -152,100 +137,76 @@ export function RecordForm({
     fetchData()
   }, [])
 
-  // Watch category for button visibility
-  const categoryValue = form.watch("category")
-
-  // Manual Template Loader
+  // Manual Template Loader for Migraine
   const loadMigraineTemplate = () => {
-        const templateMuscles: { name: string; side: ProcedureStep["side"]; units: number }[] = [
-            { name: "M. corrugator supercilii", side: "Left" as const, units: 5 },
-            { name: "M. corrugator supercilii", side: "Right" as const, units: 5 },
-            { name: "M. procerus", side: "Midline" as const, units: 5 },
-            { name: "M. frontalis", side: "Left" as const, units: 10 },
-            { name: "M. frontalis", side: "Right" as const, units: 10 },
-            { name: "M. temporalis", side: "Left" as const, units: 20 },
-            { name: "M. temporalis", side: "Right" as const, units: 20 },
-            { name: "M. occipitalis", side: "Left" as const, units: 15 },
-            { name: "M. occipitalis", side: "Right" as const, units: 15 },
-            { name: "M. trapezius", side: "Left" as const, units: 15 },
-            { name: "M. trapezius", side: "Right" as const, units: 15 },
-            { name: "M. paraspinalis (cervical)", side: "Left" as const, units: 10 },
-            { name: "M. paraspinalis (cervical)", side: "Right" as const, units: 10 }
-        ]
+    const templateMuscles: { name: string; side: ProcedureStep["side"]; units: number }[] = [
+        { name: "M. corrugator supercilii", side: "Left", units: 5 },
+        { name: "M. corrugator supercilii", side: "Right", units: 5 },
+        { name: "M. procerus", side: "Midline", units: 5 },
+        { name: "M. frontalis", side: "Left", units: 10 },
+        { name: "M. frontalis", side: "Right", units: 10 },
+        { name: "M. temporalis", side: "Left", units: 20 },
+        { name: "M. temporalis", side: "Right", units: 20 },
+        { name: "M. occipitalis", side: "Left", units: 15 },
+        { name: "M. occipitalis", side: "Right", units: 15 },
+        { name: "M. trapezius", side: "Left", units: 15 },
+        { name: "M. trapezius", side: "Right", units: 15 },
+        { name: "M. paraspinalis (cervical)", side: "Left", units: 10 },
+        { name: "M. paraspinalis (cervical)", side: "Right", units: 10 }
+    ]
 
-        const newSteps = templateMuscles.map((t): ProcedureStep | null => {
-            const muscleDef = muscles.find(m => m.name === t.name)
-            if (!muscleDef) return null
-            
-            return {
-                id: Math.random().toString(36).substr(2, 9),
-                muscle_id: muscleDef.id,
-                side: t.side,
-                numeric_value: t.units,
-                mas_baseline: "",
-                mas_peak: ""
-            }
-        }).filter((item): item is ProcedureStep => item !== null)
-
-        if (newSteps.length > 0) {
-            setSteps(newSteps)
-            toast.success("Standard migraine protocol loaded.")
-        } else {
-            toast.error("Could not load template. Muscles not found.")
+    const newSteps = templateMuscles.map((t): ProcedureStep | null => {
+        const muscleDef = muscles.find(m => m.name === t.name)
+        if (!muscleDef) return null
+        return {
+            id: Math.random().toString(36).substr(2, 9),
+            muscle_id: muscleDef.id,
+            side: t.side,
+            numeric_value: t.units,
+            mas_baseline: "",
+            mas_peak: ""
         }
+    }).filter((item): item is ProcedureStep => item !== null)
+
+    if (newSteps.length > 0) {
+        setSteps(newSteps)
+        toast.success("Standard migraine protocol (PREMPT) loaded.")
+    } else {
+        toast.error("Template muscles not found in database.")
+    }
   }
 
-  // ... existing Autosave & Load Draft
+  // Autosave & Load Draft
   useEffect(() => {
     if (isEditing) return
-
-    // Load draft
     const savedDraft = localStorage.getItem("bont_treatment_draft")
     if (savedDraft && !initialData) {
         try {
             const draft = JSON.parse(savedDraft)
-            // Only load if it's less than 24h old
             if (new Date().getTime() - new Date(draft.timestamp).getTime() < 24 * 60 * 60 * 1000) {
                 const { values, steps: draftSteps, assessments: draftAssessments } = draft
-                // Only populate if form is mostly empty (default state)
                 if (!form.getValues("subject_id")) {
-                    form.reset({
-                        ...values,
-                        date: values.date ? new Date(values.date) : new Date()
-                    })
+                    form.reset({ ...values, date: values.date ? new Date(values.date) : new Date() })
                     if (draftSteps) setSteps(draftSteps)
-                    if (draftAssessments) setAssessments(draftAssessments.map((a: Assessment & { assessed_at: string }) => ({
-                        ...a,
-                        assessed_at: new Date(a.assessed_at)
-                    })))
-                    toast.info("Draft restored from local storage")
+                    if (draftAssessments) setAssessments(draftAssessments.map((a: Assessment & { assessed_at: string }) => ({ ...a, assessed_at: new Date(a.assessed_at) })))
+                    toast.info("Draft restored")
                 }
             }
-        } catch (e) {
-            console.error("Failed to load draft", e)
-        }
+        } catch (e) { console.error(e) }
     }
   }, [isEditing, initialData, form])
 
-  // Save draft on change
+  // Save draft
   useEffect(() => {
     if (isEditing) return
-
-    // eslint-disable-next-line react-hooks/incompatible-library
     const subscription = form.watch((value) => {
-        const draft = {
-            values: value,
-            steps,
-            assessments,
-            timestamp: new Date()
-        }
+        const draft = { values: value, steps, assessments, timestamp: new Date() }
         localStorage.setItem("bont_treatment_draft", JSON.stringify(draft))
-        setLastSaved(new Date())
     })
     return () => subscription.unsubscribe()
   }, [form, steps, assessments, isEditing])
 
-  // Fetch latest treatment for defaults
+  // Fetch latest treatment for defaults (only sets if empty)
   const subjectId = form.watch("subject_id")
   useEffect(() => {
     if (isEditing || !subjectId) return
@@ -253,95 +214,58 @@ export function RecordForm({
     const fetchLatest = async () => {
         const latest = await getLatestTreatment(subjectId)
         if (latest) {
-             // Only set if field is empty (or default)
              const currentValues = form.getValues()
              if (!currentValues.product_label) form.setValue("product_label", latest.product)
              if (!currentValues.location || currentValues.location === "Main Clinic") form.setValue("location", latest.treatment_site)
              if (!currentValues.category) form.setValue("category", latest.indication)
-             
-             // Toast suggestion for copying steps
-             // logic moved to button
         }
     }
     fetchLatest()
   }, [subjectId, isEditing, form])
 
   const copyLastTreatmentFull = async () => {
-      if (!subjectId) return
-      const latest = await getLatestTreatment(subjectId)
+      const currentSubjectId = form.getValues("subject_id")
+      if (!currentSubjectId) return
+      const latest = await getLatestTreatment(currentSubjectId)
       if (latest) {
-          console.log("Copying latest treatment:", latest)
-          // Fields - explicit type casting/checking helps debug
-          // Also set options to trigger validation/dirty state if needed
-          if (latest.product) form.setValue("product_label", latest.product, { shouldValidate: true, shouldDirty: true })
-          if (latest.treatment_site) form.setValue("location", latest.treatment_site, { shouldValidate: true, shouldDirty: true })
-          if (latest.indication) form.setValue("category", latest.indication, { shouldValidate: true, shouldDirty: true })
-          if (latest.effect_notes) form.setValue("notes", latest.effect_notes, { shouldValidate: true, shouldDirty: true })
+          form.setValue("product_label", latest.product, { shouldValidate: true })
+          form.setValue("location", latest.treatment_site, { shouldValidate: true })
+          form.setValue("category", latest.indication, { shouldValidate: true })
+          if (latest.effect_notes) form.setValue("notes", latest.effect_notes, { shouldValidate: true })
 
-          // Injections
           if (latest.injections) {
-              const newSteps = (latest.injections as unknown as InjectionData[]).map((inj) => {
-                  const masBase = inj.injectionAssessments?.find((a) => a.timepoint === 'baseline' && a.scale === 'MAS')?.valueText
-                  const masPeak = inj.injectionAssessments?.find((a) => a.timepoint === 'peak_effect' && a.scale === 'MAS')?.valueText
-                  
-                  return {
-                    id: Math.random().toString(36).substr(2, 9),
-                    muscle_id: inj.muscleId || inj.muscle || '', // Handle both Prisma and Legacy if needed
-                    side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Bilateral') as "Left" | "Right" | "Bilateral" | "Midline",
-                    numeric_value: Number(inj.units),
-                    mas_baseline: masBase || "",
-                    mas_peak: masPeak || ""
-                  }
-              })
+              const newSteps = (latest.injections as InjectionData[]).map((inj) => ({
+                id: Math.random().toString(36).substr(2, 9),
+                muscle_id: inj.muscleId || inj.muscle || '',
+                side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Bilateral') as ProcedureStep["side"],
+                numeric_value: Number(inj.units),
+                mas_baseline: inj.injectionAssessments?.find((a) => a.timepoint === 'baseline')?.valueText || "",
+                mas_peak: inj.injectionAssessments?.find((a) => a.timepoint === 'peak_effect')?.valueText || ""
+              }))
               setSteps(newSteps)
           }
-
-          // Global Assessments
-          if (latest.assessments) {
-              const newAssessments = (latest.assessments as unknown as DBAssessment[]).map((a) => ({
-                  id: Math.random().toString(36).substr(2, 9),
-                  scale: a.scale,
-                  timepoint: a.timepoint,
-                  value: a.value,
-                  assessed_at: new Date(), 
-                  notes: a.notes
-              }))
-              setAssessments(newAssessments)
-          }
-
-          toast.success("Copied full treatment data from last visit")
+          toast.success("Last treatment data copied.")
       } else {
-          toast.info("No previous treatment found")
+          toast.info("No previous treatment found.")
       }
   }
 
   const processSubmission = (values: z.infer<typeof formSchema>) => {
     startTransition(async () => {
       try {
-        let result;
-        if (isEditing && treatmentId) {
-          result = await updateTreatment(treatmentId, { ...values, steps }) 
-        } else {
-          result = await createTreatment({ ...values, steps, assessments })
-        }
+        const result = isEditing && treatmentId 
+          ? await updateTreatment(treatmentId, { ...values, steps })
+          : await createTreatment({ ...values, steps, assessments });
 
         if (result && 'error' in result) {
           toast.error(result.error)
           return
         }
-
-        toast.success(isEditing ? "Treatment updated" : "Treatment record saved")
+        toast.success(isEditing ? "Updated" : "Saved")
         if (!isEditing) localStorage.removeItem("bont_treatment_draft")
-        
-        if (onSuccess) {
-          onSuccess()
-        } else {
-          router.push(values.subject_id ? `/patients/${values.subject_id}` : "/patients")
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to save record"
-        toast.error(message)
-        console.error(error)
+        router.push(values.subject_id ? `/patients/${values.subject_id}` : "/patients")
+      } catch (e) {
+        toast.error("Error saving record")
       }
     })
   }
@@ -349,253 +273,67 @@ export function RecordForm({
   function onSubmit(values: z.infer<typeof formSchema>) {
     const validation = validatePII(values.notes)
     if (validation.isCritical) {
-        setPiiDetected(validation.detected)
-        setPendingValues(values)
-        setShowPiiWarning(true)
+        setPiiDetected(validation.detected); setPendingValues(values); setShowPiiWarning(true);
         return
     }
     processSubmission(values)
-  }
-
-  const handlePiiConfirm = () => {
-      setShowPiiWarning(false)
-      if (pendingValues) {
-          processSubmission(pendingValues)
-          setPendingValues(null)
-      }
   }
 
   const totalUnits = steps.reduce((sum, step) => sum + (step.numeric_value || 0), 0)
 
   return (
     <>
-    <PiiWarningDialog 
-        open={showPiiWarning} 
-        onOpenChange={setShowPiiWarning}
-        detectedTypes={piiDetected}
-        onConfirm={handlePiiConfirm}
-        onCancel={() => setShowPiiWarning(false)}
-    />
+    <PiiWarningDialog open={showPiiWarning} onOpenChange={setShowPiiWarning} detectedTypes={piiDetected} onConfirm={() => { setShowPiiWarning(false); if (pendingValues) processSubmission(pendingValues) }} onCancel={() => setShowPiiWarning(false)} />
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         
-        {/* Header Actions */}
-        {!isEditing && subjectId && (
-            <div className="flex justify-end">
-                <Button variant="outline" type="button" onClick={copyLastTreatmentFull} className="w-full sm:w-auto bg-primary/5 border-primary/20 hover:bg-primary/10 text-primary">
-                    <Save className="mr-2 h-4 w-4" /> {/* Reusing Save icon or similar implies 'Load' */}
-                    Copy from last treatment
+        {!isEditing && form.watch("subject_id") && (
+            <div className="flex justify-end gap-2">
+                {categoryValue === 'kopfschmerz' && (
+                    <Button variant="secondary" size="sm" type="button" onClick={loadMigraineTemplate}>
+                        <Wand2 className="mr-2 h-4 w-4" /> Load PREMPT
+                    </Button>
+                )}
+                <Button variant="outline" size="sm" type="button" onClick={copyLastTreatmentFull} className="bg-primary/5 text-primary">
+                    <Save className="mr-2 h-4 w-4" /> Copy last visit
                 </Button>
             </div>
         )}
 
-        {lastSaved && !isEditing && (
-            <div className="text-xs text-muted-foreground text-right flex items-center justify-end gap-1">
-                <Save className="h-3 w-3" />
-                Draft saved {format(lastSaved, "HH:mm:ss")}
-            </div>
-        )}
-
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="subject_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Patient</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a patient" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {patients.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.patient_code}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="date"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Date of Treatment</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="kopfschmerz">Headache</SelectItem>
-                    <SelectItem value="dystonie">Dystonia</SelectItem>
-                    <SelectItem value="spastik">Spasticity</SelectItem>
-                    <SelectItem value="autonom">Autonomous</SelectItem>
-                    <SelectItem value="andere">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="product_label"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Product</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select product" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Botox">Botox</SelectItem>
-                    <SelectItem value="Dysport">Dysport</SelectItem>
-                    <SelectItem value="Xeomin">Xeomin</SelectItem>
-                    <SelectItem value="Myobloc">Myobloc</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <FormField control={form.control} name="subject_id" render={({ field }) => (
+              <FormItem><FormLabel>Patient</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger></FormControl><SelectContent>{patients.map((s) => (<SelectItem key={s.id} value={s.id}>{s.patient_code}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
+          )} />
+          <FormField control={form.control} name="date" render={({ field }) => (
+              <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+          )} />
+          <FormField control={form.control} name="category" render={({ field }) => (
+              <FormItem><FormLabel>Category</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger></FormControl><SelectContent><SelectItem value="kopfschmerz">Headache</SelectItem><SelectItem value="dystonie">Dystonia</SelectItem><SelectItem value="spastik">Spasticity</SelectItem><SelectItem value="autonom">Autonomous</SelectItem><SelectItem value="andere">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+          )} />
+          <FormField control={form.control} name="product_label" render={({ field }) => (
+              <FormItem><FormLabel>Product</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Botox">Botox</SelectItem><SelectItem value="Dysport">Dysport</SelectItem><SelectItem value="Xeomin">Xeomin</SelectItem><SelectItem value="Myobloc">Myobloc</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+          )} />
         </div>
         
         <div className="space-y-4">
-             <div className="flex justify-end gap-2">
-                {!isEditing && subjectId && (
-                    <>
-                    {categoryValue === 'kopfschmerz' && (
-                        <Button variant="secondary" size="sm" type="button" onClick={loadMigraineTemplate} className="w-full sm:w-auto">
-                            <Wand2 className="mr-2 h-4 w-4" />
-                            Load PREMPT
-                        </Button>
-                    )}
-                    <Button variant="outline" size="sm" type="button" onClick={copyLastTreatmentFull} className="w-full sm:w-auto bg-primary/5 border-primary/20 hover:bg-primary/10 text-primary">
-                        <Save className="mr-2 h-4 w-4" /> 
-                        Copy last
-                    </Button>
-                    </>
-                )}
-             </div>
-             <ProcedureStepsEditor 
-                steps={steps} 
-                onChange={setSteps} 
-                muscles={muscles}
-                regions={regions}
-             />
-             {form.watch("category") === "spastik" && steps.length > 0 && !steps.some(s => s.mas_baseline) && (
-                 <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800 text-sm">
-                     <AlertTriangle className="h-4 w-4" />
-                     <span>Recommended Baseline Score (MAS) missing.</span>
-                 </div>
-             )}
-        </div>
-
-        <div className="flex justify-end">
-           <div className="text-xl font-bold">Total: {totalUnits} Units</div>
+             <ProcedureStepsEditor steps={steps} onChange={setSteps} muscles={muscles} regions={regions} />
+             <div className="flex justify-end font-bold text-xl">Total: {totalUnits} Units</div>
         </div>
 
         <Collapsible>
           <div className="flex items-center space-x-2">
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-full justify-between">
-                Additional Assessments (Optional)
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </CollapsibleTrigger>
+            <CollapsibleTrigger asChild><Button variant="ghost" size="sm" className="w-full justify-between">Assessments (Optional) <ChevronDown className="h-4 w-4" /></Button></CollapsibleTrigger>
           </div>
-          <CollapsibleContent className="mt-4">
-            <AssessmentManager 
-                assessments={assessments} 
-                onChange={setAssessments} 
-                indication={form.watch("category")} 
-            />
-          </CollapsibleContent>
+          <CollapsibleContent className="mt-4"><AssessmentManager assessments={assessments} onChange={setAssessments} indication={categoryValue} /></CollapsibleContent>
         </Collapsible>
 
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Outcome / Notes</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Tell us a little bit about the procedure..."
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              {piiResult.score > 0 && (
-                  <div className="text-xs text-yellow-600 flex items-center gap-1 mt-1">
-                      <AlertTriangle className="h-3 w-3" />
-                      <span>Possible PII detected: {piiResult.detected.join(", ")}</span>
-                  </div>
-              )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormField control={form.control} name="notes" render={({ field }) => (
+            <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea placeholder="..." className="resize-none" {...field} /></FormControl><FormMessage /></FormItem>
+        )} />
 
-        <div className="flex flex-col sm:flex-row gap-4">
-            <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-              {isPending ? "Saving..." : isEditing ? "Save Changes" : "Save Record"}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()} className="w-full sm:w-auto">Cancel</Button>
+        <div className="flex gap-4">
+            <Button type="submit" disabled={isPending}>{isPending ? "Saving..." : "Save Record"}</Button>
+            <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
         </div>
       </form>
     </Form>
