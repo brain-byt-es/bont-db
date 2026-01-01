@@ -159,16 +159,20 @@ export function RecordForm({
 
     if (categoryValue === "kopfschmerz") {
         // PREMPT-like protocol defaults
-        const templateMuscles = [
-            { name: "M. corrugator supercilii", side: "Left" as const, units: 5 },
-            { name: "M. corrugator supercilii", side: "Right" as const, units: 5 },
-            { name: "M. procerus", side: "Midline" as const, units: 5 },
-            { name: "M. frontalis", side: "Left" as const, units: 10 },
-            { name: "M. frontalis", side: "Right" as const, units: 10 },
-            { name: "M. temporalis", side: "Left" as const, units: 20 },
-            { name: "M. temporalis", side: "Right" as const, units: 20 },
-            { name: "M. trapezius", side: "Left" as const, units: 15 },
-            { name: "M. trapezius", side: "Right" as const, units: 15 }
+        const templateMuscles: { name: string; side: ProcedureStep["side"]; units: number }[] = [
+            { name: "M. corrugator supercilii", side: "Left", units: 5 },
+            { name: "M. corrugator supercilii", side: "Right", units: 5 },
+            { name: "M. procerus", side: "Midline", units: 5 },
+            { name: "M. frontalis", side: "Left", units: 10 },
+            { name: "M. frontalis", side: "Right", units: 10 },
+            { name: "M. temporalis", side: "Left", units: 20 },
+            { name: "M. temporalis", side: "Right", units: 20 },
+            { name: "M. occipitalis", side: "Left", units: 15 },
+            { name: "M. occipitalis", side: "Right", units: 15 },
+            { name: "M. trapezius", side: "Left", units: 15 },
+            { name: "M. trapezius", side: "Right", units: 15 },
+            { name: "M. paraspinalis (cervical)", side: "Left", units: 10 },
+            { name: "M. paraspinalis (cervical)", side: "Right", units: 10 }
         ]
 
         const newSteps = templateMuscles.map((t): ProcedureStep | null => {
@@ -178,12 +182,13 @@ export function RecordForm({
             return {
                 id: Math.random().toString(36).substr(2, 9),
                 muscle_id: muscleDef.id,
-                side: t.side as any, // side is "Left" | "Right" | "Midline" which matches
+                side: t.side,
                 numeric_value: t.units,
                 mas_baseline: "",
                 mas_peak: ""
             }
         }).filter((item): item is ProcedureStep => item !== null)
+
 
         if (newSteps.length > 0) {
             toast("Smart Template Loaded", {
