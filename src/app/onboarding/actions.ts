@@ -6,7 +6,7 @@ import { getUserContext } from "@/lib/auth-context"
 import { revalidatePath } from "next/cache"
 
 export async function createOrganizationAction(formData: FormData) {
-  const { userId, user } = await getUserContext()
+  const { userId } = await getUserContext()
   
   const orgName = formData.get("orgName") as string
 
@@ -17,7 +17,7 @@ export async function createOrganizationAction(formData: FormData) {
   try {
     // Transaction to ensure atomicity
     await prisma.$transaction(async (tx) => {
-      const newOrg = await tx.organization.create({
+      await tx.organization.create({
         data: {
           name: orgName.trim(),
           region: "EU", // Defaulting to EU as per project specs

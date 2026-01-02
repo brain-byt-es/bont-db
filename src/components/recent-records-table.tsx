@@ -121,23 +121,23 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
         <TableRow className="hover:bg-transparent">
           {showPatientColumn && (
               <TableHead>
-                <SortButton label="Patient" sortKey="patient" onClick={() => requestSort("patient")} />
+                <SortButton label="Patient" onClick={() => requestSort("patient")} />
               </TableHead>
           )}
           <TableHead className="w-[140px]">
-            <SortButton label="Date" sortKey="treatment_date" onClick={() => requestSort("treatment_date")} />
+            <SortButton label="Date" onClick={() => requestSort("treatment_date")} />
           </TableHead>
           <TableHead>
-            <SortButton label="Location" sortKey="treatment_site" onClick={() => requestSort("treatment_site")} />
+            <SortButton label="Location" onClick={() => requestSort("treatment_site")} />
           </TableHead>
           <TableHead>
-             <SortButton label="Indication" sortKey="indication" onClick={() => requestSort("indication")} />
+             <SortButton label="Indication" onClick={() => requestSort("indication")} />
           </TableHead>
           <TableHead>
-             <SortButton label="Product" sortKey="product" onClick={() => requestSort("product")} />
+             <SortButton label="Product" onClick={() => requestSort("product")} />
           </TableHead>
           <TableHead className="text-right w-[120px]">
-             <SortButton label="Total Units" sortKey="total_units" align="end" onClick={() => requestSort("total_units")} />
+             <SortButton label="Total Units" align="end" onClick={() => requestSort("total_units")} />
           </TableHead>
           {!hideActions && <TableHead className="w-[50px]"></TableHead>}
         </TableRow>
@@ -209,7 +209,7 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
   )
 }
 
-function SortButton({ label, sortKey, align = "start", onClick }: { label: string, sortKey: string, align?: "start" | "end", onClick: () => void }) {
+function SortButton({ label, align = "start", onClick }: { label: string, align?: "start" | "end", onClick: () => void }) {
   return (
     <Button 
         variant="ghost" 

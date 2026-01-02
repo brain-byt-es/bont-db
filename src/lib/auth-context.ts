@@ -15,7 +15,7 @@ export async function getUserContext() {
 }
 
 export async function getOrganizationContext() {
-  const { userId, user } = await getUserContext()
+  const { userId } = await getUserContext()
   const cookieStore = await cookies()
   const preferredOrgId = cookieStore.get("injexpro_org_id")?.value
 
