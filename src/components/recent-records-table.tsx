@@ -162,7 +162,7 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
             </TableCell>
             <TableCell>
                 {record.status === "SIGNED" && <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 text-xs py-0">Signed</Badge>}
-                {record.status === "DRAFT" && <Badge variant="secondary" className="text-xs py-0">Draft</Badge>}
+                {record.status === "DRAFT" && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 text-xs py-0">Draft</Badge>}
                 {record.status === "VOID" && <Badge variant="destructive" className="text-xs py-0">Void</Badge>}
             </TableCell>
             <TableCell>{record.treatment_site}</TableCell>

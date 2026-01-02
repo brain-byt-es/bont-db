@@ -437,7 +437,7 @@ export function RecordForm({
         </fieldset>
 
         <div className="flex items-center justify-between pt-4 border-t">
-            <Button type="button" variant="ghost" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
             
             <div className="flex gap-4">
             {isSigned ? (
