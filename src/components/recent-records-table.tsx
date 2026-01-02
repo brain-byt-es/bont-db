@@ -18,11 +18,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { MoreHorizontal, Eye, Edit, Trash, ArrowUpDown } from "lucide-react"
 import Link from "next/link"
 import { deleteTreatment } from "@/app/(dashboard)/treatments/delete-action"
 import { toast } from "sonner"
 import { useTransition, useState } from "react"
+import { format } from "date-fns"
 
 export interface TreatmentRecord {
   id: string
@@ -49,6 +51,14 @@ const indicationLabels: Record<string, string> = {
   andere: "Other",
 }
 
+const indicationColors: Record<string, string> = {
+  kopfschmerz: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  dystonie: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+  spastik: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+  autonom: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  andere: "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400",
+}
+
 export function RecentRecordsTable({ records, hideActions = false }: RecentRecordsTableProps) {
   const [isPending, startTransition] = useTransition()
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
@@ -61,7 +71,6 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
     let aValue: string | number = '';
     let bValue: string | number = '';
 
-    // Handle nested patient code
     if (key === 'patient') {
         aValue = a.patient?.patient_code || '';
         bValue = b.patient?.patient_code || '';
@@ -99,46 +108,49 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
       try {
         await deleteTreatment(id)
         toast.success("Treatment deleted")
-          } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : "Failed to delete treatment")
-          }    })
+      } catch (error: unknown) {
+        toast.error(error instanceof Error ? error.message : "Failed to delete treatment")
+      }
+    })
   }
+
+  const SortButton = ({ label, sortKey, align = "start" }: { label: string, sortKey: string, align?: "start" | "end" }) => (
+    <Button 
+        variant="ghost" 
+        size="sm"
+        onClick={() => requestSort(sortKey)} 
+        className={cn(
+            "-ml-2 h-8 hover:bg-muted font-semibold",
+            align === "end" ? "justify-end w-full pr-0" : "justify-start"
+        )}
+    >
+        {label} <ArrowUpDown className="ml-2 h-3.5 w-3.5 opacity-50" />
+    </Button>
+  )
 
   return (
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow className="hover:bg-transparent">
           {showPatientColumn && (
               <TableHead>
-                <Button variant="ghost" onClick={() => requestSort('patient')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
-                  Patient <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
+                <SortButton label="Patient" sortKey="patient" />
               </TableHead>
           )}
-          <TableHead className="w-[120px]">
-            <Button variant="ghost" onClick={() => requestSort('treatment_date')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
-              Date <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
+          <TableHead className="w-[140px]">
+            <SortButton label="Date" sortKey="treatment_date" />
           </TableHead>
           <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('treatment_site')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
-              Location <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
+            <SortButton label="Location" sortKey="treatment_site" />
           </TableHead>
           <TableHead>
-             <Button variant="ghost" onClick={() => requestSort('indication')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
-              Indication <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
+             <SortButton label="Indication" sortKey="indication" />
           </TableHead>
           <TableHead>
-             <Button variant="ghost" onClick={() => requestSort('product')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
-              Product <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
+             <SortButton label="Product" sortKey="product" />
           </TableHead>
-          <TableHead className="text-right">
-             <Button variant="ghost" onClick={() => requestSort('total_units')} className="-mr-4 h-8 hover:bg-transparent font-semibold justify-end w-full">
-              Total Units <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
+          <TableHead className="text-right w-[120px]">
+             <SortButton label="Total Units" sortKey="total_units" align="end" />
           </TableHead>
           {!hideActions && <TableHead className="w-[50px]"></TableHead>}
         </TableRow>
@@ -146,46 +158,54 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
       <TableBody>
         {sortedRecords.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={showPatientColumn ? (hideActions ? 6 : 7) : (hideActions ? 5 : 6)} className="h-24 text-center">
+            <TableCell colSpan={showPatientColumn ? (hideActions ? 6 : 7) : (hideActions ? 5 : 6)} className="h-24 text-center text-muted-foreground">
               No records found.
             </TableCell>
           </TableRow>
         ) : (
           sortedRecords.map((record) => (
-            <TableRow key={record.id}>
+            <TableRow key={record.id} className="group transition-colors">
             {showPatientColumn && <TableCell className="font-medium">{record.patient?.patient_code}</TableCell>}
-            <TableCell className={!showPatientColumn ? "font-medium" : ""}>{record.treatment_date}</TableCell>
+            <TableCell className={cn("text-muted-foreground tabular-nums", !showPatientColumn && "font-medium text-foreground")}>
+                {format(new Date(record.treatment_date), "dd.MM.yyyy")}
+            </TableCell>
             <TableCell>{record.treatment_site}</TableCell>
-            <TableCell>{indicationLabels[record.indication] || record.indication}</TableCell>
-            <TableCell>{record.product}</TableCell>
-            <TableCell className="text-right">{record.total_units}</TableCell>
+            <TableCell>
+                <Badge variant="outline" className={cn("font-normal border-none shadow-none", indicationColors[record.indication])}>
+                    {indicationLabels[record.indication] || record.indication}
+                </Badge>
+            </TableCell>
+            <TableCell>
+                <span className="bg-muted px-1.5 py-0.5 rounded text-xs font-medium">{record.product}</span>
+            </TableCell>
+            <TableCell className="text-right font-bold tabular-nums">{record.total_units}</TableCell>
             {!hideActions && (
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <Button variant="ghost" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       <span className="sr-only">Open menu</span>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem asChild>
+                    <DropdownMenuItem asChild className="cursor-pointer">
                       <Link href={`/treatments/${record.id}`}>
-                        <Eye className="mr-2 h-4 w-4" />
+                        <Eye className="mr-2 h-4 w-4 text-muted-foreground" />
                         View Details
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
+                    <DropdownMenuItem asChild className="cursor-pointer">
                       <Link href={`/treatments/${record.id}/edit`}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
+                        <Edit className="mr-2 h-4 w-4 text-muted-foreground" />
+                        Edit Record
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => handleDelete(record.id)}
-                      className="text-destructive focus:text-destructive"
+                      className="text-destructive focus:text-destructive cursor-pointer"
                       disabled={isPending}
                     >
                       <Trash className="mr-2 h-4 w-4" />
@@ -200,4 +220,8 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
       </TableBody>
     </Table>
   )
+}
+
+function cn(...inputs: any[]) {
+    return inputs.filter(Boolean).join(" ")
 }
