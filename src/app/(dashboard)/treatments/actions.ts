@@ -33,7 +33,9 @@ interface CreateTreatmentFormData {
 }
 
 export async function createTreatment(formData: CreateTreatmentFormData) {
-  const { organizationId, membership } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId, membership } = ctx
 
   const {
     subject_id,
@@ -196,7 +198,9 @@ export async function getMuscleRegions() {
 }
 
 export async function getTreatments() {
-  const { organizationId } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId } = ctx
 
   const treatments = await prisma.encounter.findMany({
     where: {
@@ -231,7 +235,9 @@ export async function getTreatments() {
 }
 
 export async function getTreatment(treatmentId: string) {
-  const { organizationId } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId } = ctx
 
   const treatment = await prisma.encounter.findUnique({
     where: {
@@ -281,7 +287,9 @@ export async function getLatestTreatment(patientId: string) {
 
 
 
-  const { organizationId } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId } = ctx
 
 
 

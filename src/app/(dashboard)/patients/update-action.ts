@@ -5,7 +5,9 @@ import { getOrganizationContext } from '@/lib/auth-context'
 import prisma from '@/lib/prisma'
 
 export async function updatePatient(patientId: string, formData: FormData) {
-  const { organizationId } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId } = ctx
 
   const patient_code = formData.get('patient_code') as string
   const birth_year = parseInt(formData.get('birth_year') as string)

@@ -45,7 +45,14 @@ export default async function EditTreatmentPage({ params }: PageProps) {
     category: treatment.indication,
     product_label: treatment.product?.name || '',
     notes: treatment.effectNotes ?? undefined,
-    assessments: treatment.assessments || [],
+    assessments: (treatment.assessments || []).map((a) => ({
+      id: a.id,
+      scale: a.scale,
+      timepoint: a.timepoint,
+      value: a.valueNum || 0,
+      assessed_at: a.assessedAt,
+      notes: a.notes || undefined,
+    })),
     steps: (treatment.injections || []).map((inj) => ({
       id: inj.id,
       muscle_id: inj.muscleId || '', 

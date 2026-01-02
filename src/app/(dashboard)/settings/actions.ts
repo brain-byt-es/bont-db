@@ -1,6 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { getOrganizationContext } from "@/lib/auth-context"
+import prisma from "@/lib/prisma"
 
 // Note: Compliance settings were stored in Supabase Auth Metadata.
 // In our new schema, we don't have a direct "user settings" JSON field yet.
@@ -17,5 +19,38 @@ export async function getComplianceSettings() {
   // Default to false for now until we add persistence
   return {
     enable_compliance_views: false
+  }
+}
+
+export async function updateOrganizationName(formData: FormData) {
+  const ctx = await getOrganizationContext()
+  
+  if (!ctx) {
+    return { error: "Organization context not found" }
+  }
+
+  const { organizationId, membership } = ctx
+
+  if (membership.role !== "OWNER") {
+    return { error: "Only the organization owner can update settings." }
+  }
+
+  const name = formData.get("name") as string
+
+  if (!name || name.trim().length < 3) {
+    return { error: "Name must be at least 3 characters long." }
+  }
+
+  try {
+    await prisma.organization.update({
+      where: { id: organizationId },
+      data: { name: name.trim() }
+    })
+    
+    revalidatePath("/dashboard")
+    revalidatePath("/settings")
+  } catch (error) {
+    console.error("Failed to update org:", error)
+    return { error: "Failed to update organization." }
   }
 }

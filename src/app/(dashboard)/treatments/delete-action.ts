@@ -5,7 +5,9 @@ import { getOrganizationContext } from '@/lib/auth-context'
 import prisma from '@/lib/prisma'
 
 export async function deleteTreatment(treatmentId: string) {
-  const { organizationId } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId } = ctx
 
   // Verify and delete
   const result = await prisma.encounter.deleteMany({

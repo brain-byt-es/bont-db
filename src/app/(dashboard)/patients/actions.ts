@@ -8,7 +8,9 @@ import { revalidatePath } from "next/cache"
 import { randomUUID } from "crypto"
 
 export async function getPatients(): Promise<Subject[]> {
-  const { organizationId } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId } = ctx
 
   const patients = await prisma.patient.findMany({
     where: {
@@ -48,7 +50,9 @@ export async function getPatients(): Promise<Subject[]> {
 }
 
 export async function createPatient(formData: FormData) {
-  const { organizationId } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId } = ctx
   const patient_code = formData.get('patient_code') as string
   const birth_year = parseInt(formData.get('birth_year') as string)
 

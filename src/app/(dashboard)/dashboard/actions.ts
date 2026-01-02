@@ -32,7 +32,9 @@ export interface DashboardData {
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
-  const { organizationId } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId } = ctx
   
   // 1. Core Counts & Aggregations
   // We use Promise.all to fetch independent metrics in parallel

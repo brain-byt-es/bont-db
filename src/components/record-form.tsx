@@ -95,6 +95,8 @@ interface RecordFormProps {
   initialData?: InitialFormData
   treatmentId?: string
   isEditing?: boolean
+  onCancel?: () => void
+  onSuccess?: () => void
 }
 
 export function RecordForm({ 
@@ -102,7 +104,9 @@ export function RecordForm({
   defaultSubjectId, 
   initialData, 
   treatmentId, 
-  isEditing = false
+  isEditing = false,
+  onCancel,
+  onSuccess
 }: RecordFormProps) {
   const [steps, setSteps] = useState<ProcedureStep[]>(initialData?.steps || [])
   const [assessments, setAssessments] = useState<Assessment[]>(initialData?.assessments || [])
@@ -247,6 +251,7 @@ export function RecordForm({
           }
 
           if (latest.assessments) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const newAssessments = (latest.assessments as any[]).map((a) => ({
                   id: Math.random().toString(36).substr(2, 9),
                   scale: a.scale,
@@ -277,7 +282,12 @@ export function RecordForm({
         }
         toast.success(isEditing ? "Updated" : "Saved")
         if (!isEditing) localStorage.removeItem("bont_treatment_draft")
-        router.push(values.subject_id ? `/patients/${values.subject_id}` : "/patients")
+        
+        if (onSuccess) {
+          onSuccess()
+        } else {
+          router.push(values.subject_id ? `/patients/${values.subject_id}` : "/patients")
+        }
       } catch (e) {
         toast.error("Error saving record")
       }
@@ -347,7 +357,7 @@ export function RecordForm({
 
         <div className="flex gap-4">
             <Button type="submit" disabled={isPending}>{isPending ? "Saving..." : "Save Record"}</Button>
-            <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
         </div>
       </form>
     </Form>

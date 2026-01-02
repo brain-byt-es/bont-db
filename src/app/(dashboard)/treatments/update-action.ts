@@ -33,7 +33,9 @@ interface UpdateTreatmentFormData {
 }
 
 export async function updateTreatment(treatmentId: string, formData: UpdateTreatmentFormData) {
-  const { organizationId } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId } = ctx
 
   const {
     subject_id,

@@ -7,6 +7,7 @@ import {
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { redirect } from "next/navigation"
+import { getOrganizationContext } from "@/lib/auth-context"
 
 export default async function DashboardLayout({
   children,
@@ -17,6 +18,12 @@ export default async function DashboardLayout({
   
   if (!session) {
     redirect("/login")
+  }
+
+  // Ensure the user has an active organization context
+  const orgContext = await getOrganizationContext()
+  if (!orgContext) {
+    redirect("/onboarding")
   }
 
   const appUser = session.user ? {

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import PatientPage from "./client"
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
@@ -9,7 +9,9 @@ interface PageProps {
 
 export default async function Page({ params }: PageProps) {
   const { id } = await params
-  const { organizationId } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) redirect('/onboarding')
+  const { organizationId } = ctx
 
   // Fetch patient
   const patient = await prisma.patient.findUnique({

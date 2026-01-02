@@ -4,7 +4,9 @@ import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 
 export async function getExportData() {
-  const { organizationId } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId } = ctx
 
   const treatments = await prisma.encounter.findMany({
     where: {
@@ -67,7 +69,9 @@ export interface ResearchExportRecord {
 }
 
 export async function getResearchExportData() {
-  const { organizationId } = await getOrganizationContext()
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId } = ctx
 
   // Fetch all injections with deep relations
   // Note: This can be heavy. In production, consider cursor pagination or specialized query.

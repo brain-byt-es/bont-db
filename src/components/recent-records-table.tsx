@@ -25,6 +25,7 @@ import { deleteTreatment } from "@/app/(dashboard)/treatments/delete-action"
 import { toast } from "sonner"
 import { useTransition, useState } from "react"
 import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 
 export interface TreatmentRecord {
   id: string
@@ -114,43 +115,29 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
     })
   }
 
-  const SortButton = ({ label, sortKey, align = "start" }: { label: string, sortKey: string, align?: "start" | "end" }) => (
-    <Button 
-        variant="ghost" 
-        size="sm"
-        onClick={() => requestSort(sortKey)} 
-        className={cn(
-            "-ml-2 h-8 hover:bg-muted font-semibold",
-            align === "end" ? "justify-end w-full pr-0" : "justify-start"
-        )}
-    >
-        {label} <ArrowUpDown className="ml-2 h-3.5 w-3.5 opacity-50" />
-    </Button>
-  )
-
   return (
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           {showPatientColumn && (
               <TableHead>
-                <SortButton label="Patient" sortKey="patient" />
+                <SortButton label="Patient" sortKey="patient" onClick={() => requestSort("patient")} />
               </TableHead>
           )}
           <TableHead className="w-[140px]">
-            <SortButton label="Date" sortKey="treatment_date" />
+            <SortButton label="Date" sortKey="treatment_date" onClick={() => requestSort("treatment_date")} />
           </TableHead>
           <TableHead>
-            <SortButton label="Location" sortKey="treatment_site" />
+            <SortButton label="Location" sortKey="treatment_site" onClick={() => requestSort("treatment_site")} />
           </TableHead>
           <TableHead>
-             <SortButton label="Indication" sortKey="indication" />
+             <SortButton label="Indication" sortKey="indication" onClick={() => requestSort("indication")} />
           </TableHead>
           <TableHead>
-             <SortButton label="Product" sortKey="product" />
+             <SortButton label="Product" sortKey="product" onClick={() => requestSort("product")} />
           </TableHead>
           <TableHead className="text-right w-[120px]">
-             <SortButton label="Total Units" sortKey="total_units" align="end" />
+             <SortButton label="Total Units" sortKey="total_units" align="end" onClick={() => requestSort("total_units")} />
           </TableHead>
           {!hideActions && <TableHead className="w-[50px]"></TableHead>}
         </TableRow>
@@ -222,6 +209,19 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
   )
 }
 
-function cn(...inputs: any[]) {
-    return inputs.filter(Boolean).join(" ")
+function SortButton({ label, sortKey, align = "start", onClick }: { label: string, sortKey: string, align?: "start" | "end", onClick: () => void }) {
+  return (
+    <Button 
+        variant="ghost" 
+        size="sm"
+        onClick={onClick} 
+        className={cn(
+            "-ml-2 h-8 hover:bg-muted font-semibold",
+            align === "end" ? "justify-end w-full pr-0" : "justify-start"
+        )}
+    >
+        {label} <ArrowUpDown className="ml-2 h-3.5 w-3.5 opacity-50" />
+    </Button>
+  )
 }
+
