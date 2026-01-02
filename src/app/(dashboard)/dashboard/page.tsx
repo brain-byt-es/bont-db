@@ -6,7 +6,7 @@ import { NextActions } from "@/components/dashboard/next-actions"
 import { DocumentationQuality } from "@/components/dashboard/documentation-quality"
 import { UpsellTeaser } from "@/components/dashboard/upsell-teaser"
 import { StatsCard } from "@/components/stats-card"
-import { Calendar as CalendarIcon, ChevronDown } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronDown, Users, Activity, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Collapsible,
@@ -75,16 +75,19 @@ export default async function Page() {
             title="Total Patients" 
             value={data.totalPatientsCount} 
             subtext="Distinct patients treated"
+            icon={Users}
          />
          <StatsCard 
             title="Total Treatments" 
             value={data.totalTreatmentsCount} 
             subtext="All records logged"
+            icon={Activity}
          />
          <StatsCard 
             title="Follow-up Rate (90d)" 
             value={`${Math.round(data.followUpRateRecent)}%`}
             subtext="Treatments in last 3 months"
+            icon={TrendingUp}
          />
       </div>
 

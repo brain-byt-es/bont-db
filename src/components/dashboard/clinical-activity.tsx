@@ -32,8 +32,8 @@ export function ClinicalActivity({ trendData, topMuscles }: ClinicalActivityProp
               <AreaChart data={trendData}>
                 <defs>
                   <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <XAxis 
@@ -45,14 +45,17 @@ export function ClinicalActivity({ trendData, topMuscles }: ClinicalActivityProp
                     backgroundColor: "hsl(var(--popover))", 
                     borderColor: "hsl(var(--border))", 
                     borderRadius: "var(--radius)",
-                    color: "hsl(var(--popover-foreground))" 
+                    color: "hsl(var(--popover-foreground))",
+                    boxShadow: "var(--shadow-sm)"
                   }}
                   itemStyle={{ color: "hsl(var(--primary))" }}
+                  cursor={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1, strokeDasharray: "4 4" }}
                 />
                 <Area 
                   type="monotone" 
                   dataKey="count" 
-                  stroke="#8884d8" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
                   fillOpacity={1} 
                   fill="url(#colorCount)" 
                 />
@@ -68,24 +71,22 @@ export function ClinicalActivity({ trendData, topMuscles }: ClinicalActivityProp
           <CardDescription>Most frequent targets</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4 mt-2">
+          <div className="space-y-5 mt-4">
             {topMuscles.length === 0 ? (
               <p className="text-sm text-muted-foreground">No muscle data recorded yet.</p>
             ) : (
               topMuscles.map((muscle, index) => (
-                <div key={index} className="flex items-center">
-                  <div className="w-full space-y-1">
+                <div key={index} className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{muscle.name}</span>
-                      <span className="text-muted-foreground">{muscle.count}x</span>
+                      <span className="font-medium text-foreground">{muscle.name}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums font-medium bg-muted px-1.5 py-0.5 rounded-md">{muscle.count}</span>
                     </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/50">
                       <div
-                        className="h-full bg-primary transition-all"
+                        className="h-full bg-primary transition-all duration-500 ease-in-out"
                         style={{ width: `${(muscle.count / topMuscles[0].count) * 100}%` }}
                       />
                     </div>
-                  </div>
                 </div>
               ))
             )}

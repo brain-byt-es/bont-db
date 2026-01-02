@@ -72,6 +72,7 @@ interface InitialFormData {
   product_label?: string;
   notes?: string;
   steps?: ProcedureStep[];
+  assessments?: Assessment[];
 }
 
 interface InjectionAssessment {
@@ -104,7 +105,7 @@ export function RecordForm({
   isEditing = false
 }: RecordFormProps) {
   const [steps, setSteps] = useState<ProcedureStep[]>(initialData?.steps || [])
-  const [assessments, setAssessments] = useState<Assessment[]>([])
+  const [assessments, setAssessments] = useState<Assessment[]>(initialData?.assessments || [])
   const [muscles, setMuscles] = useState<Muscle[]>([])
   const [regions, setRegions] = useState<MuscleRegion[]>([])
   const [isPending, startTransition] = useTransition()
@@ -244,6 +245,19 @@ export function RecordForm({
               }))
               setSteps(newSteps)
           }
+
+          if (latest.assessments) {
+              const newAssessments = (latest.assessments as any[]).map((a) => ({
+                  id: Math.random().toString(36).substr(2, 9),
+                  scale: a.scale,
+                  timepoint: a.timepoint,
+                  value: a.valueNum || 0,
+                  assessed_at: new Date(),
+                  notes: a.notes || ""
+              }))
+              setAssessments(newAssessments)
+          }
+
           toast.success("Last treatment data copied.")
       } else {
           toast.info("No previous treatment found.")
@@ -254,7 +268,7 @@ export function RecordForm({
     startTransition(async () => {
       try {
         const result = isEditing && treatmentId 
-          ? await updateTreatment(treatmentId, { ...values, steps })
+          ? await updateTreatment(treatmentId, { ...values, steps, assessments })
           : await createTreatment({ ...values, steps, assessments });
 
         if (result && 'error' in result) {

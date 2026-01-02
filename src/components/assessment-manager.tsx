@@ -107,33 +107,33 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className="border shadow-none">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
         <div className="space-y-1">
-          <CardTitle>Assessments & Scores</CardTitle>
+          <CardTitle className="text-base">Assessments & Scores</CardTitle>
           <CardDescription>
              Manage clinical scores for this treatment.
           </CardDescription>
         </div>
-        <Button onClick={addAssessment} size="sm" type="button">
-          <Plus className="mr-2 h-4 w-4" />
+        <Button onClick={addAssessment} size="sm" type="button" variant="outline" className="h-8">
+          <Plus className="mr-2 h-3.5 w-3.5" />
           Add Score
         </Button>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-4 pb-4">
         
         {/* Compliance Badges/Warnings */}
         <div className="flex flex-wrap gap-2 mb-4">
            {warnings.length > 0 ? (
                warnings.map((w, i) => (
-                   <Badge key={i} variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300">
+                   <Badge key={i} variant="secondary" className="bg-amber-50 text-amber-900 hover:bg-amber-100 border-amber-200">
                        <AlertTriangle className="mr-1 h-3 w-3" />
                        {w}
                    </Badge>
                ))
            ) : (
                assessments.length > 0 && (
-                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                   <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                        <CheckCircle2 className="mr-1 h-3 w-3" />
                        Score Recommendations Met
                    </Badge>
@@ -142,22 +142,22 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
         </div>
 
         {assessments.length === 0 ? (
-          <div className="text-center text-sm text-muted-foreground py-4 border border-dashed rounded-md">
+          <div className="text-center text-sm text-muted-foreground py-8 border border-dashed rounded-md bg-muted/10">
             No assessments recorded.
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {assessments.map((assessment) => (
-              <div key={assessment.id} className="grid gap-4 md:grid-cols-[1fr_1fr_100px_150px_auto] items-start border p-4 rounded-md bg-card relative">
+              <div key={assessment.id} className="grid gap-3 md:grid-cols-[1fr_1fr_100px_140px_auto] items-end border p-3 rounded-lg bg-card/50 hover:bg-muted/10 transition-colors">
                  
                  {/* Scale Selector */}
-                 <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground">Scale</label>
+                 <div className="space-y-1.5">
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Scale</label>
                     <Select 
                         value={assessment.scale} 
                         onValueChange={(v) => updateAssessment(assessment.id, "scale", v)}
                     >
-                        <SelectTrigger>
+                        <SelectTrigger className="h-9">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -169,13 +169,13 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
                  </div>
 
                  {/* Timepoint Selector */}
-                 <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground">Timepoint</label>
+                 <div className="space-y-1.5">
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Timepoint</label>
                     <Select 
                         value={assessment.timepoint} 
                         onValueChange={(v) => updateAssessment(assessment.id, "timepoint", v)}
                     >
-                        <SelectTrigger>
+                        <SelectTrigger className="h-9">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -188,36 +188,37 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
                  </div>
 
                  {/* Value Input */}
-                 <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground">Value</label>
+                 <div className="space-y-1.5">
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Value</label>
                     <Input 
                         type="number" 
                         value={assessment.value}
+                        className="h-9"
                         onChange={(e) => updateAssessment(assessment.id, "value", parseFloat(e.target.value))}
                     />
                  </div>
 
                  {/* Date Picker */}
-                 <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground">Date</label>
+                 <div className="space-y-1.5">
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Date</label>
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button
                                 variant={"outline"}
                                 className={cn(
-                                    "w-full pl-3 text-left font-normal text-xs h-10",
+                                    "w-full pl-3 text-left font-normal text-xs h-9",
                                     !assessment.assessed_at && "text-muted-foreground"
                                 )}
                             >
                                 {assessment.assessed_at ? (
-                                    format(assessment.assessed_at, "PP")
+                                    format(assessment.assessed_at, "dd.MM.yyyy")
                                 ) : (
                                     <span>Pick a date</span>
                                 )}
                                 <CalendarIcon className="ml-auto h-3 w-3 opacity-50" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[calc(100vw-4rem)] sm:w-auto p-0" align="start">
+                        <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                                 mode="single"
                                 selected={assessment.assessed_at}
@@ -230,16 +231,16 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
                  </div>
 
                  {/* Actions */}
-                 <div className="md:pt-6 flex justify-end">
+                 <div className="pb-0.5">
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => removeAssessment(assessment.id)}
                         type="button"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                     >
                         <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Remove assessment</span>
+                        <span className="sr-only">Remove</span>
                     </Button>
                  </div>
               </div>

@@ -5,6 +5,14 @@ import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { BodySide, Timepoint } from "@/generated/client/client"
 
+interface AssessmentData {
+  scale: string;
+  timepoint: string;
+  value: number;
+  assessed_at: Date;
+  notes?: string;
+}
+
 interface ProcedureStep {
   muscle_id: string; 
   side: 'Left' | 'Right' | 'Bilateral' | 'Midline';
@@ -21,6 +29,7 @@ interface UpdateTreatmentFormData {
   product_label: string;
   notes?: string;
   steps?: ProcedureStep[];
+  assessments?: AssessmentData[];
 }
 
 export async function updateTreatment(treatmentId: string, formData: UpdateTreatmentFormData) {
@@ -33,7 +42,8 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     category,
     product_label,
     notes,
-    steps
+    steps,
+    assessments
   } = formData
 
   let total_units = 0
@@ -45,7 +55,7 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     return { error: "Total units must be greater than 0. Please add at least one injection step." }
   }
 
-  // Transaction: Update Encounter + Replace Injections
+  // Transaction: Update Encounter + Replace Injections & Assessments
   await prisma.$transaction(async (tx) => {
     // 1. Verify existence & Update main fields
     const encounter = await tx.encounter.findUnique({
@@ -57,7 +67,7 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     }
 
     // Handle Product
-    let productId: string | null = encounter.productId // keep existing if not changed, or logic below
+    let productId: string | null = encounter.productId
     if (product_label) {
          const product = await tx.product.upsert({
           where: {
@@ -72,7 +82,7 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     await tx.encounter.update({
       where: { id: treatmentId },
       data: {
-        patientId: subject_id, // technically shouldn't change often but allowed
+        patientId: subject_id,
         encounterAt: date,
         encounterLocalDate: date,
         treatmentSite: location || "N/A",
@@ -85,16 +95,12 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     })
 
     // 2. Replace Injections (Delete all old, Create new)
-    // Note: This also deletes related InjectionAssessments via Cascade if configured in DB.
-    // Our DB schema has ON DELETE CASCADE for Injection -> Encounter? 
-    // Wait, Injection -> Encounter is CASCADE. But here we delete Injections directly.
-    // InjectionAssessment -> Injection is CASCADE.
     await tx.injection.deleteMany({
       where: { encounterId: treatmentId }
     })
 
     if (steps && steps.length > 0) {
-      const injectionsCreate = steps.map(step => {
+      for (const step of steps) {
         let side: BodySide = BodySide.B;
         if (step.side === 'Left') side = BodySide.L;
         if (step.side === 'Right') side = BodySide.R;
@@ -120,25 +126,38 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
            })
         }
 
-        return {
-          organizationId,
-          encounterId: treatmentId, // Link to existing encounter
-          muscleId: step.muscle_id,
-          side: side,
-          units: step.numeric_value,
-          injectionAssessments: {
-             create: injAssessments
-          }
-        }
-      })
-      
-      // We cannot use createMany with nested creates (injectionAssessments).
-      // So we map promise array.
-      for (const inj of injectionsCreate) {
         await tx.injection.create({
-          data: inj
+          data: {
+            organizationId,
+            encounterId: treatmentId,
+            muscleId: step.muscle_id,
+            side: side,
+            units: step.numeric_value,
+            injectionAssessments: {
+               create: injAssessments
+            }
+          }
         })
       }
+    }
+
+    // 3. Replace Encounter Assessments
+    await tx.assessment.deleteMany({
+      where: { encounterId: treatmentId }
+    })
+
+    if (assessments && assessments.length > 0) {
+      await tx.assessment.createMany({
+        data: assessments.map(a => ({
+          encounterId: treatmentId,
+          timepoint: mapTimepoint(a.timepoint),
+          assessedAt: new Date(a.assessed_at),
+          scale: a.scale,
+          valueNum: a.value,
+          notes: a.notes,
+          valueText: a.value.toString()
+        }))
+      })
     }
   })
 
@@ -146,4 +165,14 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
   revalidatePath(`/patients/${subject_id}`)
   
   return { success: true, patientId: subject_id }
+}
+
+function mapTimepoint(t: string): Timepoint {
+  switch(t) {
+    case 'baseline': return Timepoint.baseline
+    case 'peak_effect': return Timepoint.peak_effect
+    case 'reinjection': return Timepoint.reinjection
+    case 'followup': return Timepoint.followup
+    default: return Timepoint.other
+  }
 }
