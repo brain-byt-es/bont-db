@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma"
 import { randomBytes, createHash } from "crypto"
 import { headers } from "next/headers"
 import { MembershipRole } from "@/generated/client/client"
+import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 
 export async function getTeamData() {
   const ctx = await getOrganizationContext()
@@ -53,8 +54,9 @@ export async function createInviteAction(formData: FormData) {
   if (!ctx) return { error: "No organization context" }
   const { organizationId, membership } = ctx
 
-  // RBAC: Only Owner/Admin can invite
-  if (!["OWNER", "CLINIC_ADMIN"].includes(membership.role)) {
+  try {
+    requirePermission(membership.role, PERMISSIONS.MANAGE_TEAM)
+  } catch {
     return { error: "You do not have permission to invite members." }
   }
 
@@ -119,7 +121,9 @@ export async function revokeInviteAction(inviteId: string) {
   if (!ctx) return { error: "No organization context" }
   const { organizationId, membership } = ctx
 
-  if (!["OWNER", "CLINIC_ADMIN"].includes(membership.role)) {
+  try {
+    requirePermission(membership.role, PERMISSIONS.MANAGE_TEAM)
+  } catch {
     return { error: "Permission denied" }
   }
 
@@ -139,8 +143,10 @@ export async function removeMemberAction(memberId: string) {
     if (!ctx) return { error: "No organization context" }
     const { organizationId, membership } = ctx
   
-    if (membership.role !== "OWNER") {
-      return { error: "Only Owners can remove members." }
+    try {
+        requirePermission(membership.role, PERMISSIONS.MANAGE_TEAM)
+    } catch {
+        return { error: "Permission denied" }
     }
 
     if (memberId === membership.id) {

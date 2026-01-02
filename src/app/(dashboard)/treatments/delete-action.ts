@@ -3,11 +3,14 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from '@/lib/auth-context'
 import prisma from '@/lib/prisma'
+import { PERMISSIONS, requirePermission } from '@/lib/permissions'
 
 export async function deleteTreatment(treatmentId: string) {
   const ctx = await getOrganizationContext()
   if (!ctx) throw new Error("No organization context")
-  const { organizationId } = ctx
+  const { organizationId, membership } = ctx
+
+  requirePermission(membership.role, PERMISSIONS.DELETE_TREATMENTS)
 
   // Verify and delete
   const result = await prisma.encounter.deleteMany({

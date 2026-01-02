@@ -3,11 +3,14 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from '@/lib/auth-context'
 import prisma from '@/lib/prisma'
+import { PERMISSIONS, requirePermission } from '@/lib/permissions'
 
 export async function deletePatient(patientId: string) {
   const ctx = await getOrganizationContext()
   if (!ctx) throw new Error("No organization context")
-  const { organizationId } = ctx
+  const { organizationId, membership } = ctx
+
+  requirePermission(membership.role, PERMISSIONS.DELETE_PATIENTS)
 
   // Verify ownership via organizationId in the query
   // Note: We use deleteMany just to be safe with the where clause,

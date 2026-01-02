@@ -6,6 +6,7 @@ import { Subject } from "@/components/subjects-table"
 import { format } from "date-fns"
 import { revalidatePath } from "next/cache"
 import { randomUUID } from "crypto"
+import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 
 export async function getPatients(): Promise<Subject[]> {
   const ctx = await getOrganizationContext()
@@ -52,7 +53,10 @@ export async function getPatients(): Promise<Subject[]> {
 export async function createPatient(formData: FormData) {
   const ctx = await getOrganizationContext()
   if (!ctx) throw new Error("No organization context")
-  const { organizationId } = ctx
+  const { organizationId, membership } = ctx
+
+  requirePermission(membership.role, PERMISSIONS.WRITE_PATIENTS)
+
   const patient_code = formData.get('patient_code') as string
   const birth_year = parseInt(formData.get('birth_year') as string)
 

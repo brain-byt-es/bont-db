@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
+import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 
 // Note: Compliance settings were stored in Supabase Auth Metadata.
 // In our new schema, we don't have a direct "user settings" JSON field yet.
@@ -31,9 +32,7 @@ export async function updateOrganizationName(formData: FormData) {
 
   const { organizationId, membership } = ctx
 
-  if (membership.role !== "OWNER") {
-    return { error: "Only the organization owner can update settings." }
-  }
+  requirePermission(membership.role, PERMISSIONS.MANAGE_ORGANIZATION)
 
   const name = formData.get("name") as string
 

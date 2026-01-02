@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { BodySide, Timepoint } from "@/generated/client/client"
+import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 
 interface AssessmentData {
   scale: string;
@@ -36,6 +37,8 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
   const ctx = await getOrganizationContext()
   if (!ctx) throw new Error("No organization context")
   const { organizationId, membership } = ctx
+
+  requirePermission(membership.role, PERMISSIONS.WRITE_TREATMENTS)
 
   const {
     subject_id,

@@ -3,11 +3,14 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from '@/lib/auth-context'
 import prisma from '@/lib/prisma'
+import { PERMISSIONS, requirePermission } from '@/lib/permissions'
 
 export async function updatePatient(patientId: string, formData: FormData) {
   const ctx = await getOrganizationContext()
   if (!ctx) throw new Error("No organization context")
-  const { organizationId } = ctx
+  const { organizationId, membership } = ctx
+
+  requirePermission(membership.role, PERMISSIONS.WRITE_PATIENTS)
 
   const patient_code = formData.get('patient_code') as string
   const birth_year = parseInt(formData.get('birth_year') as string)

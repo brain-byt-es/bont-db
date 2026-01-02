@@ -288,7 +288,7 @@ export function RecordForm({
         } else {
           router.push(values.subject_id ? `/patients/${values.subject_id}` : "/patients")
         }
-      } catch (e) {
+      } catch {
         toast.error("Error saving record")
       }
     })
