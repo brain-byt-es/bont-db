@@ -27,6 +27,28 @@ export async function signTreatmentAction(treatmentId: string) {
   return { success: true }
 }
 
+export async function bulkSignTreatmentsAction(treatmentIds: string[]) {
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId, membership } = ctx
+
+  requirePermission(membership.role, PERMISSIONS.WRITE_TREATMENTS)
+
+  if (!treatmentIds.length) return { count: 0 }
+
+  const result = await prisma.encounter.updateMany({
+    where: {
+      id: { in: treatmentIds },
+      organizationId,
+      status: "DRAFT" // Only sign drafts to be safe
+    },
+    data: { status: "SIGNED" }
+  })
+
+  revalidatePath("/treatments")
+  revalidatePath("/patients") // In case we are on patient detail
+  return { count: result.count }
+}
 export async function reopenTreatmentAction(treatmentId: string) {
   const ctx = await getOrganizationContext()
   if (!ctx) throw new Error("No organization context")

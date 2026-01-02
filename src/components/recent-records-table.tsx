@@ -17,11 +17,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MoreHorizontal, Eye, Edit, Trash, ArrowUpDown } from "lucide-react"
 import Link from "next/link"
 import { deleteTreatment } from "@/app/(dashboard)/treatments/delete-action"
+import { bulkSignTreatmentsAction } from "@/app/(dashboard)/treatments/status-actions"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { useTransition, useState } from "react"
 import { format } from "date-fns"
@@ -64,6 +76,8 @@ const indicationColors: Record<string, string> = {
 export function RecentRecordsTable({ records, hideActions = false }: RecentRecordsTableProps) {
   const [isPending, startTransition] = useTransition()
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [showBulkSignDialog, setShowBulkSignDialog] = useState(false)
   const showPatientColumn = records.some(r => r.patient)
 
   const sortedRecords = [...records].sort((a, b) => {
@@ -116,10 +130,83 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
     })
   }
 
+  const handleSelectAll = (checked: boolean) => {
+      if (checked) {
+          setSelectedIds(sortedRecords.map(r => r.id))
+      } else {
+          setSelectedIds([])
+      }
+  }
+
+  const handleSelectOne = (checked: boolean, id: string) => {
+      if (checked) {
+          setSelectedIds(prev => [...prev, id])
+      } else {
+          setSelectedIds(prev => prev.filter(i => i !== id))
+      }
+  }
+
+  const handleBulkSign = () => {
+      setShowBulkSignDialog(true)
+  }
+
+  const confirmBulkSign = () => {
+      startTransition(async () => {
+          try {
+              const result = await bulkSignTreatmentsAction(selectedIds)
+              toast.success(`${result.count} treatments signed`)
+              setSelectedIds([])
+              setShowBulkSignDialog(false)
+          } catch {
+              toast.error("Failed to sign treatments")
+          }
+      })
+  }
+
+  const allSelected = sortedRecords.length > 0 && selectedIds.length === sortedRecords.length
+  const isBulkSelection = selectedIds.length > 0
+
   return (
+    <div className="space-y-2">
+    <AlertDialog open={showBulkSignDialog} onOpenChange={setShowBulkSignDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Sign {selectedIds.length} Treatments?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action will finalize the selected drafts and lock them from further editing. This cannot be undone in bulk.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmBulkSign}>Sign Treatments</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {isBulkSelection && (
+        <div className="flex items-center justify-between bg-primary text-primary-foreground p-2 px-4 rounded-md animate-in fade-in slide-in-from-top-2">
+            <span className="text-sm font-medium">{selectedIds.length} selected</span>
+            <div className="flex gap-2">
+                <Button size="sm" variant="secondary" onClick={handleBulkSign} disabled={isPending}>
+                    {isPending ? "Signing..." : "Sign Selected"}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])} className="text-primary-foreground hover:bg-primary-foreground/20">
+                    Cancel
+                </Button>
+            </div>
+        </div>
+    )}
+    <div className="rounded-md border">
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
+          <TableHead className="w-[40px]">
+              <Checkbox 
+                checked={allSelected}
+                onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                aria-label="Select all"
+              />
+          </TableHead>
           {showPatientColumn && (
               <TableHead>
                 <SortButton label="Patient" onClick={() => requestSort("patient")} />
@@ -155,7 +242,14 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
           </TableRow>
         ) : (
           sortedRecords.map((record) => (
-            <TableRow key={record.id} className="group transition-colors">
+            <TableRow key={record.id} className="group transition-colors" data-state={selectedIds.includes(record.id) && "selected"}>
+            <TableCell>
+                <Checkbox 
+                    checked={selectedIds.includes(record.id)}
+                    onCheckedChange={(checked) => handleSelectOne(!!checked, record.id)}
+                    aria-label="Select row"
+                />
+            </TableCell>
             {showPatientColumn && <TableCell className="font-medium">{record.patient?.patient_code}</TableCell>}
             <TableCell className={cn("text-muted-foreground tabular-nums", !showPatientColumn && "font-medium text-foreground")}>
                 {format(new Date(record.treatment_date), "dd.MM.yyyy")}
@@ -215,6 +309,8 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
         )))}
       </TableBody>
     </Table>
+    </div>
+    </div>
   )
 }
 
