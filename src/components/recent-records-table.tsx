@@ -10,14 +10,6 @@ import {
 } from "@/components/ui/table"
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -29,15 +21,16 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { MoreHorizontal, Eye, Edit, Trash, ArrowUpDown } from "lucide-react"
+import { Eye, Edit, Trash, ArrowUpDown } from "lucide-react"
 import Link from "next/link"
 import { deleteTreatment } from "@/app/(dashboard)/treatments/delete-action"
-import { bulkSignTreatmentsAction } from "@/app/(dashboard)/treatments/status-actions"
+import { bulkSignTreatmentsAction, reopenTreatmentAction } from "@/app/(dashboard)/treatments/status-actions"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { useTransition, useState } from "react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 export interface TreatmentRecord {
   id: string
@@ -78,7 +71,10 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [showBulkSignDialog, setShowBulkSignDialog] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [reopenId, setReopenId] = useState<string | null>(null)
   const showPatientColumn = records.some(r => r.patient)
+  const router = useRouter()
 
   const sortedRecords = [...records].sort((a, b) => {
     if (!sortConfig) return 0;
@@ -119,11 +115,39 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
     setSortConfig({ key, direction });
   };
 
-  const handleDelete = (id: string) => {
+  const handleEditClick = (record: TreatmentRecord) => {
+      if (record.status === "SIGNED") {
+          setReopenId(record.id)
+      } else {
+          router.push(`/treatments/${record.id}/edit`)
+      }
+  }
+
+  const confirmReopen = () => {
+      if (!reopenId) return
+      startTransition(async () => {
+          try {
+              await reopenTreatmentAction(reopenId)
+              toast.success("Treatment re-opened")
+              router.push(`/treatments/${reopenId}/edit`)
+              setReopenId(null)
+          } catch {
+              toast.error("Failed to re-open treatment")
+          }
+      })
+  }
+
+  const handleDeleteClick = (id: string) => {
+      setDeleteId(id)
+  }
+
+  const confirmDelete = () => {
+    if (!deleteId) return
     startTransition(async () => {
       try {
-        await deleteTreatment(id)
+        await deleteTreatment(deleteId)
         toast.success("Treatment deleted")
+        setDeleteId(null)
       } catch (error: unknown) {
         toast.error(error instanceof Error ? error.message : "Failed to delete treatment")
       }
@@ -183,6 +207,36 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
       </AlertDialogContent>
     </AlertDialog>
 
+    <AlertDialog open={!!reopenId} onOpenChange={(open) => !open && setReopenId(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Edit Signed Record?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This record is currently finalized. Do you want to re-open it for editing? This action will be logged.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmReopen}>Re-open & Edit</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Treatment?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the treatment record.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     {isBulkSelection && (
         <div className="flex items-center justify-between bg-primary text-primary-foreground p-2 px-4 rounded-md animate-in fade-in slide-in-from-top-2">
             <span className="text-sm font-medium">{selectedIds.length} selected</span>
@@ -230,7 +284,7 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
           <TableHead className="text-right w-[120px]">
              <SortButton label="Total Units" align="end" onClick={() => requestSort("total_units")} />
           </TableHead>
-          {!hideActions && <TableHead className="w-[50px]"></TableHead>}
+          {!hideActions && <TableHead className="w-[120px]"></TableHead>}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -271,38 +325,28 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
             <TableCell className="text-right font-bold tabular-nums">{record.total_units}</TableCell>
             {!hideActions && (
               <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="sr-only">Open menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem asChild className="cursor-pointer">
-                      <Link href={`/treatments/${record.id}`}>
-                        <Eye className="mr-2 h-4 w-4 text-muted-foreground" />
-                        View Details
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="cursor-pointer">
-                      <Link href={`/treatments/${record.id}/edit`}>
-                        <Edit className="mr-2 h-4 w-4 text-muted-foreground" />
-                        Edit Record
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => handleDelete(record.id)}
-                      className="text-destructive focus:text-destructive cursor-pointer"
-                      disabled={isPending}
-                    >
-                      <Trash className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center justify-end gap-1">
+                  <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                    <Link href={`/treatments/${record.id}`}>
+                      <Eye className="h-4 w-4" />
+                      <span className="sr-only">View</span>
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleEditClick(record)} className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                      <Edit className="h-4 w-4" />
+                      <span className="sr-only">Edit</span>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleDeleteClick(record.id)}
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    disabled={isPending}
+                  >
+                    <Trash className="h-4 w-4" />
+                    <span className="sr-only">Delete</span>
+                  </Button>
+                </div>
               </TableCell>
             )}
           </TableRow>

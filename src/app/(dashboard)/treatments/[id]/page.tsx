@@ -1,8 +1,5 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { notFound } from "next/navigation"
-import Link from "next/link"
-import { ArrowLeft, Edit } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -11,9 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { TreatmentDialog } from "@/components/treatment-create-dialog"
 import { Badge } from "@/components/ui/badge"
 import { getTreatment, getMuscles } from "@/app/(dashboard)/treatments/actions"
+import { TreatmentHeader } from "./treatment-header"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -67,33 +64,11 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-4 pt-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href={`/patients/${treatment.patientId}`}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="size-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Treatment Details</h1>
-            <p className="text-muted-foreground">
-              Patient: {patientCode} • {treatment.encounterLocalDate.toLocaleDateString()}
-            </p>
-          </div>
-        </div>
-        <TreatmentDialog 
-          treatmentId={id} 
-          initialData={initialData} 
-          isEditing 
-          patients={[{ id: treatment.patientId, patient_code: patientCode }]}
-          defaultPatientId={treatment.patientId}
-        >
-          <Button variant="outline">
-            <Edit className="mr-2 size-4" />
-            Edit Record
-          </Button>
-        </TreatmentDialog>
-      </div>
+      <TreatmentHeader 
+        treatment={treatment} 
+        patientCode={patientCode} 
+        initialData={initialData} 
+      />
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
