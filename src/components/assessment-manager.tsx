@@ -43,6 +43,7 @@ interface AssessmentManagerProps {
   assessments: Assessment[]
   onChange: (assessments: Assessment[]) => void
   indication: string
+  disabled?: boolean
 }
 
 const SCALES = {
@@ -55,7 +56,7 @@ const SCALES = {
 
 const ALL_SCALES = Array.from(new Set(Object.values(SCALES).flat()))
 
-export function AssessmentManager({ assessments, onChange, indication }: AssessmentManagerProps) {
+export function AssessmentManager({ assessments, onChange, indication, disabled = false }: AssessmentManagerProps) {
   const [warnings, setWarnings] = React.useState<string[]>([])
 
   const checkCompliance = React.useCallback(() => {
@@ -115,7 +116,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
              Manage clinical scores for this treatment.
           </CardDescription>
         </div>
-        <Button onClick={addAssessment} size="sm" type="button" variant="outline" className="h-8">
+        <Button onClick={addAssessment} size="sm" type="button" variant="outline" className="h-8" disabled={disabled}>
           <Plus className="mr-2 h-3.5 w-3.5" />
           Add Score
         </Button>
@@ -156,6 +157,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
                     <Select 
                         value={assessment.scale} 
                         onValueChange={(v) => updateAssessment(assessment.id, "scale", v)}
+                        disabled={disabled}
                     >
                         <SelectTrigger className="h-9">
                             <SelectValue />
@@ -174,6 +176,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
                     <Select 
                         value={assessment.timepoint} 
                         onValueChange={(v) => updateAssessment(assessment.id, "timepoint", v)}
+                        disabled={disabled}
                     >
                         <SelectTrigger className="h-9">
                             <SelectValue />
@@ -195,6 +198,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
                         value={assessment.value}
                         className="h-9"
                         onChange={(e) => updateAssessment(assessment.id, "value", parseFloat(e.target.value))}
+                        disabled={disabled}
                     />
                  </div>
 
@@ -209,6 +213,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
                                     "w-full pl-3 text-left font-normal text-xs h-9",
                                     !assessment.assessed_at && "text-muted-foreground"
                                 )}
+                                disabled={disabled}
                             >
                                 {assessment.assessed_at ? (
                                     format(assessment.assessed_at, "dd.MM.yyyy")
@@ -232,6 +237,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
 
                  {/* Actions */}
                  <div className="pb-0.5">
+                    {!disabled && (
                     <Button
                         variant="ghost"
                         size="icon"
@@ -242,6 +248,7 @@ export function AssessmentManager({ assessments, onChange, indication }: Assessm
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Remove</span>
                     </Button>
+                    )}
                  </div>
               </div>
             ))}

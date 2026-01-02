@@ -375,7 +375,7 @@ export function RecordForm({
         </div>
         
         <div className="space-y-4">
-             <ProcedureStepsEditor steps={steps} onChange={setSteps} muscles={muscles} regions={regions} />
+             <ProcedureStepsEditor steps={steps} onChange={setSteps} muscles={muscles} regions={regions} disabled={isSigned} />
              <div className="flex justify-end font-bold text-xl">Total: {totalUnits} Units</div>
         </div>
 
@@ -383,7 +383,7 @@ export function RecordForm({
           <div className="flex items-center space-x-2">
             <CollapsibleTrigger asChild><Button variant="ghost" size="sm" className="w-full justify-between">Assessments (Optional) <ChevronDown className="h-4 w-4" /></Button></CollapsibleTrigger>
           </div>
-          <CollapsibleContent className="mt-4"><AssessmentManager assessments={assessments} onChange={setAssessments} indication={categoryValue} /></CollapsibleContent>
+          <CollapsibleContent className="mt-4"><AssessmentManager assessments={assessments} onChange={setAssessments} indication={categoryValue} disabled={isSigned} /></CollapsibleContent>
         </Collapsible>
 
         <FormField control={form.control} name="notes" render={({ field }) => (

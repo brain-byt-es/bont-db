@@ -42,10 +42,12 @@ interface ProcedureStepsEditorProps {
   onChange: (steps: ProcedureStep[]) => void
   muscles: Muscle[]
   regions: MuscleRegion[]
+  disabled?: boolean
 }
 
-export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: ProcedureStepsEditorProps) {
+export function ProcedureStepsEditor({ steps, onChange, muscles, regions, disabled = false }: ProcedureStepsEditorProps) {
   const addStep = () => {
+    if (disabled) return
     const newStep: ProcedureStep = {
       id: Math.random().toString(36).substr(2, 9),
       muscle_id: "",
@@ -85,7 +87,7 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
              Define target muscles and dosage.
           </CardDescription>
         </div>
-        <Button onClick={addStep} size="sm" type="button">
+        <Button onClick={addStep} size="sm" type="button" disabled={disabled}>
           <Plus className="mr-2 size-4" />
           Add Site
         </Button>
@@ -107,6 +109,7 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                       onSelect={(val) => updateStep(step.id, "muscle_id", val)}
                       muscles={muscles}
                       regions={regions}
+                      disabled={disabled}
                   />
                 </div>
                 
@@ -116,6 +119,7 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                     <Select
                       value={step.side}
                       onValueChange={(value) => updateStep(step.id, "side", value as ProcedureStep["side"])}
+                      disabled={disabled}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -134,6 +138,7 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                       type="number"
                       value={step.numeric_value}
                       onChange={(e) => updateStep(step.id, "numeric_value", parseFloat(e.target.value))}
+                      disabled={disabled}
                     />
                   </div>
                 </div>
@@ -144,6 +149,7 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                     <Select
                       value={step.mas_baseline || ""}
                       onValueChange={(value) => updateStep(step.id, "mas_baseline", value)}
+                      disabled={disabled}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="-" />
@@ -163,6 +169,7 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                     <Select
                       value={step.mas_peak || ""}
                       onValueChange={(value) => updateStep(step.id, "mas_peak", value)}
+                      disabled={disabled}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="-" />
@@ -179,6 +186,7 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                   </div>
                 </div>
 
+                {!disabled && (
                 <div className="flex justify-end gap-2 pt-2 border-t">
                   <Button
                     variant="ghost"
@@ -201,6 +209,7 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                     Remove
                   </Button>
                 </div>
+                )}
               </div>
             ))
           )}
@@ -235,12 +244,14 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                           onSelect={(val) => updateStep(step.id, "muscle_id", val)}
                           muscles={muscles}
                           regions={regions}
+                          disabled={disabled}
                       />
                     </TableCell>
                     <TableCell>
                       <Select
                         value={step.side}
                         onValueChange={(value) => updateStep(step.id, "side", value as ProcedureStep["side"])}
+                        disabled={disabled}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -258,12 +269,14 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                         type="number"
                         value={step.numeric_value}
                         onChange={(e) => updateStep(step.id, "numeric_value", parseFloat(e.target.value))}
+                        disabled={disabled}
                       />
                     </TableCell>
                     <TableCell>
                       <Select
                         value={step.mas_baseline || ""}
                         onValueChange={(value) => updateStep(step.id, "mas_baseline", value)}
+                        disabled={disabled}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="-" />
@@ -282,6 +295,7 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                       <Select
                         value={step.mas_peak || ""}
                         onValueChange={(value) => updateStep(step.id, "mas_peak", value)}
+                        disabled={disabled}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="-" />
@@ -297,6 +311,7 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                       </Select>
                     </TableCell>
                     <TableCell>
+                      {!disabled && (
                       <div className="flex items-center gap-1">
                           <Button
                           variant="ghost"
@@ -316,6 +331,7 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions }: Proc
                           <Trash2 className="size-4 text-destructive" />
                           </Button>
                       </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

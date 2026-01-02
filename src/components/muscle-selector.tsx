@@ -41,6 +41,7 @@ interface MuscleSelectorProps {
   muscles: Muscle[]
   regions: MuscleRegion[]
   recentMuscles?: string[]
+  disabled?: boolean
 }
 
 export function MuscleSelector({
@@ -49,6 +50,7 @@ export function MuscleSelector({
   muscles,
   regions,
   recentMuscles = [],
+  disabled = false
 }: MuscleSelectorProps) {
   const [open, setOpen] = React.useState(false)
   const [favorites, setFavorites] = React.useState<string[]>([])
@@ -118,17 +120,19 @@ export function MuscleSelector({
 
         <PopoverTrigger asChild>
 
-          <Button
+                    <Button
 
-            variant="outline"
+                      variant="outline"
 
-            role="combobox"
+                      role="combobox"
 
-            aria-expanded={open}
+                      aria-expanded={open}
 
-            className="w-full justify-between"
+                      className="w-full justify-between"
 
-          >
+                      disabled={disabled}
+
+                    >
 
             {selectedMuscle
 
