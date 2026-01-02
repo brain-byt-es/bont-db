@@ -22,9 +22,9 @@ The database is strictly partitioned for PHI (Protected Health Information) comp
   - `reporting_ro`: Read-only reporting user (NO ACCESS to `phi` schema).
 
 ### Operational Hardening
-We use **Composite Foreign Keys** to prevent "Organization Drift" (e.g., ensuring a Patient never accidentally gets linked to an Encounter from a different Org).
+We use **Composite Foreign Keys** to prevent "Organization Drift".
 - `Encounter(orgId, patientId)` -> `Patient(orgId, id)`
-- `Injection(orgId, encounterId)` -> `Encounter(orgId, id)`
+- **Immutability:** Updates to `patientId` on existing encounters are blocked by DB security policy.
 
 ## 3. Multi-Tenancy & Identity
 The application is **Organization-centric** but supports **User Portability**.
@@ -37,66 +37,43 @@ The application is **Organization-centric** but supports **User Portability**.
 - **Middleware/Layout:** `DashboardLayout` enforces existence of Org Context. Redirects to `/onboarding` if missing.
 
 ### Onboarding & Switching
-- **Zero-State:** Users without an organization are routed to `/onboarding` to create their first clinic.
+- **Zero-State:** Users without an organization are routed to `/onboarding`.
 - **Switching:** Sidebar contains an Organization Switcher. Selection persists via cookies.
 - **Invites:** `CLINIC_ADMIN` can generate invite links (7-day expiry). New users land on `/invite/accept`.
 
-## 4. Development Workflow
+### RBAC (Role-Based Access Control)
+Enforced via `requirePermission()` helper in Server Actions.
+- **`OWNER`**: Org Settings, Billing.
+- **`CLINIC_ADMIN`**: Manage Team, Invites.
+- **`PROVIDER`**: Write/Delete Clinical Data.
+- **`ASSISTANT`**: Write Clinical Data (No Delete).
+- **`READONLY`**: View Only.
 
-### Database Migrations
-**DO NOT** run `prisma migrate dev` with your personal DB user.
-Use the dedicated `migrator_admin` connection string.
+## 4. Clinical Workflow & Data Integrity
 
-```bash
-# Apply migrations
-npx prisma migrate dev
-```
-
-### Seeding (Reference Data)
-Muscles and Regions must be populated for the dropdowns to work.
-The seed script is configured in `prisma.config.ts`.
-
-```bash
-npx prisma db seed
-```
-
-### Server Actions & Error Handling
-- **No Redirect Throws:** Do NOT `throw redirect()` inside a `try/catch` block in client components. Instead, return a plain object `{ success: true, ... }` or `{ error: "message" }`.
-- **Decimal Serialization:** Prisma `Decimal` types are NOT serializable to Client Components. You MUST convert them to `number` or `string` in the Server Action before returning.
-  ```typescript
-  // Example mapping in Server Action
-  return {
-    ...data,
-    units: data.units.toNumber()
-  }
-  ```
-- **Updates & Transactions:** Use `$transaction` for complex updates (e.g., `updateTreatment`) to ensure atomic replacement of nested relations like `Injections` and `Assessments`.
-
-## 5. Key Directories
-- `src/generated/client`: **Important!** The Prisma Client is generated here, NOT in `node_modules`. Import from `@/generated/client/client`.
-- `src/lib/auth-context.ts`: Security helpers (`getUserContext`, `getOrganizationContext`).
-- `src/app/actions`: Global/Shared actions (e.g., `org-switching.ts`).
-- `src/app/(dashboard)/settings`: Settings pages (Profile, Org, Team).
-- `src/components/app-sidebar.tsx`: Main navigation + Org Switcher.
-
-## 6. Features & UI Components
+### Encounter Lifecycle
+1.  **Draft:** Default state. Editable by Providers/Assistants.
+2.  **Signed:** Finalized state.
+    -   **Backend:** Updates blocked via `updateTreatment` action guard.
+    -   **Frontend:** Form becomes Read-Only.
+    -   **Re-open:** Requires explicit "Unlock" action (Audit logged).
+3.  **Void:** Soft-delete state (Audit trail preserved).
 
 ### Treatment Recording (RecordForm)
-- **Smart Templates:** Dedicated "Load PREMPT" functionality for headache protocols.
-- **History Copying:** "Copy last visit" feature maps previous treatment data.
-- **Assessment Management:** Integrated `AssessmentManager` for clinical scores.
-- **Auto-Drafting:** Automatic persistence to local storage.
+- **Smart Templates:** Dedicated "Load PREMPT" functionality.
+- **History Copying:** "Copy last visit" feature.
+- **Bulk Actions:** Table supports multi-select for "Bulk Sign" and "Bulk Delete".
+- **Safety:** Critical actions (Sign, Delete, Re-open) are protected by confirmation dialogs.
 
-### Team Management
-- **Invite Flow:** Link-based invitations.
-- **Members:** List view with Role badges.
-- **Profile:** Provider linking (Google/Microsoft) UI.
+## 5. Key Directories
+- `src/generated/client`: Prisma Client (Custom output).
+- `src/lib/auth-context.ts`: Security helpers (`getUserContext`, `getOrganizationContext`).
+- `src/lib/permissions.ts`: RBAC definitions and guards.
+- `src/app/actions`: Global/Shared actions (e.g., `org-switching.ts`).
+- `src/app/(dashboard)/settings`: Settings pages (Profile, Org, Team).
+- `src/app/(dashboard)/treatments/status-actions.ts`: Workflow transitions.
 
-### Data Integrity & Validation
-- **Organizational Isolation:** All queries and mutations are gated by `organizationId`.
-- **PII Protection:** Integrated validation tools to detect PII in free-text fields.
-
-### UI Polishing (Jan 2026)
-- **Sidebar:** Dynamic Organization Header with Initials Icon.
-- **Settings:** Tabbed interface for better UX.
-- **Dashboard:** Semantic feedback colors (Green/Amber/Rose).
+## 6. Future Roadmap
+- **Product Features:** Dose Calculation/Smart Defaults.
+- **Ops:** Azure App Service Deployment & CI/CD.
+- **Compliance:** PHI Code Separation (Physical directory isolation).
