@@ -70,10 +70,15 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     email: string
     avatar: string
   }
+  organization?: {
+    name: string
+  }
 }
 
-export function AppSidebar({ user, ...props }: AppSidebarProps) {
+export function AppSidebar({ user, organization, ...props }: AppSidebarProps) {
   const currentUser = user || defaultUser
+  const orgName = organization?.name || "InjexPro"
+  const initials = orgName.substring(0, 2).toUpperCase()
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -81,11 +86,18 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
+              size="lg"
               asChild
-              className="data-[slot=sidebar-menu-button]:h-auto! p-2! hover:bg-transparent"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Link href="/dashboard">
-                <Logo />
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <span className="font-bold">{initials}</span>
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">{orgName}</span>
+                  <span className="truncate text-xs">Free Plan</span>
+                </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

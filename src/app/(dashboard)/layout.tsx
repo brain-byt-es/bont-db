@@ -41,7 +41,11 @@ export default async function DashboardLayout({
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" user={appUser} />
+      <AppSidebar 
+        variant="inset" 
+        user={appUser} 
+        organization={{ name: orgContext.organization.name }} 
+      />
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
