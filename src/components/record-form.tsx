@@ -405,7 +405,7 @@ export function RecordForm({
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField control={form.control} name="subject_id" render={({ field }) => (
-              <FormItem><FormLabel>Patient</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger></FormControl><SelectContent>{patients.map((s) => (<SelectItem key={s.id} value={s.id}>{s.patient_code}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
+              <FormItem><FormLabel>Patient</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isEditing || isSigned}><FormControl><SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger></FormControl><SelectContent>{patients.map((s) => (<SelectItem key={s.id} value={s.id}>{s.patient_code}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
           )} />
           <FormField control={form.control} name="date" render={({ field }) => (
               <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>

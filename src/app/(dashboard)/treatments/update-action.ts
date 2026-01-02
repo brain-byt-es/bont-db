@@ -93,7 +93,7 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     await tx.encounter.update({
       where: { id: treatmentId },
       data: {
-        patientId: subject_id,
+        // patientId: subject_id, // IMMUTABLE field
         encounterAt: date,
         encounterLocalDate: date,
         treatmentSite: location || "N/A",
