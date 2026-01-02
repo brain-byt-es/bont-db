@@ -60,6 +60,8 @@ npx prisma db seed
     units: data.units.toNumber()
   }
   ```
+- **Updates & Transactions:** Use `$transaction` for complex updates (e.g., `updateTreatment`) to ensure atomic replacement of nested relations like `Injections` and `Assessments`.
+
 ## 5. Key Directories
 - `src/generated/client`: **Important!** The Prisma Client is generated here, NOT in `node_modules`. Import from `@/generated/client/client`.
 - `src/lib/prisma.ts`: Singleton PrismaClient instance.
@@ -71,18 +73,22 @@ npx prisma db seed
 
 ### Treatment Recording (RecordForm)
 
-- **Smart Templates:** Dedicated "Load PREMPT" functionality for headache protocols, populating 13 standard injection sites including M. occipitalis and M. paraspinalis (cervical).
+- **Smart Templates:** Dedicated "Load PREMPT" functionality for headache protocols, populating 13 standard injection sites.
 
-- **History Copying:** "Copy last visit" feature that intelligently maps previous treatment data (Toxin, Indication, Muscles, Dosages) to the current form, bypassing empty-field restrictions.
+- **History Copying:** Enhanced "Copy last visit" feature that intelligently maps previous treatment data (Toxin, Indication, Muscles, Dosages) AND clinical assessments (resetting dates to today) to the current form.
 
-- **Auto-Drafting:** Automatic persistence of form state to local storage to prevent data loss during long clinical documentation sessions.
+- **Assessment Management:** Integrated `AssessmentManager` for clinical scores (MAS, HIT-6, TWSTRS, etc.). Supports baseline vs. peak effect tracking.
 
-- **Cross-Schema Integration:** Seamlessly links clinical data (`public` schema) with PHI (`phi` schema) during patient creation.
+- **Auto-Drafting:** Automatic persistence of form state to local storage to prevent data loss.
 
 ### Data Integrity & Validation
 
-- **Organizational Isolation:** All queries and mutations are gated by `organizationId` at the database level via Row-Level constraints and Server Action context validation.
-
-- **Client-Side Feedback:** Server Action errors (e.g., zero-unit validation) are returned as structured objects and displayed via `sonner` toasts for better user experience.
+- **Organizational Isolation:** All queries and mutations are gated by `organizationId` at the database level.
 
 - **PII Protection:** Integrated validation tools to detect and warn about potential PII in free-text fields.
+
+### UI Polishing & UX (Checkpoint Jan 2026)
+
+- **Semantic Feedback:** Dashboard widgets use color-coded indicators (Green/Amber/Rose) for clinical data completion and research readiness.
+- **Modern Dashboarding:** StatsCards include contextual icons and gradient backgrounds; Charts use theme-aware `hsl` variables.
+- **Advanced Tables:** `RecentRecordsTable` features readable date formatting, semantic indication badges, and improved sorting/hover interactions.
