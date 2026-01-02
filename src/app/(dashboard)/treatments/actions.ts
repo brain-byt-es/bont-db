@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
-import { BodySide, Timepoint } from "@/generated/client/client"
+import { BodySide, Timepoint, EncounterStatus } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 
 interface AssessmentData {
@@ -31,6 +31,7 @@ interface CreateTreatmentFormData {
   notes?: string;
   steps?: ProcedureStep[];
   assessments?: AssessmentData[];
+  status?: "DRAFT" | "SIGNED";
 }
 
 export async function createTreatment(formData: CreateTreatmentFormData) {
@@ -48,7 +49,8 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
     product_label,
     notes,
     steps,
-    assessments
+    assessments,
+    status = "DRAFT"
   } = formData
 
   // Calculate total units
@@ -145,7 +147,7 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
       providerMembershipId: membership.id, // Assuming creator is provider for now
       encounterAt: date,
       encounterLocalDate: date,
-      status: "SIGNED", // Default to signed/completed for now
+      status: status === "SIGNED" ? EncounterStatus.SIGNED : EncounterStatus.DRAFT,
       treatmentSite: location || "N/A",
       indication: category,
       productId: productId,
@@ -231,6 +233,7 @@ export async function getTreatments() {
     indication: t.indication,
     product: t.product?.name || 'N/A', // Handle linked product
     total_units: t.totalUnits.toNumber(),
+    status: t.status,
     patient: {
       patient_code: t.patient.systemLabel || 'Unknown'
     }

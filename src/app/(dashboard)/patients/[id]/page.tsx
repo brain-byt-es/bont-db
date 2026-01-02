@@ -59,6 +59,7 @@ export default async function Page({ params }: PageProps) {
     indication: t.indication,
     product: t.product?.name || 'N/A',
     total_units: t.totalUnits.toNumber(),
+    status: t.status,
     patient: { patient_code: mappedPatient.patient_code }
   }))
 

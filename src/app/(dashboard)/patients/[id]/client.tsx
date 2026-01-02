@@ -25,6 +25,7 @@ interface Treatment {
   indication: string;
   product: string;
   total_units: number;
+  status: string;
   patient?: { patient_code: string };
 }
 

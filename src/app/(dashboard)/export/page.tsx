@@ -41,6 +41,7 @@ interface ExportRecord {
   indication: string
   product: string
   total_units: number
+  status: string
   patients?: {
     patient_code: string
     birth_year: number
@@ -234,6 +235,7 @@ export default function ExportPage() {
       indication: r.indication,
       product: r.product,
       total_units: r.total_units,
+      status: r.status,
       patient: r.patients
   }))
 

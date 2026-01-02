@@ -36,6 +36,7 @@ export async function getExportData() {
     indication: t.indication,
     product: t.product?.name || 'N/A',
     total_units: t.totalUnits.toNumber(),
+    status: t.status,
     // Legacy mapping for UI compatibility
     patients: {
       patient_code: t.patient.systemLabel || 'Unknown',

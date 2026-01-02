@@ -37,12 +37,22 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 import { ProcedureStepsEditor, ProcedureStep } from "@/components/procedure-steps-editor"
 import { AssessmentManager, Assessment } from "@/components/assessment-manager"
 import { createTreatment, getMuscles, getMuscleRegions, getLatestTreatment } from "@/app/(dashboard)/treatments/actions"
 import { updateTreatment } from "@/app/(dashboard)/treatments/update-action"
-import { signTreatmentAction, reopenTreatmentAction } from "@/app/(dashboard)/treatments/status-actions"
+import { reopenTreatmentAction } from "@/app/(dashboard)/treatments/status-actions"
 import { toast } from "sonner"
 import { Muscle, MuscleRegion } from "@/components/muscle-selector"
 import { PiiWarningDialog } from "@/components/pii-warning-dialog"
@@ -120,6 +130,8 @@ export function RecordForm({
   const router = useRouter()
 
   const [showPiiWarning, setShowPiiWarning] = useState(false)
+  const [showSignDialog, setShowSignDialog] = useState(false)
+  const [showReopenDialog, setShowReopenDialog] = useState(false)
   const [piiDetected, setPiiDetected] = useState<string[]>([])
   const [pendingValues, setPendingValues] = useState<z.infer<typeof formSchema> | null>(null)
 
@@ -273,12 +285,13 @@ export function RecordForm({
       }
   }
 
-  const processSubmission = (values: z.infer<typeof formSchema>) => {
+  const processSubmission = (values: z.infer<typeof formSchema>, targetStatus: "DRAFT" | "SIGNED" = "DRAFT") => {
     startTransition(async () => {
       try {
+        const payload = { ...values, steps, assessments, status: targetStatus }
         const result = isEditing && treatmentId 
-          ? await updateTreatment(treatmentId, { ...values, steps, assessments })
-          : await createTreatment({ ...values, steps, assessments });
+          ? await updateTreatment(treatmentId, payload)
+          : await createTreatment(payload);
 
         if (result && 'error' in result) {
           toast.error(result.error)
@@ -304,32 +317,33 @@ export function RecordForm({
         setPiiDetected(validation.detected); setPendingValues(values); setShowPiiWarning(true);
         return
     }
-    processSubmission(values)
+    processSubmission(values, "DRAFT")
   }
 
   const totalUnits = steps.reduce((sum, step) => sum + (step.numeric_value || 0), 0)
 
-  const handleSign = async () => {
-      if (!treatmentId) return
-      if (!confirm("Are you sure you want to sign this record? Changes will be locked.")) return
-      
-      startTransition(async () => {
-          try {
-              await signTreatmentAction(treatmentId)
-              toast.success("Treatment signed")
-              router.refresh()
-          } catch {
-              toast.error("Failed to sign treatment")
-          }
-      })
+  const handleSign = () => {
+      // if (!treatmentId) return  <-- Removed check
+      setShowSignDialog(true)
   }
 
-  const handleReopen = async () => {
-      if (!treatmentId) return
-      if (!confirm("Re-open this record? This action will be logged.")) return
+  const confirmSign = () => {
+      // We must get current form values.
+      // Since confirmSign is outside form submit context, we use getValues.
+      const values = form.getValues()
+      processSubmission(values, "SIGNED")
+      setShowSignDialog(false)
+  }
 
+  const handleReopen = () => {
+      if (!treatmentId) return
+      setShowReopenDialog(true)
+  }
+
+  const confirmReopen = () => {
       startTransition(async () => {
           try {
+              if (!treatmentId) return
               await reopenTreatmentAction(treatmentId)
               toast.success("Treatment re-opened")
               router.refresh()
@@ -341,6 +355,36 @@ export function RecordForm({
 
   return (
     <>
+    <AlertDialog open={showSignDialog} onOpenChange={setShowSignDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Sign & Finalize?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will lock the record to prevent further changes. This action is recorded in the audit log.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmSign}>Sign Record</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <AlertDialog open={showReopenDialog} onOpenChange={setShowReopenDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Re-open Record?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This record is currently finalized. Re-opening it will allow editing but will be flagged in the audit history.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmReopen}>Re-open</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     <PiiWarningDialog open={showPiiWarning} onOpenChange={setShowPiiWarning} detectedTypes={piiDetected} onConfirm={() => { setShowPiiWarning(false); if (pendingValues) processSubmission(pendingValues) }} onCancel={() => setShowPiiWarning(false)} />
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -399,12 +443,10 @@ export function RecordForm({
                 </Button>
             ) : (
                 <>
-                    <Button type="submit" disabled={isPending}>{isPending ? "Saving..." : "Save Record"}</Button>
-                    {isEditing && treatmentId && (
-                        <Button type="button" variant="secondary" onClick={handleSign} disabled={isPending}>
-                            <Lock className="mr-2 h-4 w-4" /> Sign & Finalize
-                        </Button>
-                    )}
+                    <Button type="submit" disabled={isPending}>{isPending ? "Saving..." : "Save Draft"}</Button>
+                    <Button type="button" variant="secondary" onClick={handleSign} disabled={isPending}>
+                        <Lock className="mr-2 h-4 w-4" /> Sign & Finalize
+                    </Button>
                 </>
             )}
             <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>

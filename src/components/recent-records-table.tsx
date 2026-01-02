@@ -34,6 +34,7 @@ export interface TreatmentRecord {
   indication: string
   product: string
   total_units: number
+  status: string
   patient?: {
     patient_code: string
   }
@@ -127,6 +128,9 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
           <TableHead className="w-[140px]">
             <SortButton label="Date" onClick={() => requestSort("treatment_date")} />
           </TableHead>
+          <TableHead className="w-[100px]">
+            <SortButton label="Status" onClick={() => requestSort("status")} />
+          </TableHead>
           <TableHead>
             <SortButton label="Location" onClick={() => requestSort("treatment_site")} />
           </TableHead>
@@ -155,6 +159,11 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
             {showPatientColumn && <TableCell className="font-medium">{record.patient?.patient_code}</TableCell>}
             <TableCell className={cn("text-muted-foreground tabular-nums", !showPatientColumn && "font-medium text-foreground")}>
                 {format(new Date(record.treatment_date), "dd.MM.yyyy")}
+            </TableCell>
+            <TableCell>
+                {record.status === "SIGNED" && <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 text-xs py-0">Signed</Badge>}
+                {record.status === "DRAFT" && <Badge variant="secondary" className="text-xs py-0">Draft</Badge>}
+                {record.status === "VOID" && <Badge variant="destructive" className="text-xs py-0">Void</Badge>}
             </TableCell>
             <TableCell>{record.treatment_site}</TableCell>
             <TableCell>

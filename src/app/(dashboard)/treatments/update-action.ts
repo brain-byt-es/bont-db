@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
-import { BodySide, Timepoint } from "@/generated/client/client"
+import { BodySide, Timepoint, EncounterStatus } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 
 interface AssessmentData {
@@ -31,6 +31,7 @@ interface UpdateTreatmentFormData {
   notes?: string;
   steps?: ProcedureStep[];
   assessments?: AssessmentData[];
+  status?: "DRAFT" | "SIGNED";
 }
 
 export async function updateTreatment(treatmentId: string, formData: UpdateTreatmentFormData) {
@@ -48,7 +49,8 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     product_label,
     notes,
     steps,
-    assessments
+    assessments,
+    status
   } = formData
 
   let total_units = 0
@@ -97,6 +99,7 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
         treatmentSite: location || "N/A",
         indication: category,
         productId,
+        status: status === "SIGNED" ? EncounterStatus.SIGNED : undefined,
         totalUnits: total_units,
         effectNotes: notes,
         updatedAt: new Date()
