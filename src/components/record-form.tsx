@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
@@ -147,7 +147,9 @@ export function RecordForm({
     },
   })
 
-  const categoryValue = form.watch("category")
+  // Use useWatch to reactively subscribe to form changes without imperative subscription issues
+  const watchedValues = useWatch({ control: form.control })
+  const categoryValue = watchedValues.category
 
   useEffect(() => {
     const fetchData = async () => {
@@ -217,15 +219,16 @@ export function RecordForm({
     }
   }, [isEditing, initialData, form])
 
-  // Save draft
+  // Autosave & Load Draft
   useEffect(() => {
     if (isEditing) return
-    const subscription = form.watch((value) => {
-        const draft = { values: value, steps, assessments, timestamp: new Date() }
+    
+    // We check if watchedValues has content to avoid saving empty initial states if desired
+    if (watchedValues) {
+        const draft = { values: watchedValues, steps, assessments, timestamp: new Date() }
         localStorage.setItem("bont_treatment_draft", JSON.stringify(draft))
-    })
-    return () => subscription.unsubscribe()
-  }, [form, steps, assessments, isEditing])
+    }
+  }, [watchedValues, steps, assessments, isEditing])
 
   // Fetch latest treatment for defaults (only sets if empty)
   const subjectId = form.watch("subject_id")

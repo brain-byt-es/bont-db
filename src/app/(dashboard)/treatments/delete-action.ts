@@ -27,3 +27,24 @@ export async function deleteTreatment(treatmentId: string) {
   revalidatePath('/treatments')
   revalidatePath('/patients')
 }
+
+export async function bulkDeleteTreatmentsAction(treatmentIds: string[]) {
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  const { organizationId, membership } = ctx
+
+  requirePermission(membership.role, PERMISSIONS.DELETE_TREATMENTS)
+
+  if (!treatmentIds.length) return { count: 0 }
+
+  const result = await prisma.encounter.deleteMany({
+    where: {
+      id: { in: treatmentIds },
+      organizationId
+    }
+  })
+
+  revalidatePath('/treatments')
+  revalidatePath('/patients')
+  return { count: result.count }
+}
