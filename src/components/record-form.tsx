@@ -9,6 +9,8 @@ import { CalendarIcon, Save, ChevronDown, Wand2, Lock, Unlock } from "lucide-rea
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Form,
   FormControl,
@@ -134,6 +136,8 @@ export function RecordForm({
   const [showReopenDialog, setShowReopenDialog] = useState(false)
   const [piiDetected, setPiiDetected] = useState<string[]>([])
   const [pendingValues, setPendingValues] = useState<z.infer<typeof formSchema> | null>(null)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [reopenReason, setReopenReason] = useState("")
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -227,6 +231,7 @@ export function RecordForm({
     if (watchedValues) {
         const draft = { values: watchedValues, steps, assessments, timestamp: new Date() }
         localStorage.setItem("bont_treatment_draft", JSON.stringify(draft))
+        setLastSaved(new Date())
     }
   }, [watchedValues, steps, assessments, isEditing])
 
@@ -347,7 +352,7 @@ export function RecordForm({
       startTransition(async () => {
           try {
               if (!treatmentId) return
-              await reopenTreatmentAction(treatmentId)
+              await reopenTreatmentAction(treatmentId, reopenReason)
               toast.success("Treatment re-opened")
               router.refresh()
           } catch {
@@ -381,9 +386,20 @@ export function RecordForm({
             This record is currently finalized. Re-opening it will allow editing but will be flagged in the audit history.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+                <Label htmlFor="reason">Reason for re-opening (Required)</Label>
+                <Textarea 
+                    id="reason" 
+                    value={reopenReason} 
+                    onChange={(e) => setReopenReason(e.target.value)} 
+                    placeholder="e.g. Correction of dose..." 
+                />
+            </div>
+        </div>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmReopen}>Re-open</AlertDialogAction>
+          <AlertDialogAction onClick={confirmReopen} disabled={!reopenReason.trim()}>Re-open</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -391,10 +407,24 @@ export function RecordForm({
     <PiiWarningDialog open={showPiiWarning} onOpenChange={setShowPiiWarning} detectedTypes={piiDetected} onConfirm={() => { setShowPiiWarning(false); if (pendingValues) processSubmission(pendingValues) }} onCancel={() => setShowPiiWarning(false)} />
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {isSigned && (
+            <Alert variant="destructive" className="mb-6 bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-900/50 dark:text-amber-200">
+                <Lock className="h-4 w-4" />
+                <AlertTitle>Record Finalized</AlertTitle>
+                <AlertDescription>
+                    This treatment record is signed and read-only. Unlock it to make corrections.
+                </AlertDescription>
+            </Alert>
+        )}
         <fieldset disabled={isSigned} className="space-y-8 border-none p-0 m-0 min-w-0">
         
         {!isEditing && form.watch("subject_id") && (
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 items-center">
+                {lastSaved && (
+                    <span className="text-xs text-muted-foreground mr-2">
+                        Saved {format(lastSaved, "HH:mm:ss")}
+                    </span>
+                )}
                 {categoryValue === 'kopfschmerz' && (
                     <Button variant="secondary" size="sm" type="button" onClick={loadMigraineTemplate}>
                         <Wand2 className="mr-2 h-4 w-4" /> Load PREMPT

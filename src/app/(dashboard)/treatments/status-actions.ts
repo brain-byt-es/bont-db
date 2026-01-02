@@ -49,7 +49,7 @@ export async function bulkSignTreatmentsAction(treatmentIds: string[]) {
   revalidatePath("/patients") // In case we are on patient detail
   return { count: result.count }
 }
-export async function reopenTreatmentAction(treatmentId: string) {
+export async function reopenTreatmentAction(treatmentId: string, reason: string) {
   const ctx = await getOrganizationContext()
   if (!ctx) throw new Error("No organization context")
   const { organizationId, membership } = ctx
@@ -62,10 +62,22 @@ export async function reopenTreatmentAction(treatmentId: string) {
 
   if (!encounter) throw new Error("Not found")
 
-  await prisma.encounter.update({
-      where: { id: treatmentId },
-      data: { status: "DRAFT" }
-  })
+  await prisma.$transaction([
+    prisma.encounter.update({
+        where: { id: treatmentId },
+        data: { status: "DRAFT" }
+    }),
+    prisma.auditLog.create({
+      data: {
+        organizationId,
+        actorMembershipId: membership.id,
+        action: "TREATMENT_REOPENED",
+        resourceType: "Encounter",
+        resourceId: treatmentId,
+        details: { reason }
+      }
+    })
+  ])
 
   revalidatePath(`/treatments/${treatmentId}`)
   return { success: true }
