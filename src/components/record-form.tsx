@@ -388,7 +388,7 @@ export function RecordForm({
     <PiiWarningDialog open={showPiiWarning} onOpenChange={setShowPiiWarning} detectedTypes={piiDetected} onConfirm={() => { setShowPiiWarning(false); if (pendingValues) processSubmission(pendingValues) }} onCancel={() => setShowPiiWarning(false)} />
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <fieldset disabled={isSigned} className="contents">
+        <fieldset disabled={isSigned} className="space-y-8 border-none p-0 m-0 min-w-0">
         
         {!isEditing && form.watch("subject_id") && (
             <div className="flex justify-end gap-2">
@@ -436,20 +436,23 @@ export function RecordForm({
 
         </fieldset>
 
-        <div className="flex gap-4">
+        <div className="flex items-center justify-between pt-4 border-t">
+            <Button type="button" variant="ghost" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
+            
+            <div className="flex gap-4">
             {isSigned ? (
                 <Button type="button" variant="outline" onClick={handleReopen} disabled={isPending}>
                     <Unlock className="mr-2 h-4 w-4" /> Re-open to Edit
                 </Button>
             ) : (
                 <>
-                    <Button type="submit" disabled={isPending}>{isPending ? "Saving..." : "Save Draft"}</Button>
-                    <Button type="button" variant="secondary" onClick={handleSign} disabled={isPending}>
+                    <Button type="submit" disabled={isPending} variant="outline">{isPending ? "Saving..." : "Save Draft"}</Button>
+                    <Button type="button" onClick={handleSign} disabled={isPending}>
                         <Lock className="mr-2 h-4 w-4" /> Sign & Finalize
                     </Button>
                 </>
             )}
-            <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
+            </div>
         </div>
       </form>
     </Form>
