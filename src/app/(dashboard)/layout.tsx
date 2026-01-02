@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { redirect } from "next/navigation"
 import { getOrganizationContext } from "@/lib/auth-context"
+import prisma from "@/lib/prisma"
 
 export default async function DashboardLayout({
   children,
@@ -25,6 +26,20 @@ export default async function DashboardLayout({
   if (!orgContext) {
     redirect("/onboarding")
   }
+
+  // Fetch all active memberships for switcher
+  const memberships = await prisma.organizationMembership.findMany({
+    where: { 
+        userId: session.user.id, 
+        status: "ACTIVE" 
+    },
+    select: {
+        organization: { select: { id: true, name: true } }
+    },
+    orderBy: { createdAt: 'asc' }
+  })
+  
+  const allTeams = memberships.map(m => m.organization)
 
   const appUser = session.user ? {
     name: session.user.name || "User",
@@ -44,7 +59,8 @@ export default async function DashboardLayout({
       <AppSidebar 
         variant="inset" 
         user={appUser} 
-        organization={{ name: orgContext.organization.name }} 
+        organization={{ id: orgContext.organization.id, name: orgContext.organization.name }} 
+        allTeams={allTeams}
       />
       <SidebarInset>
         <SiteHeader />

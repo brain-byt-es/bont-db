@@ -23,7 +23,19 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { ChevronsUpDown, Plus, Check } from "lucide-react"
+import { switchOrganizationAction } from "@/app/actions/org-switching"
+import { useRouter } from "next/navigation"
 
 // Default data if no user provided
 const defaultUser = {
@@ -71,14 +83,27 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     avatar: string
   }
   organization?: {
+    id: string
     name: string
   }
+  allTeams?: {
+    id: string
+    name: string
+  }[]
 }
 
-export function AppSidebar({ user, organization, ...props }: AppSidebarProps) {
+export function AppSidebar({ user, organization, allTeams = [], ...props }: AppSidebarProps) {
   const currentUser = user || defaultUser
   const orgName = organization?.name || "InjexPro"
+  const orgId = organization?.id
   const initials = orgName.substring(0, 2).toUpperCase()
+  const { isMobile } = useSidebar()
+  const router = useRouter()
+
+  const handleSwitch = async (teamId: string) => {
+     await switchOrganizationAction(teamId)
+     // Action redirects, but we might want to refresh manually if needed
+  }
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -91,16 +116,55 @@ export function AppSidebar({ user, organization, ...props }: AppSidebarProps) {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          
           <SidebarMenuItem>
-            <div className="flex items-center gap-2 rounded-md border bg-card p-2 shadow-sm mt-2">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                  <span className="font-bold text-xs">{initials}</span>
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{orgName}</span>
-                  <span className="truncate text-xs text-muted-foreground">Free Plan</span>
-                </div>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground mt-2 border border-sidebar-border"
+                >
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                     <span className="font-bold text-xs">{initials}</span>
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">{orgName}</span>
+                    <span className="truncate text-xs">Free Plan</span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                align="start"
+                side={isMobile ? "bottom" : "right"}
+                sideOffset={4}
+              >
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Teams
+                </DropdownMenuLabel>
+                {allTeams.map((team) => (
+                  <DropdownMenuItem
+                    key={team.id}
+                    onClick={() => handleSwitch(team.id)}
+                    className="gap-2 p-2"
+                  >
+                    <div className="flex size-6 items-center justify-center rounded-sm border">
+                      <span className="font-medium text-xs">{team.name.substring(0, 1)}</span>
+                    </div>
+                    {team.name}
+                    {team.id === orgId && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="gap-2 p-2" onClick={() => router.push("/onboarding")}>
+                  <div className="flex size-6 items-center justify-center rounded-md border bg-background">
+                    <Plus className="size-4" />
+                  </div>
+                  <div className="font-medium text-muted-foreground">Add team</div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

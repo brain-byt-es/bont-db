@@ -1,10 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getComplianceSettings } from "./actions"
 import { getTeamData } from "./invite-actions"
+import { getProfileData } from "./profile-actions"
 import { ComplianceToggle } from "./compliance-toggle"
 import { getOrganizationContext } from "@/lib/auth-context"
 import { OrgSettingsForm } from "./org-settings-form"
 import { TeamManager } from "@/components/settings/team-manager"
+import { ProfileManager } from "@/components/settings/profile-manager"
 import { redirect } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -16,9 +18,10 @@ export default async function SettingsPage() {
   }
 
   // Fetch data in parallel
-  const [settings, teamData] = await Promise.all([
+  const [settings, teamData, profileData] = await Promise.all([
       getComplianceSettings(),
-      getTeamData()
+      getTeamData(),
+      getProfileData()
   ])
 
   return (
@@ -27,12 +30,17 @@ export default async function SettingsPage() {
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
       </div>
 
-      <Tabs defaultValue="organization" className="space-y-4">
+      <Tabs defaultValue="profile" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="organization">Organization</TabsTrigger>
           <TabsTrigger value="team">Team Members</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="profile" className="space-y-4">
+            <ProfileManager initialData={profileData} />
+        </TabsContent>
         
         <TabsContent value="organization" className="space-y-4">
             <Card>
