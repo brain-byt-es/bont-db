@@ -7,6 +7,7 @@
 - **Authentication:** NextAuth.js (Auth.js) v5
   - Providers: Azure AD, Google, LinkedIn
   - Adapter: Prisma Adapter (Custom mapping to `User` / `UserIdentity`)
+  - **Linking:** Implicit linking via email + explicit linking via Profile Settings.
 - **UI:** Tailwind CSS + Shadcn/UI
 
 ## 2. Database Schema & Security
@@ -25,11 +26,20 @@ We use **Composite Foreign Keys** to prevent "Organization Drift" (e.g., ensurin
 - `Encounter(orgId, patientId)` -> `Patient(orgId, id)`
 - `Injection(orgId, encounterId)` -> `Encounter(orgId, id)`
 
-## 3. Multi-Tenancy
-The application is **Organization-centric**.
-- Users belong to an `Organization` via `OrganizationMembership`.
-- All data queries MUST filter by `organizationId`.
-- **Helper:** Use `getOrganizationContext()` in Server Actions to securely retrieve the current user's active organization.
+## 3. Multi-Tenancy & Identity
+The application is **Organization-centric** but supports **User Portability**.
+
+### Context Resolution
+- **`getOrganizationContext()`**:
+  1. Checks `injexpro_org_id` cookie for user preference.
+  2. Fallbacks to the first active membership.
+  3. Returns `null` if no membership exists.
+- **Middleware/Layout:** `DashboardLayout` enforces existence of Org Context. Redirects to `/onboarding` if missing.
+
+### Onboarding & Switching
+- **Zero-State:** Users without an organization are routed to `/onboarding` to create their first clinic.
+- **Switching:** Sidebar contains an Organization Switcher. Selection persists via cookies.
+- **Invites:** `CLINIC_ADMIN` can generate invite links (7-day expiry). New users land on `/invite/accept`.
 
 ## 4. Development Workflow
 
@@ -64,31 +74,29 @@ npx prisma db seed
 
 ## 5. Key Directories
 - `src/generated/client`: **Important!** The Prisma Client is generated here, NOT in `node_modules`. Import from `@/generated/client/client`.
-- `src/lib/prisma.ts`: Singleton PrismaClient instance.
 - `src/lib/auth-context.ts`: Security helpers (`getUserContext`, `getOrganizationContext`).
-- `prisma/schema.prisma`: The source of truth.
-- `prisma/migrations`: Versioned SQL migrations.
+- `src/app/actions`: Global/Shared actions (e.g., `org-switching.ts`).
+- `src/app/(dashboard)/settings`: Settings pages (Profile, Org, Team).
+- `src/components/app-sidebar.tsx`: Main navigation + Org Switcher.
 
 ## 6. Features & UI Components
 
 ### Treatment Recording (RecordForm)
+- **Smart Templates:** Dedicated "Load PREMPT" functionality for headache protocols.
+- **History Copying:** "Copy last visit" feature maps previous treatment data.
+- **Assessment Management:** Integrated `AssessmentManager` for clinical scores.
+- **Auto-Drafting:** Automatic persistence to local storage.
 
-- **Smart Templates:** Dedicated "Load PREMPT" functionality for headache protocols, populating 13 standard injection sites.
-
-- **History Copying:** Enhanced "Copy last visit" feature that intelligently maps previous treatment data (Toxin, Indication, Muscles, Dosages) AND clinical assessments (resetting dates to today) to the current form.
-
-- **Assessment Management:** Integrated `AssessmentManager` for clinical scores (MAS, HIT-6, TWSTRS, etc.). Supports baseline vs. peak effect tracking.
-
-- **Auto-Drafting:** Automatic persistence of form state to local storage to prevent data loss.
+### Team Management
+- **Invite Flow:** Link-based invitations.
+- **Members:** List view with Role badges.
+- **Profile:** Provider linking (Google/Microsoft) UI.
 
 ### Data Integrity & Validation
+- **Organizational Isolation:** All queries and mutations are gated by `organizationId`.
+- **PII Protection:** Integrated validation tools to detect PII in free-text fields.
 
-- **Organizational Isolation:** All queries and mutations are gated by `organizationId` at the database level.
-
-- **PII Protection:** Integrated validation tools to detect and warn about potential PII in free-text fields.
-
-### UI Polishing & UX (Checkpoint Jan 2026)
-
-- **Semantic Feedback:** Dashboard widgets use color-coded indicators (Green/Amber/Rose) for clinical data completion and research readiness.
-- **Modern Dashboarding:** StatsCards include contextual icons and gradient backgrounds; Charts use theme-aware `hsl` variables.
-- **Advanced Tables:** `RecentRecordsTable` features readable date formatting, semantic indication badges, and improved sorting/hover interactions.
+### UI Polishing (Jan 2026)
+- **Sidebar:** Dynamic Organization Header with Initials Icon.
+- **Settings:** Tabbed interface for better UX.
+- **Dashboard:** Semantic feedback colors (Green/Amber/Rose).
