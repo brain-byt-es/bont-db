@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Save, ChevronDown, Wand2 } from "lucide-react"
+import { CalendarIcon, Save, ChevronDown, Wand2, Lock, Unlock } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -42,6 +42,7 @@ import { ProcedureStepsEditor, ProcedureStep } from "@/components/procedure-step
 import { AssessmentManager, Assessment } from "@/components/assessment-manager"
 import { createTreatment, getMuscles, getMuscleRegions, getLatestTreatment } from "@/app/(dashboard)/treatments/actions"
 import { updateTreatment } from "@/app/(dashboard)/treatments/update-action"
+import { signTreatmentAction, reopenTreatmentAction } from "@/app/(dashboard)/treatments/status-actions"
 import { toast } from "sonner"
 import { Muscle, MuscleRegion } from "@/components/muscle-selector"
 import { PiiWarningDialog } from "@/components/pii-warning-dialog"
@@ -97,6 +98,7 @@ interface RecordFormProps {
   isEditing?: boolean
   onCancel?: () => void
   onSuccess?: () => void
+  status?: string
 }
 
 export function RecordForm({ 
@@ -106,8 +108,10 @@ export function RecordForm({
   treatmentId, 
   isEditing = false,
   onCancel,
-  onSuccess
+  onSuccess,
+  status = "DRAFT"
 }: RecordFormProps) {
+  const isSigned = status === "SIGNED"
   const [steps, setSteps] = useState<ProcedureStep[]>(initialData?.steps || [])
   const [assessments, setAssessments] = useState<Assessment[]>(initialData?.assessments || [])
   const [muscles, setMuscles] = useState<Muscle[]>([])
@@ -305,11 +309,42 @@ export function RecordForm({
 
   const totalUnits = steps.reduce((sum, step) => sum + (step.numeric_value || 0), 0)
 
+  const handleSign = async () => {
+      if (!treatmentId) return
+      if (!confirm("Are you sure you want to sign this record? Changes will be locked.")) return
+      
+      startTransition(async () => {
+          try {
+              await signTreatmentAction(treatmentId)
+              toast.success("Treatment signed")
+              router.refresh()
+          } catch {
+              toast.error("Failed to sign treatment")
+          }
+      })
+  }
+
+  const handleReopen = async () => {
+      if (!treatmentId) return
+      if (!confirm("Re-open this record? This action will be logged.")) return
+
+      startTransition(async () => {
+          try {
+              await reopenTreatmentAction(treatmentId)
+              toast.success("Treatment re-opened")
+              router.refresh()
+          } catch {
+              toast.error("Failed to re-open treatment")
+          }
+      })
+  }
+
   return (
     <>
     <PiiWarningDialog open={showPiiWarning} onOpenChange={setShowPiiWarning} detectedTypes={piiDetected} onConfirm={() => { setShowPiiWarning(false); if (pendingValues) processSubmission(pendingValues) }} onCancel={() => setShowPiiWarning(false)} />
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <fieldset disabled={isSigned} className="contents">
         
         {!isEditing && form.watch("subject_id") && (
             <div className="flex justify-end gap-2">
@@ -355,8 +390,23 @@ export function RecordForm({
             <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea placeholder="..." className="resize-none" {...field} /></FormControl><FormMessage /></FormItem>
         )} />
 
+        </fieldset>
+
         <div className="flex gap-4">
-            <Button type="submit" disabled={isPending}>{isPending ? "Saving..." : "Save Record"}</Button>
+            {isSigned ? (
+                <Button type="button" variant="outline" onClick={handleReopen} disabled={isPending}>
+                    <Unlock className="mr-2 h-4 w-4" /> Re-open to Edit
+                </Button>
+            ) : (
+                <>
+                    <Button type="submit" disabled={isPending}>{isPending ? "Saving..." : "Save Record"}</Button>
+                    {isEditing && treatmentId && (
+                        <Button type="button" variant="secondary" onClick={handleSign} disabled={isPending}>
+                            <Lock className="mr-2 h-4 w-4" /> Sign & Finalize
+                        </Button>
+                    )}
+                </>
+            )}
             <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
         </div>
       </form>

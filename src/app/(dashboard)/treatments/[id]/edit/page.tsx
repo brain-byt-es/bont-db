@@ -77,6 +77,7 @@ export default async function EditTreatmentPage({ params }: PageProps) {
             initialData={initialData}
             treatmentId={id}
             isEditing
+            status={treatment.status}
           />
         </CardContent>
        </Card>

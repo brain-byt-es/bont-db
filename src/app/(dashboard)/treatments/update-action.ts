@@ -71,6 +71,10 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
       throw new Error("Treatment not found or access denied")
     }
 
+    if (encounter.status === "SIGNED") {
+      throw new Error("This treatment is signed and cannot be edited. Please re-open it first.")
+    }
+
     // Handle Product
     let productId: string | null = encounter.productId
     if (product_label) {
