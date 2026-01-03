@@ -223,15 +223,20 @@ export function RecordForm({
     }
   }, [isEditing, initialData, form])
 
-  // Autosave & Load Draft
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+  // Autosave & Change Detection
   useEffect(() => {
-    if (isEditing) return
-    
-    // We check if watchedValues has content to avoid saving empty initial states if desired
-    if (watchedValues) {
-        const draft = { values: watchedValues, steps, assessments, timestamp: new Date() }
-        localStorage.setItem("bont_treatment_draft", JSON.stringify(draft))
-        setLastSaved(new Date())
+    if (watchedValues || steps.length > 0 || assessments.length > 0) {
+        // Mark as dirty
+        setHasUnsavedChanges(true)
+
+        // Local Storage Autosave (Only for new drafts)
+        if (!isEditing && watchedValues) {
+            const draft = { values: watchedValues, steps, assessments, timestamp: new Date() }
+            localStorage.setItem("bont_treatment_draft", JSON.stringify(draft))
+            setLastSaved(new Date())
+        }
     }
   }, [watchedValues, steps, assessments, isEditing])
 
@@ -306,6 +311,7 @@ export function RecordForm({
           return
         }
         toast.success(isEditing ? "Updated" : "Saved")
+        setHasUnsavedChanges(false)
         if (!isEditing) localStorage.removeItem("bont_treatment_draft")
         
         if (onSuccess) {
@@ -472,7 +478,10 @@ export function RecordForm({
         <div className="flex items-center justify-between pt-4 border-t">
             <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
             
-            <div className="flex gap-4">
+            <div className="flex gap-4 items-center">
+            {hasUnsavedChanges && !isSigned && (
+                <span className="text-sm font-medium text-amber-600 animate-pulse">Unsaved Changes</span>
+            )}
             {isSigned ? (
                 <Button type="button" variant="outline" onClick={handleReopen} disabled={isPending}>
                     <Unlock className="mr-2 h-4 w-4" /> Re-open to Edit

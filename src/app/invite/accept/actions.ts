@@ -5,6 +5,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import prisma from "@/lib/prisma"
 import { createHash } from "crypto"
 import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
 
 export async function acceptInviteAction(token: string) {
   const session = await getServerSession(authOptions)
@@ -45,9 +46,27 @@ export async function acceptInviteAction(token: string) {
     }
   })
 
+  const cookieStore = await cookies()
+  const setOrgCookie = () => {
+      cookieStore.set("injexpro_org_id", invite.organizationId, {
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 365 // 1 year
+      })
+  }
+
   if (existingMembership) {
     // Already member? Just clean up invite and redirect
-    await prisma.organizationInvite.delete({ where: { id: invite.id } })
+    // We try/catch the delete in case it was already deleted, but here we assume it exists
+    try {
+        await prisma.organizationInvite.delete({ where: { id: invite.id } })
+    } catch { 
+        // ignore 
+    }
+    
+    setOrgCookie()
     redirect("/dashboard")
   }
 
@@ -69,6 +88,8 @@ export async function acceptInviteAction(token: string) {
         data: { acceptedAt: new Date() }
       })
     })
+    
+    setOrgCookie()
   } catch (error) {
     console.error("Failed to accept invite", error)
     return { error: "Failed to process acceptance." }

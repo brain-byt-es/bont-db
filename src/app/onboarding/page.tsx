@@ -6,21 +6,15 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { getUserContext } from "@/lib/auth-context"
-import { redirect } from "next/navigation"
-import prisma from "@/lib/prisma"
+// import { redirect } from "next/navigation" // Removed as we don't force redirect anymore
+// import prisma from "@/lib/prisma" // Not needed anymore
 import { OnboardingForm } from "./onboarding-form"
 
 export default async function OnboardingPage() {
-  const { userId, user } = await getUserContext()
+  const { user } = await getUserContext()
 
-  // Double check: if user already has an org, send them to dashboard
-  const existingMembership = await prisma.organizationMembership.findFirst({
-    where: { userId: userId, status: "ACTIVE" },
-  })
-
-  if (existingMembership) {
-    redirect("/dashboard")
-  }
+  // We intentionally allow access here even if the user has memberships,
+  // to support the "Add Team" workflow.
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">

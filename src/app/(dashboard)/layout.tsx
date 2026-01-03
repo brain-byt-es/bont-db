@@ -61,6 +61,7 @@ export default async function DashboardLayout({
         user={appUser} 
         organization={{ id: orgContext.organization.id, name: orgContext.organization.name }} 
         allTeams={allTeams}
+        userRole={orgContext.membership.role}
       />
       <SidebarInset>
         <SiteHeader />

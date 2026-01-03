@@ -90,15 +90,18 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     id: string
     name: string
   }[]
+  userRole?: string
 }
 
-export function AppSidebar({ user, organization, allTeams = [], ...props }: AppSidebarProps) {
+export function AppSidebar({ user, organization, allTeams = [], userRole = "Member", ...props }: AppSidebarProps) {
   const currentUser = user || defaultUser
   const orgName = organization?.name || "InjexPro"
   const orgId = organization?.id
   const initials = orgName.substring(0, 2).toUpperCase()
   const { isMobile } = useSidebar()
   const router = useRouter()
+
+  const formattedRole = userRole.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase())
 
   const handleSwitch = async (teamId: string) => {
      await switchOrganizationAction(teamId)
@@ -129,7 +132,7 @@ export function AppSidebar({ user, organization, allTeams = [], ...props }: AppS
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">{orgName}</span>
-                    <span className="truncate text-xs">Free Plan</span>
+                    <span className="truncate text-xs text-muted-foreground">{formattedRole}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto" />
                 </SidebarMenuButton>
