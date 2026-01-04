@@ -5,12 +5,13 @@ import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Save, ChevronDown, Wand2, Lock, Unlock } from "lucide-react"
+import { CalendarIcon, Save, ChevronDown, Wand2, Lock, Unlock, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Form,
@@ -91,6 +92,12 @@ const formSchema = z.object({
   notes: z.string().optional(),
 })
 
+export interface OrganizationPreferences {
+  standard_vial_size?: number
+  standard_dilution_ml?: number
+  enable_compliance_views?: boolean
+}
+
 interface InitialFormData {
   location?: string;
   subject_id?: string;
@@ -116,12 +123,7 @@ interface InjectionData {
   side: string;
   units: number;
   injectionAssessments: InjectionAssessment[];
-}
-
-export interface OrganizationPreferences {
-  standard_vial_size?: number
-  standard_dilution_ml?: number
-  enable_compliance_views?: boolean
+  volumeMl?: number;
 }
 
 interface RecordFormProps {
@@ -172,6 +174,7 @@ export function RecordForm({
   const [pendingValues, setPendingValues] = useState<z.infer<typeof formSchema> | null>(null)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [reopenReason, setReopenReason] = useState("")
+  const [isSmartFilled, setIsSmartFilled] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -186,6 +189,7 @@ export function RecordForm({
       notes: initialData?.notes || "",
     },
   })
+
   // Use useWatch to reactively subscribe to form changes without imperative subscription issues
   const watchedValues = useWatch({ control: form.control })
   const categoryValue = watchedValues.category
@@ -207,6 +211,51 @@ export function RecordForm({
       form.setValue("dilution_ml", preset.dilution, { shouldValidate: true })
       toast.info(`Applied preset: ${preset.label}`)
   }
+
+  // Fetch latest treatment for defaults
+  const subjectId = form.watch("subject_id")
+  useEffect(() => {
+    if (isEditing || !subjectId) return
+
+    const fetchLatest = async () => {
+        const latest = await getLatestTreatment(subjectId)
+        if (latest) {
+             const currentValues = form.getValues()
+             
+             // BASIC logic: only fill basic fields if empty
+             if (!isPro) {
+                if (!currentValues.product_label) form.setValue("product_label", latest.product)
+                if (!currentValues.location || currentValues.location === "Main Clinic") form.setValue("location", latest.treatment_site)
+                if (!currentValues.category) form.setValue("category", latest.indication)
+                return
+             }
+
+             // PRO logic: Smart Auto-Fill everything
+             form.setValue("product_label", latest.product, { shouldValidate: true })
+             form.setValue("location", latest.treatment_site, { shouldValidate: true })
+             form.setValue("category", latest.indication, { shouldValidate: true })
+             if (latest.effect_notes) form.setValue("notes", latest.effect_notes, { shouldValidate: true })
+
+             if (latest.injections && steps.length === 0) {
+                 const newSteps = (latest.injections as InjectionData[]).map((inj) => ({
+                   id: Math.random().toString(36).substr(2, 9),
+                   muscle_id: inj.muscleId || inj.muscle || '',
+                   side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Bilateral') as ProcedureStep["side"],
+                   numeric_value: Number(inj.units),
+                   volume_ml: inj.volumeMl || undefined,
+                   mas_baseline: inj.injectionAssessments?.find((a) => a.timepoint === 'baseline')?.valueText || "",
+                   mas_peak: inj.injectionAssessments?.find((a) => a.timepoint === 'peak_effect')?.valueText || ""
+                 }))
+                 setSteps(newSteps)
+             }
+
+             setIsSmartFilled(true)
+             toast.success("Pro Assistant: Pre-filled from last visit")
+        }
+    }
+    fetchLatest()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subjectId, isEditing, isPro])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -292,23 +341,6 @@ export function RecordForm({
         }
     }
   }, [watchedValues, steps, assessments, isEditing])
-
-  // Fetch latest treatment for defaults (only sets if empty)
-  const subjectId = form.watch("subject_id")
-  useEffect(() => {
-    if (isEditing || !subjectId) return
-
-    const fetchLatest = async () => {
-        const latest = await getLatestTreatment(subjectId)
-        if (latest) {
-             const currentValues = form.getValues()
-             if (!currentValues.product_label) form.setValue("product_label", latest.product)
-             if (!currentValues.location || currentValues.location === "Main Clinic") form.setValue("location", latest.treatment_site)
-             if (!currentValues.category) form.setValue("category", latest.indication)
-        }
-    }
-    fetchLatest()
-  }, [subjectId, isEditing, form])
 
   const copyLastTreatmentFull = async () => {
       const currentSubjectId = form.getValues("subject_id")
@@ -488,6 +520,11 @@ export function RecordForm({
         
         {!isEditing && form.watch("subject_id") && (
             <div className="flex justify-end gap-2 items-center">
+                {isSmartFilled && (
+                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 flex gap-1 items-center px-2 py-1">
+                        <Sparkles className="h-3 w-3" /> Smart Pre-fill Active
+                    </Badge>
+                )}
                 {lastSaved && (
                     <span className="text-xs text-muted-foreground mr-2">
                         Saved {format(lastSaved, "HH:mm:ss")}
@@ -498,9 +535,11 @@ export function RecordForm({
                         <Wand2 className="mr-2 h-4 w-4" /> Load PREMPT
                     </Button>
                 )}
-                <Button variant="outline" size="sm" type="button" onClick={copyLastTreatmentFull} className="bg-primary/5 text-primary">
-                    <Save className="mr-2 h-4 w-4" /> Copy last visit
-                </Button>
+                {!isSmartFilled && (
+                    <Button variant="outline" size="sm" type="button" onClick={copyLastTreatmentFull} className="bg-primary/5 text-primary">
+                        <Save className="mr-2 h-4 w-4" /> Copy last visit
+                    </Button>
+                )}
             </div>
         )}
 
