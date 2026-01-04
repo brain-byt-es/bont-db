@@ -18,11 +18,18 @@ import { ClinicalSettingsForm } from "@/components/settings/clinical-settings-fo
 import { getAuditLogs, getAuditFilterOptions } from "./audit-logs/actions"
 import { AuditLogManager } from "@/components/settings/audit-log-manager"
 import { Badge } from "@/components/ui/badge"
-import { ShieldCheck, ArrowRight } from "lucide-react"
+import { ShieldCheck, ArrowRight, CreditCard, ExternalLink, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { createCustomerPortalAction } from "@/app/actions/stripe"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; success?: string; canceled?: string }>
+}) {
+  const { tab, success, canceled } = await searchParams
   const ctx = await getOrganizationContext()
 
   if (!ctx) {
@@ -48,6 +55,25 @@ export default async function SettingsPage() {
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
       </div>
 
+      {success === "true" && (
+          <Alert className="bg-emerald-50 border-emerald-200 text-emerald-900">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <AlertTitle>Success!</AlertTitle>
+              <AlertDescription>
+                  Your plan has been updated. It might take a few seconds for all Pro features to appear.
+              </AlertDescription>
+          </Alert>
+      )}
+
+      {canceled === "true" && (
+          <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-900">
+              <AlertTitle>Canceled</AlertTitle>
+              <AlertDescription>
+                  The upgrade process was canceled. No charges were made.
+              </AlertDescription>
+          </Alert>
+      )}
+
       <SettingsTabs 
         canManageTeam={canManageTeam} 
         enableCompliance={settings.enable_compliance_views && isPro}
@@ -66,6 +92,41 @@ export default async function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                 <OrgSettingsForm initialName={ctx.organization.name} />
+                </CardContent>
+            </Card>
+
+            <Card className={cn(isPro ? "border-primary/20 bg-primary/5" : "")}>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <CreditCard className="h-5 w-5" />
+                        Subscription Plan
+                    </CardTitle>
+                    <CardDescription>
+                        Current Plan: <Badge variant={isPro ? "default" : "secondary"}>{userPlan}</Badge>
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isPro ? (
+                        <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                Your clinic has access to all Pro features including Audit Logs, Clinical Insights, and unlimited treatments.
+                            </p>
+                            <form action={createCustomerPortalAction}>
+                                <Button variant="outline" type="submit">
+                                    Manage Billing <ExternalLink className="ml-2 h-4 w-4" />
+                                </Button>
+                            </form>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                Basic plans are limited to 100 treatments and lack advanced oversight tools.
+                            </p>
+                            <Button asChild>
+                                <Link href="/pricing">Upgrade to Pro</Link>
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </TabsContent>

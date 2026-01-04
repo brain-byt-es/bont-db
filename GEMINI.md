@@ -32,8 +32,9 @@ The application is **Organization-centric** and features a tiered Plan model.
 - **Global Auth Context:** `AuthContextProvider` makes the current user's **Role** and **Plan** (BASIC/PRO) available to all client components.
 
 ### Monetization Split
-- **BASIC (Daily Documentation):** CORE clinical recording, 100 treatment limit, manual dosage presets. No re-opening of finalized records.
-- **PRO (Compliance & Scale):** Unlimited treatments, organization-wide dosage standards, re-opening signed encounters (with audit log), detailed audit trails with filtering/export, advanced exports, compliance-specific documentation modes.
+- **BASIC (Free):** Ideal for individual practitioners. Includes core clinical documentation, standard PREMPT templates, manual dose calculator, and 100 treatment record limit.
+- **PRO (€59 / seat / mo):** For professional clinics and teams. Includes unlimited treatment records, clinic-wide dosage standards, ability to re-open signed encounters (audit-safe), advanced audit trails with filtering/export, and clinical analytics.
+- **Billing Model:** Seat-based billing. Quantity is automatically determined by the number of active clinical seats (Owner, Admin, Provider, Assistant) in the organization.
 - **Upgrade Moments:** Triggered via `UpgradeDialog` when BASIC users attempt to access PRO features (Re-open, Audit Logs, usage limits, advanced exports).
 
 ## 4. Clinical Workflow & Data Integrity

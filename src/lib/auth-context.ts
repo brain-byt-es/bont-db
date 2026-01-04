@@ -31,7 +31,8 @@ export async function getOrganizationContext() {
         status: "ACTIVE" // Ensure strict active check
       },
       include: {
-        organization: true
+        organization: true,
+        user: true
       }
     })
   }
@@ -44,7 +45,8 @@ export async function getOrganizationContext() {
         status: "ACTIVE"
       },
       include: {
-        organization: true
+        organization: true,
+        user: true
       },
       orderBy: {
         createdAt: 'asc' // Deterministic fallback
