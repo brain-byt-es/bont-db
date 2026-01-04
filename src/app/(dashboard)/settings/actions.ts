@@ -1,14 +1,13 @@
-'use server'
+"use server"
 
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 
-// Note: Compliance settings were stored in Supabase Auth Metadata.
-// In our new schema, we don't have a direct "user settings" JSON field yet.
-// For now, we will treat this as a no-op or default to enabled/disabled.
-// Future: Add 'settings' Json field to User or OrganizationMembership.
+interface OrganizationPreferences {
+  enable_compliance_views?: boolean;
+}
 
 export async function updateComplianceSettings(enabled: boolean) {
   const ctx = await getOrganizationContext()
@@ -20,7 +19,7 @@ export async function updateComplianceSettings(enabled: boolean) {
     select: { preferences: true }
   })
 
-  const currentPrefs = (org?.preferences as any) || {}
+  const currentPrefs = (org?.preferences as OrganizationPreferences) || {}
   
   await prisma.organization.update({
     where: { id: ctx.organizationId },
@@ -46,7 +45,7 @@ export async function getComplianceSettings() {
     select: { preferences: true }
   })
 
-  const prefs = (org?.preferences as any) || {}
+  const prefs = (org?.preferences as OrganizationPreferences) || {}
   return {
     enable_compliance_views: !!prefs.enable_compliance_views
   }

@@ -6,7 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { signIn } from "next-auth/react"
 import { format } from "date-fns"
-import { Globe, Monitor, UserCircle } from "lucide-react"
+import { 
+  IconBrandGoogle, 
+  IconBrandLinkedin, 
+  IconBrandWindows 
+} from "@tabler/icons-react"
 
 interface ProfileData {
   id: string
@@ -59,7 +63,7 @@ export function ProfileManager({ initialData }: { initialData: ProfileData }) {
             {/* Google */}
             <div className="flex items-center justify-between border p-4 rounded-lg">
                 <div className="flex items-center gap-3">
-                    <div className="bg-muted p-2 rounded-full"><Globe className="h-5 w-5" /></div>
+                    <div className="bg-muted p-2 rounded-full"><IconBrandGoogle className="h-5 w-5" /></div>
                     <div>
                         <div className="font-medium">Google</div>
                         {hasProvider('google') ? (
@@ -79,7 +83,7 @@ export function ProfileManager({ initialData }: { initialData: ProfileData }) {
             {/* Microsoft / Azure AD */}
             <div className="flex items-center justify-between border p-4 rounded-lg">
                 <div className="flex items-center gap-3">
-                    <div className="bg-muted p-2 rounded-full"><Monitor className="h-5 w-5" /></div>
+                    <div className="bg-muted p-2 rounded-full"><IconBrandWindows className="h-5 w-5" /></div>
                     <div>
                         <div className="font-medium">Microsoft (Entra ID)</div>
                         {hasProvider('azure_ad') ? (
@@ -99,7 +103,7 @@ export function ProfileManager({ initialData }: { initialData: ProfileData }) {
             {/* LinkedIn */}
             <div className="flex items-center justify-between border p-4 rounded-lg">
                 <div className="flex items-center gap-3">
-                    <div className="bg-muted p-2 rounded-full"><UserCircle className="h-5 w-5" /></div>
+                    <div className="bg-muted p-2 rounded-full"><IconBrandLinkedin className="h-5 w-5" /></div>
                     <div>
                         <div className="font-medium">LinkedIn</div>
                         {hasProvider('linkedin') ? (
