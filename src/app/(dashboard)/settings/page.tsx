@@ -11,25 +11,16 @@ import { redirect } from "next/navigation"
 import { TabsContent } from "@/components/ui/tabs"
 import { checkPermission, PERMISSIONS, checkPlan } from "@/lib/permissions"
 import { Plan } from "@/generated/client/enums"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { ArrowRight, ShieldCheck } from "lucide-react"
-import { getAuditLogs } from "./audit-logs/actions"
-import { format } from "date-fns"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { SettingsTabs } from "./settings-tabs"
 import { cn } from "@/lib/utils"
 import { ComplianceUpgradeTeaser } from "@/components/settings/compliance-upgrade-teaser"
 import { ClinicalSettingsForm } from "@/components/settings/clinical-settings-form"
+import { getAuditLogs, getAuditFilterOptions } from "./audit-logs/actions"
+import { AuditLogManager } from "@/components/settings/audit-log-manager"
+import { Badge } from "@/components/ui/badge"
+import { ShieldCheck, ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export default async function SettingsPage() {
   const ctx = await getOrganizationContext()
@@ -43,11 +34,12 @@ export default async function SettingsPage() {
   const isPro = checkPlan(userPlan, Plan.PRO)
 
   // Fetch data in parallel
-  const [settings, teamData, profileData, auditLogs] = await Promise.all([
+  const [settings, teamData, profileData, auditLogs, auditFilterOptions] = await Promise.all([
       getComplianceSettings(),
       getTeamData(),
       getProfileData(),
-      (canManageTeam && isPro) ? getAuditLogs() : Promise.resolve([])
+      (canManageTeam && isPro) ? getAuditLogs() : Promise.resolve([]),
+      (canManageTeam && isPro) ? getAuditFilterOptions() : Promise.resolve({ actions: [], users: [] })
   ])
 
   return (
@@ -97,7 +89,7 @@ export default async function SettingsPage() {
                     <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         Compliance & Exports
-                        {!isPro && <Badge variant="secondary" className="font-normal">Pro</Badge>}
+                        {!isPro && <Badge variant="secondary" className="font-normal text-[10px] h-4">Pro</Badge>}
                     </CardTitle>
                     <CardDescription>
                         Manage documentation standards and export formats.
@@ -111,92 +103,47 @@ export default async function SettingsPage() {
                 {!isPro && <ComplianceUpgradeTeaser />}
 
                 {isPro && canManageTeam && settings.enable_compliance_views && (
-                    <Card>
-                        <CardHeader>
-                        <CardTitle>Security Logs</CardTitle>
-                        <CardDescription>
-                            Review system-wide activity and security events for compliance audits.
-                        </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
-                                <ShieldCheck className="h-8 w-8 text-primary" />
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium">Activity Monitoring</p>
-                                    <p className="text-xs text-muted-foreground">All critical actions are logged and immutable.</p>
-                                </div>
-                                <Button asChild variant="outline" size="sm">
-                                    <Link href="/settings?tab=audit">
-                                        View Detailed Logs <ArrowRight className="ml-2 h-4 w-4" />
-                                    </Link>
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <AuditLogTeaser />
                 )}
             </div>
         </TabsContent>
 
         {canManageTeam && isPro && (
           <TabsContent value="audit" className="space-y-4">
-              <Card>
-                  <CardHeader>
-                  <CardTitle>Security & Audit Logs</CardTitle>
-                  <CardDescription>
-                      Review system-wide activity and security events for compliance audits.
-                  </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                      <ScrollArea className="h-[600px]">
-                        <Table>
-                            <TableHeader>
-                            <TableRow className="hover:bg-transparent">
-                                <TableHead className="sticky top-0 bg-background pl-6">Time</TableHead>
-                                <TableHead className="sticky top-0 bg-background">User</TableHead>
-                                <TableHead className="sticky top-0 bg-background">Action</TableHead>
-                                <TableHead className="sticky top-0 bg-background">Resource</TableHead>
-                                <TableHead className="sticky top-0 bg-background pr-6">Details</TableHead>
-                            </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                            {auditLogs.length === 0 ? (
-                                <TableRow>
-                                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                                    No audit logs found.
-                                </TableCell>
-                                </TableRow>
-                            ) : (
-                                auditLogs.map((log) => (
-                                <TableRow key={log.id}>
-                                    <TableCell className="whitespace-nowrap pl-6 py-4 text-xs font-mono">
-                                    {format(log.occurredAt, "yyyy-MM-dd HH:mm:ss")}
-                                    </TableCell>
-                                    <TableCell className="py-4">
-                                    <div className="flex flex-col">
-                                        <span className="font-medium text-xs">{log.actorMembership?.user.displayName || "System"}</span>
-                                        <span className="text-[10px] text-muted-foreground">{log.actorMembership?.user.email}</span>
-                                    </div>
-                                    </TableCell>
-                                    <TableCell className="py-4">
-                                    <Badge variant="outline" className="text-[10px] font-mono px-1 py-0">{log.action}</Badge>
-                                    </TableCell>
-                                    <TableCell className="py-4">
-                                    <span className="text-[10px] font-mono opacity-70">{log.resourceType}</span>
-                                    </TableCell>
-                                    <TableCell className="max-w-xs truncate text-[10px] pr-6 py-4">
-                                    {log.details ? JSON.stringify(log.details) : "-"}
-                                    </TableCell>
-                                </TableRow>
-                                ))
-                            )}
-                            </TableBody>
-                        </Table>
-                      </ScrollArea>
-                  </CardContent>
-              </Card>
+              <AuditLogManager 
+                initialLogs={auditLogs} 
+                filterOptions={auditFilterOptions} 
+              />
           </TabsContent>
         )}
       </SettingsTabs>
     </div>
   )
+}
+
+function AuditLogTeaser() {
+    return (
+        <Card>
+            <CardHeader>
+            <CardTitle>Security Logs</CardTitle>
+            <CardDescription>
+                Review system-wide activity and security events for compliance audits.
+            </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
+                    <ShieldCheck className="h-8 w-8 text-primary" />
+                    <div className="flex-1">
+                        <p className="text-sm font-medium">Activity Monitoring</p>
+                        <p className="text-xs text-muted-foreground">All critical actions are logged and immutable.</p>
+                    </div>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href="/settings?tab=audit">
+                            View Detailed Logs <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    )
 }
