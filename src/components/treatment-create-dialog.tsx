@@ -35,6 +35,7 @@ interface TreatmentDialogProps {
   initialData?: InitialFormData
   isEditing?: boolean
   status?: string
+  userRole?: string
 }
 
 export function TreatmentDialog({ 
@@ -46,7 +47,8 @@ export function TreatmentDialog({
   treatmentId,
   initialData,
   isEditing = false,
-  status
+  status,
+  userRole
 }: TreatmentDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [fetchedPatients, setFetchedPatients] = useState<{ id: string; patient_code: string }[]>([])
@@ -108,6 +110,7 @@ export function TreatmentDialog({
             onCancel={() => setIsOpen && setIsOpen(false)}
             onSuccess={() => setIsOpen && setIsOpen(false)}
             status={status}
+            userRole={userRole}
           />
         )}
       </DialogContent>

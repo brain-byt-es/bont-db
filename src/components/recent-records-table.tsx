@@ -31,6 +31,8 @@ import { useTransition, useState } from "react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 export interface TreatmentRecord {
   id: string
@@ -73,6 +75,7 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
   const [showBulkSignDialog, setShowBulkSignDialog] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [reopenId, setReopenId] = useState<string | null>(null)
+  const [reopenReason, setReopenReason] = useState("")
   const showPatientColumn = records.some(r => r.patient)
   const router = useRouter()
 
@@ -127,10 +130,11 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
       if (!reopenId) return
       startTransition(async () => {
           try {
-              await reopenTreatmentAction(reopenId)
+              await reopenTreatmentAction(reopenId, reopenReason)
               toast.success("Treatment re-opened")
               router.push(`/treatments/${reopenId}/edit`)
               setReopenId(null)
+              setReopenReason("")
           } catch {
               toast.error("Failed to re-open treatment")
           }
@@ -215,9 +219,20 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
             This record is currently finalized. Do you want to re-open it for editing? This action will be logged.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+                <Label htmlFor="reason">Reason for re-opening (Required)</Label>
+                <Textarea 
+                    id="reason" 
+                    value={reopenReason} 
+                    onChange={(e) => setReopenReason(e.target.value)} 
+                    placeholder="e.g. Correction of dose..." 
+                />
+            </div>
+        </div>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmReopen}>Re-open & Edit</AlertDialogAction>
+          <AlertDialogAction onClick={confirmReopen} disabled={!reopenReason.trim()}>Re-open & Edit</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

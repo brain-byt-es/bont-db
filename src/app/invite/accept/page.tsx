@@ -78,7 +78,7 @@ export default async function AcceptInvitePage({ searchParams }: PageProps) {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {emailMismatch && (
-             <Alert variant="warning" className="text-left bg-yellow-50 text-yellow-900 border-yellow-200">
+             <Alert variant="default" className="text-left bg-yellow-50 text-yellow-900 border-yellow-200">
                <AlertTriangle className="h-4 w-4 text-yellow-600" />
                <AlertTitle>Email Mismatch</AlertTitle>
                <AlertDescription>

@@ -9,6 +9,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { redirect } from "next/navigation"
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
+import { AuthContextProvider } from "@/components/auth-context-provider"
+import { MembershipRole } from "@/generated/client/enums"
 
 export default async function DashboardLayout({
   children,
@@ -48,27 +50,29 @@ export default async function DashboardLayout({
   } : undefined
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "18rem", // Fallback or explicit
-          "--header-height": "3rem",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar 
-        variant="inset" 
-        user={appUser} 
-        organization={{ id: orgContext.organization.id, name: orgContext.organization.name }} 
-        allTeams={allTeams}
-        userRole={orgContext.membership.role}
-      />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          {children}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+    <AuthContextProvider userRole={orgContext.membership.role as MembershipRole}>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "18rem", // Fallback or explicit
+            "--header-height": "3rem",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar 
+          variant="inset" 
+          user={appUser} 
+          organization={{ id: orgContext.organization.id, name: orgContext.organization.name }} 
+          allTeams={allTeams}
+          userRole={orgContext.membership.role}
+        />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+            {children}
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </AuthContextProvider>
   )
 }

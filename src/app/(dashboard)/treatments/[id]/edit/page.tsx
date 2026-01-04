@@ -6,9 +6,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { getTreatment } from "../../actions"
 import { getPatients } from "../../../patients/actions"
+import { getOrganizationContext } from "@/lib/auth-context"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -16,6 +17,11 @@ interface PageProps {
 
 export default async function EditTreatmentPage({ params }: PageProps) {
   const { id } = await params
+  const ctx = await getOrganizationContext()
+
+  if (!ctx) {
+    redirect("/onboarding")
+  }
 
   // Fetch treatment details
   const treatment = await getTreatment(id)
@@ -78,6 +84,7 @@ export default async function EditTreatmentPage({ params }: PageProps) {
             treatmentId={id}
             isEditing
             status={treatment.status}
+            userRole={ctx.membership.role}
           />
         </CardContent>
        </Card>

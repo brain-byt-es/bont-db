@@ -19,6 +19,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 interface TreatmentHeaderProps {
   treatment: { id: string; status: string; patientId: string; encounterLocalDate: Date }
@@ -30,6 +32,7 @@ export function TreatmentHeader({ treatment, patientCode, initialData }: Treatme
   const [, startTransition] = useTransition()
   const [showReopenDialog, setShowReopenDialog] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [reopenReason, setReopenReason] = useState("")
   const router = useRouter()
 
   const isSigned = treatment.status === "SIGNED"
@@ -45,23 +48,11 @@ export function TreatmentHeader({ treatment, patientCode, initialData }: Treatme
   const confirmReopen = () => {
       startTransition(async () => {
           try {
-              await reopenTreatmentAction(treatment.id)
+              await reopenTreatmentAction(treatment.id, reopenReason)
               toast.success("Treatment re-opened")
               router.refresh()
               setShowReopenDialog(false)
-              setEditDialogOpen(true) // Open edit dialog immediately after reopen?
-              // Wait, router.refresh() is async but doesn't await re-render.
-              // If we open dialog immediately, the props passed to it (status) might still be SIGNED until refresh completes.
-              // However, since we just called the action, the backend state is DRAFT.
-              // The `TreatmentDialog` uses `initialData` which we passed from Server Component.
-              // That `initialData` has the OLD status.
-              // So `RecordForm` inside might still think it's Signed?
-              // Actually, RecordForm logic depends on `status` prop.
-              // We need to update the status passed to RecordForm.
-              // Since this is a Client Component, we can't easily "update" the server-passed initialData without refresh.
-              
-              // Alternative: Just refresh and let user click edit again? No, bad UX.
-              // Better: Optimistically update status passed to Dialog.
+              setEditDialogOpen(true) 
           } catch {
               toast.error("Failed to re-open treatment")
           }
@@ -94,9 +85,20 @@ export function TreatmentHeader({ treatment, patientCode, initialData }: Treatme
                     This record is currently finalized. Do you want to re-open it for editing? This action will be logged.
                 </AlertDialogDescription>
                 </AlertDialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="reason">Reason for re-opening (Required)</Label>
+                        <Textarea 
+                            id="reason" 
+                            value={reopenReason} 
+                            onChange={(e) => setReopenReason(e.target.value)} 
+                            placeholder="e.g. Correction of dose..." 
+                        />
+                    </div>
+                </div>
                 <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmReopen}>Re-open & Edit</AlertDialogAction>
+                <AlertDialogAction onClick={confirmReopen} disabled={!reopenReason.trim()}>Re-open & Edit</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

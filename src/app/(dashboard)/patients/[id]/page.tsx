@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation"
 import PatientPage from "./client"
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
+import { PatientPhiInclude, getBirthYear } from "@/phi/patient-phi"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -20,7 +21,7 @@ export default async function Page({ params }: PageProps) {
       organizationId: organizationId
     },
     include: {
-      identifiers: true // Needed for birthYear if we want to display it properly, though UI type mismatch might occur
+      ...PatientPhiInclude // PHI schema join via isolated fragment
     }
   })
 
@@ -48,7 +49,7 @@ export default async function Page({ params }: PageProps) {
     id: patient.id,
     notes: patient.notes,
     patient_code: patient.systemLabel || 'Unknown',
-    birth_year: patient.identifiers?.birthYear || 0,
+    birth_year: getBirthYear(patient),
     last_activity: treatments[0]?.encounterLocalDate.toISOString().split('T')[0]
   }
 

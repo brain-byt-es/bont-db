@@ -9,6 +9,10 @@ import { TeamManager } from "@/components/settings/team-manager"
 import { ProfileManager } from "@/components/settings/profile-manager"
 import { redirect } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { checkPermission, PERMISSIONS } from "@/lib/permissions"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { ArrowRight, ShieldCheck } from "lucide-react"
 
 export default async function SettingsPage() {
   const ctx = await getOrganizationContext()
@@ -16,6 +20,8 @@ export default async function SettingsPage() {
   if (!ctx) {
     redirect("/onboarding")
   }
+
+  const canManageTeam = checkPermission(ctx.membership.role, PERMISSIONS.MANAGE_TEAM)
 
   // Fetch data in parallel
   const [settings, teamData, profileData] = await Promise.all([
@@ -34,8 +40,9 @@ export default async function SettingsPage() {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="organization">Organization</TabsTrigger>
-          <TabsTrigger value="team">Team Members</TabsTrigger>
+          {canManageTeam && <TabsTrigger value="team">Team Members</TabsTrigger>}
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          {canManageTeam && <TabsTrigger value="audit">Security & Logs</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">
@@ -56,9 +63,11 @@ export default async function SettingsPage() {
             </Card>
         </TabsContent>
 
-        <TabsContent value="team" className="space-y-4">
-            <TeamManager initialData={teamData} />
-        </TabsContent>
+        {canManageTeam && (
+          <TabsContent value="team" className="space-y-4">
+              <TeamManager initialData={teamData} />
+          </TabsContent>
+        )}
 
         <TabsContent value="compliance" className="space-y-4">
             <Card>
@@ -73,6 +82,33 @@ export default async function SettingsPage() {
                 </CardContent>
             </Card>
         </TabsContent>
+
+        {canManageTeam && (
+          <TabsContent value="audit" className="space-y-4">
+              <Card>
+                  <CardHeader>
+                  <CardTitle>Audit Logs</CardTitle>
+                  <CardDescription>
+                      Review system-wide activity and security events for compliance audits.
+                  </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                      <div className="flex items-center gap-4 p-4 border rounded-lg bg-slate-50">
+                          <ShieldCheck className="h-8 w-8 text-primary" />
+                          <div className="flex-1">
+                              <p className="text-sm font-medium">Activity Monitoring</p>
+                              <p className="text-xs text-muted-foreground">All critical actions are logged and immutable.</p>
+                          </div>
+                          <Button asChild variant="outline" size="sm">
+                              <Link href="/settings/audit-logs">
+                                  View Detailed Logs <ArrowRight className="ml-2 h-4 w-4" />
+                              </Link>
+                          </Button>
+                      </div>
+                  </CardContent>
+              </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )

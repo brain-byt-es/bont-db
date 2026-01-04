@@ -7,6 +7,8 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { getPatients } from "../../patients/actions"
+import { getOrganizationContext } from "@/lib/auth-context"
+import { redirect } from "next/navigation"
 
 export default async function NewTreatmentPage({
   searchParams,
@@ -14,6 +16,11 @@ export default async function NewTreatmentPage({
   searchParams: Promise<{ subjectId?: string }>
 }) {
   const { subjectId } = await searchParams
+  const ctx = await getOrganizationContext()
+  
+  if (!ctx) {
+    redirect("/onboarding")
+  }
 
   const patientsRaw = await getPatients()
   const patients = patientsRaw.map(p => ({
@@ -29,7 +36,11 @@ export default async function NewTreatmentPage({
           <CardDescription>Enter details for the new procedure.</CardDescription>
         </CardHeader>
         <CardContent>
-          <RecordForm patients={patients} defaultSubjectId={subjectId} />
+          <RecordForm 
+            patients={patients} 
+            defaultSubjectId={subjectId} 
+            userRole={ctx.membership.role}
+          />
         </CardContent>
        </Card>
     </div>

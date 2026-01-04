@@ -7,6 +7,7 @@ import { format } from "date-fns"
 import { revalidatePath } from "next/cache"
 import { randomUUID } from "crypto"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
+import { createPatientIdentifier, PatientPhiInclude, getBirthYear } from "@/phi/patient-phi"
 
 export async function getPatients(): Promise<Subject[]> {
   const ctx = await getOrganizationContext()
@@ -19,7 +20,7 @@ export async function getPatients(): Promise<Subject[]> {
       status: "ACTIVE"
     },
     include: {
-      identifiers: true, // PHI schema join
+      ...PatientPhiInclude, // PHI schema join via isolated fragment
       _count: {
         select: { encounters: true }
       },
@@ -41,8 +42,7 @@ export async function getPatients(): Promise<Subject[]> {
     return {
       id: p.id,
       patient_code: p.systemLabel || 'N/A',
-      // If identifiers is null (shouldn't be, but robust), default to 0
-      birth_year: p.identifiers?.birthYear || 0, 
+      birth_year: getBirthYear(p), 
       notes: p.notes,
       record_count: p._count.encounters,
       last_activity: lastEncounterDate ? format(lastEncounterDate, 'yyyy-MM-dd') : null
@@ -75,15 +75,12 @@ export async function createPatient(formData: FormData) {
       }
     })
 
-    // 2. Create PHI Record
-    await tx.patientIdentifier.create({
-      data: {
-        organizationId,
-        patientId: patient.id,
-        birthYear: birth_year,
-        // For MVP, we use the patient UUID as the EHR ID if not provided externally
-        ehrPatientId: randomUUID(), 
-      }
+    // 2. Create PHI Record via isolated service
+    await createPatientIdentifier(tx, {
+      organizationId,
+      patientId: patient.id,
+      birthYear: birth_year,
+      ehrPatientId: randomUUID(), 
     })
   })
 

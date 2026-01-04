@@ -2,6 +2,7 @@
 
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
+import { PatientPhiInclude, getBirthYear } from "@/phi/patient-phi"
 
 export async function getExportData() {
   const ctx = await getOrganizationContext()
@@ -15,7 +16,7 @@ export async function getExportData() {
     },
     include: {
       patient: {
-        select: { systemLabel: true, identifiers: true }
+        select: { systemLabel: true, ...PatientPhiInclude }
       },
       product: {
         select: { name: true }
@@ -40,7 +41,7 @@ export async function getExportData() {
     // Legacy mapping for UI compatibility
     patients: {
       patient_code: t.patient.systemLabel || 'Unknown',
-      birth_year: t.patient.identifiers?.birthYear || 0
+      birth_year: getBirthYear(t.patient)
     },
     followups: t.followups.map(f => ({
         followup_date: f.followupDate.toISOString(),

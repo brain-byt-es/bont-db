@@ -36,6 +36,8 @@ import {
 import { ChevronsUpDown, Plus, Check } from "lucide-react"
 import { switchOrganizationAction } from "@/app/actions/org-switching"
 import { useRouter } from "next/navigation"
+import { checkPermission, PERMISSIONS } from "@/lib/permissions"
+import { MembershipRole } from "@/generated/client/enums"
 
 // Default data if no user provided
 const defaultUser = {
@@ -72,6 +74,7 @@ const data = {
       title: "Settings",
       url: "/settings",
       icon: IconSettings,
+      permission: PERMISSIONS.MANAGE_TEAM
     },
   ],
 }
@@ -107,6 +110,13 @@ export function AppSidebar({ user, organization, allTeams = [], userRole = "Memb
      await switchOrganizationAction(teamId)
      // Action redirects, but we might want to refresh manually if needed
   }
+
+  // Filter navigation items
+  // const allowedNavMain = data.navMain.filter(...) // Usually all roles see main nav
+  const allowedNavSecondary = data.navSecondary.filter(item => {
+      if (!item.permission) return true
+      return checkPermission(userRole as MembershipRole, item.permission)
+  })
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -173,7 +183,7 @@ export function AppSidebar({ user, organization, allTeams = [], userRole = "Memb
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavSecondary items={allowedNavSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={currentUser} />

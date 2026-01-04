@@ -38,42 +38,50 @@ The application is **Organization-centric** but supports **User Portability**.
 
 ### Onboarding & Switching
 - **Zero-State:** Users without an organization are routed to `/onboarding`.
-- **Switching:** Sidebar contains an Organization Switcher. Selection persists via cookies.
-- **Invites:** `CLINIC_ADMIN` can generate invite links (7-day expiry). New users land on `/invite/accept`.
+- **Add Team:** Existing users can create additional organizations via `/onboarding`.
+- **Switching:** Sidebar contains an Organization Switcher. Selection persists via cookies. Automatic switch occurs after organization creation or invite acceptance.
+- **Invites:** `CLINIC_ADMIN` can generate invite links. New users land on `/invite/accept`. Features "Email Mismatch" warning for security transparency.
 
 ### RBAC (Role-Based Access Control)
-Enforced via `requirePermission()` helper in Server Actions.
-- **`OWNER`**: Org Settings, Billing.
-- **`CLINIC_ADMIN`**: Manage Team, Invites.
-- **`PROVIDER`**: Write/Delete Clinical Data.
-- **`ASSISTANT`**: Write Clinical Data (No Delete).
-- **`READONLY`**: View Only.
+- **Backend:** Enforced via `requirePermission()` helper in Server Actions.
+- **Frontend:** Components are permission-aware.
+  - `AppSidebar`: Hides restricted navigation items (e.g., Settings).
+  - `RecordForm`: Disables fields and hides write actions for `READONLY` users.
+- **Isomorphic Logic:** `src/lib/permissions.ts` provides the source of truth for both layers.
 
 ## 4. Clinical Workflow & Data Integrity
 
 ### Encounter Lifecycle
-1.  **Draft:** Default state. Editable by Providers/Assistants.
+1.  **Draft:** Default state. Editable by Providers/Assistants. Features **Unsaved Changes** indicator.
 2.  **Signed:** Finalized state.
     -   **Backend:** Updates blocked via `updateTreatment` action guard.
     -   **Frontend:** Form becomes Read-Only.
-    -   **Re-open:** Requires explicit "Unlock" action (Audit logged).
+    -   **Re-open:** Requires explicit "Unlock" action (Audit logged with mandatory reason).
 3.  **Void:** Soft-delete state (Audit trail preserved).
 
 ### Treatment Recording (RecordForm)
 - **Smart Templates:** Dedicated "Load PREMPT" functionality.
 - **History Copying:** "Copy last visit" feature.
-- **Bulk Actions:** Table supports multi-select for "Bulk Sign" and "Bulk Delete".
+- **Autosave:** Drafts are saved to `localStorage` for new records.
 - **Safety:** Critical actions (Sign, Delete, Re-open) are protected by confirmation dialogs.
 
 ## 5. Key Directories
-- `src/generated/client`: Prisma Client (Custom output).
+- `src/generated/client`: Prisma Client (Custom output). Use `.../enums` for client-side role imports.
 - `src/lib/auth-context.ts`: Security helpers (`getUserContext`, `getOrganizationContext`).
 - `src/lib/permissions.ts`: RBAC definitions and guards.
 - `src/app/actions`: Global/Shared actions (e.g., `org-switching.ts`).
 - `src/app/(dashboard)/settings`: Settings pages (Profile, Org, Team).
 - `src/app/(dashboard)/treatments/status-actions.ts`: Workflow transitions.
 
-## 6. Future Roadmap
-- **Product Features:** Dose Calculation/Smart Defaults.
-- **Ops:** Azure App Service Deployment & CI/CD.
-- **Compliance:** PHI Code Separation (Physical directory isolation).
+## 6. Roadmap & Follow-up Actions
+
+### Phase 3: Scaling & Compliance (Current Focus)
+- [x] **PHI Code Separation:** Isolated all code touching the `phi` schema into `src/phi/*` with strict data extraction helpers and fragment-based joins.
+- [x] **Audit UI:** Built a dedicated view for `CLINIC_ADMIN` to browse audit logs, integrated into Organization Settings.
+- [x] **Containerization:** Added production-ready `Dockerfile` using multi-stage builds and Next.js standalone output.
+- [ ] **Infrastructure as Code:** Prepare Azure App Service deployment templates (Bicep/Terraform).
+- [x] **Regional Split (Base):** Added `src/lib/region.ts` to handle environment-based region awareness (EU/US) for future data residency enforcement.
+
+### Future Features
+- [ ] **Dose Calculation:** Automatic calculation based on dilution and units.
+- [ ] **Smart Defaults:** Learning-based suggestions for injection patterns.

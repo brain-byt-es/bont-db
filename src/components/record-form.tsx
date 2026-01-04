@@ -59,6 +59,9 @@ import { toast } from "sonner"
 import { Muscle, MuscleRegion } from "@/components/muscle-selector"
 import { PiiWarningDialog } from "@/components/pii-warning-dialog"
 import { validatePII } from "@/lib/pii-validation"
+import { checkPermission, PERMISSIONS } from "@/lib/permissions"
+import { MembershipRole } from "@/generated/client/enums"
+import { useAuthContext } from "@/components/auth-context-provider"
 
 const formSchema = z.object({
   subject_id: z.string().min(1, {
@@ -111,6 +114,7 @@ interface RecordFormProps {
   onCancel?: () => void
   onSuccess?: () => void
   status?: string
+  userRole?: string
 }
 
 export function RecordForm({ 
@@ -121,9 +125,15 @@ export function RecordForm({
   isEditing = false,
   onCancel,
   onSuccess,
-  status = "DRAFT"
+  status = "DRAFT",
+  userRole: propUserRole
 }: RecordFormProps) {
+  const { userRole: contextUserRole } = useAuthContext()
+  const userRole = contextUserRole || propUserRole || "READONLY"
+  
   const isSigned = status === "SIGNED"
+  const canWrite = checkPermission(userRole as MembershipRole, PERMISSIONS.WRITE_TREATMENTS)
+  
   const [steps, setSteps] = useState<ProcedureStep[]>(initialData?.steps || [])
   const [assessments, setAssessments] = useState<Assessment[]>(initialData?.assessments || [])
   const [muscles, setMuscles] = useState<Muscle[]>([])
@@ -413,6 +423,15 @@ export function RecordForm({
     <PiiWarningDialog open={showPiiWarning} onOpenChange={setShowPiiWarning} detectedTypes={piiDetected} onConfirm={() => { setShowPiiWarning(false); if (pendingValues) processSubmission(pendingValues) }} onCancel={() => setShowPiiWarning(false)} />
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {!canWrite && (
+             <Alert variant="default" className="mb-6 bg-slate-50 border-slate-200 text-slate-700">
+                <Lock className="h-4 w-4" />
+                <AlertTitle>Read Only</AlertTitle>
+                <AlertDescription>
+                    You do not have permission to edit treatment records.
+                </AlertDescription>
+            </Alert>
+        )}
         {isSigned && (
             <Alert variant="destructive" className="mb-6 bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-900/50 dark:text-amber-200">
                 <Lock className="h-4 w-4" />
@@ -422,7 +441,7 @@ export function RecordForm({
                 </AlertDescription>
             </Alert>
         )}
-        <fieldset disabled={isSigned} className="space-y-8 border-none p-0 m-0 min-w-0">
+        <fieldset disabled={isSigned || !canWrite} className="space-y-8 border-none p-0 m-0 min-w-0">
         
         {!isEditing && form.watch("subject_id") && (
             <div className="flex justify-end gap-2 items-center">
@@ -466,7 +485,7 @@ export function RecordForm({
           <div className="flex items-center space-x-2">
             <CollapsibleTrigger asChild><Button variant="ghost" size="sm" className="w-full justify-between">Assessments (Optional) <ChevronDown className="h-4 w-4" /></Button></CollapsibleTrigger>
           </div>
-          <CollapsibleContent className="mt-4"><AssessmentManager assessments={assessments} onChange={setAssessments} indication={categoryValue} disabled={isSigned} /></CollapsibleContent>
+          <CollapsibleContent className="mt-4"><AssessmentManager assessments={assessments} onChange={setAssessments} indication={categoryValue || ""} disabled={isSigned} /></CollapsibleContent>
         </Collapsible>
 
         <FormField control={form.control} name="notes" render={({ field }) => (
@@ -479,20 +498,24 @@ export function RecordForm({
             <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
             
             <div className="flex gap-4 items-center">
-            {hasUnsavedChanges && !isSigned && (
+            {hasUnsavedChanges && !isSigned && canWrite && (
                 <span className="text-sm font-medium text-amber-600 animate-pulse">Unsaved Changes</span>
             )}
             {isSigned ? (
+                canWrite && (
                 <Button type="button" variant="outline" onClick={handleReopen} disabled={isPending}>
                     <Unlock className="mr-2 h-4 w-4" /> Re-open to Edit
                 </Button>
+                )
             ) : (
+                canWrite && (
                 <>
                     <Button type="submit" disabled={isPending} variant="outline">{isPending ? "Saving..." : "Save Draft"}</Button>
                     <Button type="button" onClick={handleSign} disabled={isPending}>
                         <Lock className="mr-2 h-4 w-4" /> Sign & Finalize
                     </Button>
                 </>
+                )
             )}
             </div>
         </div>

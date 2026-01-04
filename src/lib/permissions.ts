@@ -1,4 +1,4 @@
-import { MembershipRole } from "@/generated/client/client"
+import { MembershipRole } from "@/generated/client/enums"
 
 export const PERMISSIONS = {
   // Organization Management

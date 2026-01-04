@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from '@/lib/auth-context'
 import prisma from '@/lib/prisma'
 import { PERMISSIONS, requirePermission } from '@/lib/permissions'
+import { updatePatientIdentifier } from '@/phi/patient-phi'
 
 export async function updatePatient(patientId: string, formData: FormData) {
   const ctx = await getOrganizationContext()
@@ -42,15 +43,9 @@ export async function updatePatient(patientId: string, formData: FormData) {
       throw new Error("Patient not found or access denied")
     }
 
-    // 2. Update PHI Data
-    await tx.patientIdentifier.updateMany({
-      where: {
-        patientId: patientId,
-        organizationId: organizationId
-      },
-      data: {
-        birthYear: birth_year
-      }
+    // 2. Update PHI Data via isolated service
+    await updatePatientIdentifier(tx, patientId, organizationId, {
+      birthYear: birth_year
     })
   })
 
