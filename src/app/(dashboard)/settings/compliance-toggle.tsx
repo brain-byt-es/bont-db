@@ -15,9 +15,10 @@ import {
 
 interface ComplianceToggleProps {
   initialValue: boolean
+  disabled?: boolean
 }
 
-export function ComplianceToggle({ initialValue }: ComplianceToggleProps) {
+export function ComplianceToggle({ initialValue, disabled = false }: ComplianceToggleProps) {
   const [enabled, setEnabled] = useState(initialValue)
   const [isPending, startTransition] = useTransition()
 
@@ -58,7 +59,7 @@ export function ComplianceToggle({ initialValue }: ComplianceToggleProps) {
         id="compliance-mode"
         checked={enabled}
         onCheckedChange={handleToggle}
-        disabled={isPending}
+        disabled={isPending || disabled}
       />
     </div>
   )

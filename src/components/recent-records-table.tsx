@@ -33,6 +33,9 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useAuthContext } from "@/components/auth-context-provider"
+import { checkPlan, PLAN_GATES } from "@/lib/permissions"
+import { UpgradeDialog } from "@/components/upgrade-dialog"
 
 export interface TreatmentRecord {
   id: string
@@ -70,9 +73,11 @@ const indicationColors: Record<string, string> = {
 
 export function RecentRecordsTable({ records, hideActions = false }: RecentRecordsTableProps) {
   const [isPending, startTransition] = useTransition()
+  const { userPlan } = useAuthContext()
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [showBulkSignDialog, setShowBulkSignDialog] = useState(false)
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [reopenId, setReopenId] = useState<string | null>(null)
   const [reopenReason, setReopenReason] = useState("")
@@ -120,7 +125,12 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
 
   const handleEditClick = (record: TreatmentRecord) => {
       if (record.status === "SIGNED") {
-          setReopenId(record.id)
+          const canReopen = checkPlan(userPlan!, PLAN_GATES.REOPEN_TREATMENT)
+          if (canReopen) {
+              setReopenId(record.id)
+          } else {
+              setShowUpgradeDialog(true)
+          }
       } else {
           router.push(`/treatments/${record.id}/edit`)
       }
@@ -251,6 +261,14 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <UpgradeDialog 
+        open={showUpgradeDialog} 
+        onOpenChange={setShowUpgradeDialog}
+        title="Professional Oversight Required"
+        featureName="Re-opening finalized records"
+        description="Institutional documentation standards often require strictly logged corrections. Upgrade to manage clinical risk and maintain a full audit history."
+    />
 
     {isBulkSelection && (
         <div className="flex items-center justify-between bg-primary text-primary-foreground p-2 px-4 rounded-md animate-in fade-in slide-in-from-top-2">

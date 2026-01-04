@@ -7,77 +7,61 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Check, Rocket, Sparkles } from "lucide-react"
+import { ShieldCheck, Sparkles, ArrowRight } from "lucide-react"
 
 interface UpgradeDialogProps {
-  children: React.ReactNode
+  open: boolean
+  onOpenChange: (open: boolean) => void
   title?: string
   description?: string
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
+  featureName?: string
+  children?: React.ReactNode
 }
 
 export function UpgradeDialog({ 
-  children, 
-  title = "Upgrade to Pro", 
-  description = "Unlock advanced features for research and compliance.",
-  open,
-  onOpenChange
+  open, 
+  onOpenChange,
+  title = "Unlock Pro Feature",
+  description = "This feature is designed for professional clinics requiring advanced oversight and accountability.",
+  featureName = "This action",
+  children
 }: UpgradeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="h-5 w-5 text-primary" />
-            {title}
-          </DialogTitle>
-          <DialogDescription>
-            {description}
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <Sparkles className="h-6 w-6 text-primary" />
+          </div>
+          <DialogTitle className="text-center text-xl">{title}</DialogTitle>
+          <DialogDescription className="text-center pt-2">
+            {featureName} requires the <strong>Pro Plan</strong> for audit and compliance reasons.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="flex items-center justify-center p-4 bg-primary/5 rounded-lg border border-primary/10">
-             <Rocket className="h-10 w-10 text-primary mb-2" />
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-start gap-2">
-                <div className="mt-1 bg-green-100 text-green-600 rounded-full p-0.5">
-                    <Check className="h-3 w-3" />
-                </div>
-                <div>
-                    <h4 className="font-medium text-sm">Research Exports</h4>
-                    <p className="text-xs text-muted-foreground">Flat injection-level data optimized for statistical analysis.</p>
+        
+        <div className="space-y-4 py-4">
+            <div className="flex items-start gap-3 rounded-lg border p-3 bg-muted/30">
+                <ShieldCheck className="mt-0.5 h-5 w-5 text-primary" />
+                <div className="space-y-1">
+                    <p className="text-sm font-medium leading-none">Full Audit Trail</p>
+                    <p className="text-xs text-muted-foreground">Every change is tracked and attributed for institutional review.</p>
                 </div>
             </div>
-            <div className="flex items-start gap-2">
-                <div className="mt-1 bg-green-100 text-green-600 rounded-full p-0.5">
-                    <Check className="h-3 w-3" />
-                </div>
-                <div>
-                    <h4 className="font-medium text-sm">Compliance Exports</h4>
-                    <p className="text-xs text-muted-foreground">Formats ready for institutional and board documentation.</p>
-                </div>
-            </div>
-            <div className="flex items-start gap-2">
-                <div className="mt-1 bg-green-100 text-green-600 rounded-full p-0.5">
-                    <Check className="h-3 w-3" />
-                </div>
-                <div>
-                    <h4 className="font-medium text-sm">Advanced Stats</h4>
-                    <p className="text-xs text-muted-foreground">Track research KPIs and quality metrics.</p>
-                </div>
-            </div>
-          </div>
+            <p className="text-sm text-center text-muted-foreground px-4">
+                {description}
+            </p>
+            {children}
         </div>
-        <DialogFooter>
-          <Button type="submit" className="w-full">Get InjexPro Docs Pro</Button>
+
+        <DialogFooter className="flex-col sm:flex-col gap-2">
+          <Button className="w-full" onClick={() => window.open('https://injexpro.com/pricing', '_blank')}>
+            View Pro Pricing <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+          <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+            Maybe later
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

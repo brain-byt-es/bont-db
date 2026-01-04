@@ -29,6 +29,12 @@ enum Region {
   @@schema("public")
 }
 
+enum Plan {
+  BASIC
+  PRO
+  @@schema("public")
+}
+
 enum OrganizationStatus {
   ACTIVE
   SUSPENDED
@@ -136,6 +142,8 @@ model Organization {
   name      String
   region    Region
   status    OrganizationStatus @default(ACTIVE)
+
+  plan      Plan @default(BASIC)
 
   timezone  String @default("UTC")
 

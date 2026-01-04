@@ -21,6 +21,9 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useAuthContext } from "@/components/auth-context-provider"
+import { checkPlan, PLAN_GATES } from "@/lib/permissions"
+import { UpgradeDialog } from "@/components/upgrade-dialog"
 
 interface TreatmentHeaderProps {
   treatment: { id: string; status: string; patientId: string; encounterLocalDate: Date }
@@ -30,7 +33,9 @@ interface TreatmentHeaderProps {
 
 export function TreatmentHeader({ treatment, patientCode, initialData }: TreatmentHeaderProps) {
   const [, startTransition] = useTransition()
+  const { userPlan } = useAuthContext()
   const [showReopenDialog, setShowReopenDialog] = useState(false)
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [reopenReason, setReopenReason] = useState("")
   const router = useRouter()
@@ -39,7 +44,12 @@ export function TreatmentHeader({ treatment, patientCode, initialData }: Treatme
 
   const handleEditClick = () => {
       if (isSigned) {
-          setShowReopenDialog(true)
+          const canReopen = checkPlan(userPlan!, PLAN_GATES.REOPEN_TREATMENT)
+          if (canReopen) {
+              setShowReopenDialog(true)
+          } else {
+              setShowUpgradeDialog(true)
+          }
       } else {
           setEditDialogOpen(true)
       }
@@ -102,6 +112,14 @@ export function TreatmentHeader({ treatment, patientCode, initialData }: Treatme
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+
+        <UpgradeDialog 
+            open={showUpgradeDialog} 
+            onOpenChange={setShowUpgradeDialog}
+            title="Professional Oversight Required"
+            featureName="Re-opening finalized records"
+            description="Institutional documentation standards often require strictly logged corrections. Upgrade to manage clinical risk and maintain a full audit history."
+        />
 
         <TreatmentDialog 
           open={editDialogOpen}

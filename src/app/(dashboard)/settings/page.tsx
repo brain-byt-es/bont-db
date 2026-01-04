@@ -9,7 +9,8 @@ import { TeamManager } from "@/components/settings/team-manager"
 import { ProfileManager } from "@/components/settings/profile-manager"
 import { redirect } from "next/navigation"
 import { TabsContent } from "@/components/ui/tabs"
-import { checkPermission, PERMISSIONS } from "@/lib/permissions"
+import { checkPermission, PERMISSIONS, checkPlan } from "@/lib/permissions"
+import { Plan } from "@/generated/client/enums"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowRight, ShieldCheck } from "lucide-react"
@@ -26,6 +27,8 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SettingsTabs } from "./settings-tabs"
+import { cn } from "@/lib/utils"
+import { ComplianceUpgradeTeaser } from "@/components/settings/compliance-upgrade-teaser"
 
 export default async function SettingsPage() {
   const ctx = await getOrganizationContext()
@@ -34,14 +37,16 @@ export default async function SettingsPage() {
     redirect("/onboarding")
   }
 
+  const userPlan = ctx.organization.plan as Plan
   const canManageTeam = checkPermission(ctx.membership.role, PERMISSIONS.MANAGE_TEAM)
+  const isPro = checkPlan(userPlan, Plan.PRO)
 
   // Fetch data in parallel
   const [settings, teamData, profileData, auditLogs] = await Promise.all([
       getComplianceSettings(),
       getTeamData(),
       getProfileData(),
-      canManageTeam ? getAuditLogs() : Promise.resolve([])
+      (canManageTeam && isPro) ? getAuditLogs() : Promise.resolve([])
   ])
 
   return (
@@ -52,7 +57,7 @@ export default async function SettingsPage() {
 
       <SettingsTabs 
         canManageTeam={canManageTeam} 
-        enableCompliance={settings.enable_compliance_views}
+        enableCompliance={settings.enable_compliance_views && isPro}
       >
         <TabsContent value="profile" className="space-y-4">
             <ProfileManager initialData={profileData} />
@@ -80,19 +85,24 @@ export default async function SettingsPage() {
 
         <TabsContent value="compliance" className="space-y-4">
             <div className="grid gap-4">
-                <Card>
+                <Card className={cn(!isPro && "opacity-60 grayscale-[0.5]")}>
                     <CardHeader>
-                    <CardTitle>Compliance & Exports</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                        Compliance & Exports
+                        {!isPro && <Badge variant="secondary" className="font-normal">Pro</Badge>}
+                    </CardTitle>
                     <CardDescription>
                         Manage documentation standards and export formats.
                     </CardDescription>
                     </CardHeader>
                     <CardContent>
-                    <ComplianceToggle initialValue={settings.enable_compliance_views} />
+                    <ComplianceToggle initialValue={settings.enable_compliance_views && isPro} disabled={!isPro} />
                     </CardContent>
                 </Card>
 
-                {canManageTeam && settings.enable_compliance_views && (
+                {!isPro && <ComplianceUpgradeTeaser />}
+
+                {isPro && canManageTeam && settings.enable_compliance_views && (
                     <Card>
                         <CardHeader>
                         <CardTitle>Security Logs</CardTitle>
@@ -119,7 +129,7 @@ export default async function SettingsPage() {
             </div>
         </TabsContent>
 
-        {canManageTeam && (
+        {canManageTeam && isPro && (
           <TabsContent value="audit" className="space-y-4">
               <Card>
                   <CardHeader>

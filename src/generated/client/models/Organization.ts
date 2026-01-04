@@ -29,6 +29,7 @@ export type OrganizationMinAggregateOutputType = {
   name: string | null
   region: $Enums.Region | null
   status: $Enums.OrganizationStatus | null
+  plan: $Enums.Plan | null
   timezone: string | null
   billingExternalId: string | null
   createdAt: Date | null
@@ -40,6 +41,7 @@ export type OrganizationMaxAggregateOutputType = {
   name: string | null
   region: $Enums.Region | null
   status: $Enums.OrganizationStatus | null
+  plan: $Enums.Plan | null
   timezone: string | null
   billingExternalId: string | null
   createdAt: Date | null
@@ -51,6 +53,7 @@ export type OrganizationCountAggregateOutputType = {
   name: number
   region: number
   status: number
+  plan: number
   timezone: number
   billingExternalId: number
   preferences: number
@@ -65,6 +68,7 @@ export type OrganizationMinAggregateInputType = {
   name?: true
   region?: true
   status?: true
+  plan?: true
   timezone?: true
   billingExternalId?: true
   createdAt?: true
@@ -76,6 +80,7 @@ export type OrganizationMaxAggregateInputType = {
   name?: true
   region?: true
   status?: true
+  plan?: true
   timezone?: true
   billingExternalId?: true
   createdAt?: true
@@ -87,6 +92,7 @@ export type OrganizationCountAggregateInputType = {
   name?: true
   region?: true
   status?: true
+  plan?: true
   timezone?: true
   billingExternalId?: true
   preferences?: true
@@ -172,6 +178,7 @@ export type OrganizationGroupByOutputType = {
   name: string
   region: $Enums.Region
   status: $Enums.OrganizationStatus
+  plan: $Enums.Plan
   timezone: string
   billingExternalId: string | null
   preferences: runtime.JsonValue | null
@@ -205,6 +212,7 @@ export type OrganizationWhereInput = {
   name?: Prisma.StringFilter<"Organization"> | string
   region?: Prisma.EnumRegionFilter<"Organization"> | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFilter<"Organization"> | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFilter<"Organization"> | $Enums.Plan
   timezone?: Prisma.StringFilter<"Organization"> | string
   billingExternalId?: Prisma.StringNullableFilter<"Organization"> | string | null
   preferences?: Prisma.JsonNullableFilter<"Organization">
@@ -225,6 +233,7 @@ export type OrganizationOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   region?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  plan?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
   billingExternalId?: Prisma.SortOrderInput | Prisma.SortOrder
   preferences?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -249,6 +258,7 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"Organization"> | string
   region?: Prisma.EnumRegionFilter<"Organization"> | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFilter<"Organization"> | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFilter<"Organization"> | $Enums.Plan
   timezone?: Prisma.StringFilter<"Organization"> | string
   preferences?: Prisma.JsonNullableFilter<"Organization">
   createdAt?: Prisma.DateTimeFilter<"Organization"> | Date | string
@@ -268,6 +278,7 @@ export type OrganizationOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   region?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  plan?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
   billingExternalId?: Prisma.SortOrderInput | Prisma.SortOrder
   preferences?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -286,6 +297,7 @@ export type OrganizationScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"Organization"> | string
   region?: Prisma.EnumRegionWithAggregatesFilter<"Organization"> | $Enums.Region
   status?: Prisma.EnumOrganizationStatusWithAggregatesFilter<"Organization"> | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanWithAggregatesFilter<"Organization"> | $Enums.Plan
   timezone?: Prisma.StringWithAggregatesFilter<"Organization"> | string
   billingExternalId?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
   preferences?: Prisma.JsonNullableWithAggregatesFilter<"Organization">
@@ -298,6 +310,7 @@ export type OrganizationCreateInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -318,6 +331,7 @@ export type OrganizationUncheckedCreateInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -338,6 +352,7 @@ export type OrganizationUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -358,6 +373,7 @@ export type OrganizationUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -378,6 +394,7 @@ export type OrganizationCreateManyInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -390,6 +407,7 @@ export type OrganizationUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -402,6 +420,7 @@ export type OrganizationUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -414,6 +433,7 @@ export type OrganizationCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   region?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  plan?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
   billingExternalId?: Prisma.SortOrder
   preferences?: Prisma.SortOrder
@@ -426,6 +446,7 @@ export type OrganizationMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   region?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  plan?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
   billingExternalId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -437,6 +458,7 @@ export type OrganizationMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   region?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  plan?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
   billingExternalId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -454,6 +476,10 @@ export type EnumRegionFieldUpdateOperationsInput = {
 
 export type EnumOrganizationStatusFieldUpdateOperationsInput = {
   set?: $Enums.OrganizationStatus
+}
+
+export type EnumPlanFieldUpdateOperationsInput = {
+  set?: $Enums.Plan
 }
 
 export type OrganizationCreateNestedOneWithoutMembershipsInput = {
@@ -573,6 +599,7 @@ export type OrganizationCreateWithoutMembershipsInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -592,6 +619,7 @@ export type OrganizationUncheckedCreateWithoutMembershipsInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -627,6 +655,7 @@ export type OrganizationUpdateWithoutMembershipsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -646,6 +675,7 @@ export type OrganizationUncheckedUpdateWithoutMembershipsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -665,6 +695,7 @@ export type OrganizationCreateWithoutInvitesInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -684,6 +715,7 @@ export type OrganizationUncheckedCreateWithoutInvitesInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -719,6 +751,7 @@ export type OrganizationUpdateWithoutInvitesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -738,6 +771,7 @@ export type OrganizationUncheckedUpdateWithoutInvitesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -757,6 +791,7 @@ export type OrganizationCreateWithoutPatientsInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -776,6 +811,7 @@ export type OrganizationUncheckedCreateWithoutPatientsInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -811,6 +847,7 @@ export type OrganizationUpdateWithoutPatientsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -830,6 +867,7 @@ export type OrganizationUncheckedUpdateWithoutPatientsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -849,6 +887,7 @@ export type OrganizationCreateWithoutEncountersInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -868,6 +907,7 @@ export type OrganizationUncheckedCreateWithoutEncountersInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -903,6 +943,7 @@ export type OrganizationUpdateWithoutEncountersInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -922,6 +963,7 @@ export type OrganizationUncheckedUpdateWithoutEncountersInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -941,6 +983,7 @@ export type OrganizationCreateWithoutMusclePreferencesInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -960,6 +1003,7 @@ export type OrganizationUncheckedCreateWithoutMusclePreferencesInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -995,6 +1039,7 @@ export type OrganizationUpdateWithoutMusclePreferencesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1014,6 +1059,7 @@ export type OrganizationUncheckedUpdateWithoutMusclePreferencesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1033,6 +1079,7 @@ export type OrganizationCreateWithoutProductsInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1052,6 +1099,7 @@ export type OrganizationUncheckedCreateWithoutProductsInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1087,6 +1135,7 @@ export type OrganizationUpdateWithoutProductsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1106,6 +1155,7 @@ export type OrganizationUncheckedUpdateWithoutProductsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1125,6 +1175,7 @@ export type OrganizationCreateWithoutLotsInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1144,6 +1195,7 @@ export type OrganizationUncheckedCreateWithoutLotsInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1179,6 +1231,7 @@ export type OrganizationUpdateWithoutLotsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1198,6 +1251,7 @@ export type OrganizationUncheckedUpdateWithoutLotsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1217,6 +1271,7 @@ export type OrganizationCreateWithoutAuditLogsInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1236,6 +1291,7 @@ export type OrganizationUncheckedCreateWithoutAuditLogsInput = {
   name: string
   region: $Enums.Region
   status?: $Enums.OrganizationStatus
+  plan?: $Enums.Plan
   timezone?: string
   billingExternalId?: string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1271,6 +1327,7 @@ export type OrganizationUpdateWithoutAuditLogsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1290,6 +1347,7 @@ export type OrganizationUncheckedUpdateWithoutAuditLogsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   region?: Prisma.EnumRegionFieldUpdateOperationsInput | $Enums.Region
   status?: Prisma.EnumOrganizationStatusFieldUpdateOperationsInput | $Enums.OrganizationStatus
+  plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   billingExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   preferences?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1403,6 +1461,7 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   name?: boolean
   region?: boolean
   status?: boolean
+  plan?: boolean
   timezone?: boolean
   billingExternalId?: boolean
   preferences?: boolean
@@ -1424,6 +1483,7 @@ export type OrganizationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   name?: boolean
   region?: boolean
   status?: boolean
+  plan?: boolean
   timezone?: boolean
   billingExternalId?: boolean
   preferences?: boolean
@@ -1436,6 +1496,7 @@ export type OrganizationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   name?: boolean
   region?: boolean
   status?: boolean
+  plan?: boolean
   timezone?: boolean
   billingExternalId?: boolean
   preferences?: boolean
@@ -1448,6 +1509,7 @@ export type OrganizationSelectScalar = {
   name?: boolean
   region?: boolean
   status?: boolean
+  plan?: boolean
   timezone?: boolean
   billingExternalId?: boolean
   preferences?: boolean
@@ -1455,7 +1517,7 @@ export type OrganizationSelectScalar = {
   updatedAt?: boolean
 }
 
-export type OrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "region" | "status" | "timezone" | "billingExternalId" | "preferences" | "createdAt" | "updatedAt", ExtArgs["result"]["organization"]>
+export type OrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "region" | "status" | "plan" | "timezone" | "billingExternalId" | "preferences" | "createdAt" | "updatedAt", ExtArgs["result"]["organization"]>
 export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   memberships?: boolean | Prisma.Organization$membershipsArgs<ExtArgs>
   invites?: boolean | Prisma.Organization$invitesArgs<ExtArgs>
@@ -1487,6 +1549,7 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
     name: string
     region: $Enums.Region
     status: $Enums.OrganizationStatus
+    plan: $Enums.Plan
     timezone: string
     billingExternalId: string | null
     preferences: runtime.JsonValue | null
@@ -1927,6 +1990,7 @@ export interface OrganizationFieldRefs {
   readonly name: Prisma.FieldRef<"Organization", 'String'>
   readonly region: Prisma.FieldRef<"Organization", 'Region'>
   readonly status: Prisma.FieldRef<"Organization", 'OrganizationStatus'>
+  readonly plan: Prisma.FieldRef<"Organization", 'Plan'>
   readonly timezone: Prisma.FieldRef<"Organization", 'String'>
   readonly billingExternalId: Prisma.FieldRef<"Organization", 'String'>
   readonly preferences: Prisma.FieldRef<"Organization", 'Json'>

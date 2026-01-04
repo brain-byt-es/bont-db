@@ -17,6 +17,14 @@ export const Region = {
 export type Region = (typeof Region)[keyof typeof Region]
 
 
+export const Plan = {
+  BASIC: 'BASIC',
+  PRO: 'PRO'
+} as const
+
+export type Plan = (typeof Plan)[keyof typeof Plan]
+
+
 export const OrganizationStatus = {
   ACTIVE: 'ACTIVE',
   SUSPENDED: 'SUSPENDED',

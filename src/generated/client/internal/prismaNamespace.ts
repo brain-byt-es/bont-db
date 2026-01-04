@@ -2047,6 +2047,7 @@ export const OrganizationScalarFieldEnum = {
   name: 'name',
   region: 'region',
   status: 'status',
+  plan: 'plan',
   timezone: 'timezone',
   billingExternalId: 'billingExternalId',
   preferences: 'preferences',
@@ -2416,6 +2417,20 @@ export type EnumOrganizationStatusFieldRefInput<$PrismaModel> = FieldRefInputTyp
  * Reference to a field of type 'OrganizationStatus[]'
  */
 export type ListEnumOrganizationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrganizationStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Plan'
+ */
+export type EnumPlanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Plan'>
+    
+
+
+/**
+ * Reference to a field of type 'Plan[]'
+ */
+export type ListEnumPlanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Plan[]'>
     
 
 

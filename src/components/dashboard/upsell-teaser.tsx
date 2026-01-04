@@ -1,9 +1,14 @@
+"use client"
+
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Lock, Sparkles } from "lucide-react"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
+import { useState } from "react"
 
 export function UpsellTeaser() {
+  const [open, setOpen] = useState(false)
+
   return (
     <Card className="bg-muted/30 border-dashed">
       <CardContent className="flex flex-col items-center justify-center py-6 text-center gap-4">
@@ -17,12 +22,19 @@ export function UpsellTeaser() {
             Track your patient cohorts (Stroke vs MS) and visualize improvement over time.
           </p>
         </div>
-        <UpgradeDialog>
-          <Button variant="default" size="sm" className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Upgrade to Pro
-          </Button>
-        </UpgradeDialog>
+        
+        <Button variant="default" size="sm" className="gap-2" onClick={() => setOpen(true)}>
+          <Sparkles className="h-4 w-4" />
+          Upgrade to Pro
+        </Button>
+
+        <UpgradeDialog 
+          open={open} 
+          onOpenChange={setOpen}
+          title="Clinical Analytics & Research"
+          featureName="Advanced Analytics"
+          description="Unlock deep insights into your clinical activity and patient outcomes. Required for institutional research and quality management."
+        />
       </CardContent>
     </Card>
   )

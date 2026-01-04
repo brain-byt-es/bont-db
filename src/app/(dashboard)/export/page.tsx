@@ -33,6 +33,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Rocket } from "lucide-react"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
+import { useAuthContext } from "@/components/auth-context-provider"
+import { checkPlan } from "@/lib/permissions"
+import { Plan } from "@/generated/client/enums"
 
 interface ExportRecord {
   id: string
@@ -55,6 +58,7 @@ interface ExportRecord {
 type ExportPreset = "structured" | "compliance_minimal" | "compliance_followup" | "research_flat"
 
 export default function ExportPage() {
+  const { userPlan } = useAuthContext()
   const [dateFrom, setDateFrom] = useState<Date>()
   const [dateTo, setDateTo] = useState<Date>()
   const [indicationFilter, setIndicationFilter] = useState<string>("all")
@@ -66,7 +70,8 @@ export default function ExportPage() {
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [upgradeTitle, setUpgradeTitle] = useState("")
   const [upgradeDesc, setUpgradeDesc] = useState("")
-  const isPro = false // This should come from user metadata or billing state in production
+  
+  const isPro = checkPlan(userPlan as Plan, Plan.PRO)
 
   const handlePresetChange = (preset: ExportPreset) => {
     const isProTarget = preset === "research_flat" || preset === "compliance_minimal" || preset === "compliance_followup"
@@ -248,9 +253,7 @@ export default function ExportPage() {
         onOpenChange={setUpgradeOpen}
         title={upgradeTitle}
         description={upgradeDesc}
-      >
-        <div className="hidden" />
-      </UpgradeDialog>
+      />
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between px-4 lg:px-6">
         <div className="space-y-1">

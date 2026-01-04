@@ -120,6 +120,7 @@ export const OrganizationScalarFieldEnum = {
   name: 'name',
   region: 'region',
   status: 'status',
+  plan: 'plan',
   timezone: 'timezone',
   billingExternalId: 'billingExternalId',
   preferences: 'preferences',

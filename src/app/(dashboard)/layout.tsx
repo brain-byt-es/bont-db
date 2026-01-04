@@ -10,7 +10,7 @@ import { redirect } from "next/navigation"
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { AuthContextProvider } from "@/components/auth-context-provider"
-import { MembershipRole } from "@/generated/client/enums"
+import { MembershipRole, Plan } from "@/generated/client/enums"
 
 export default async function DashboardLayout({
   children,
@@ -50,7 +50,10 @@ export default async function DashboardLayout({
   } : undefined
 
   return (
-    <AuthContextProvider userRole={orgContext.membership.role as MembershipRole}>
+    <AuthContextProvider 
+      userRole={orgContext.membership.role as MembershipRole}
+      userPlan={orgContext.organization.plan as Plan}
+    >
       <SidebarProvider
         style={
           {
