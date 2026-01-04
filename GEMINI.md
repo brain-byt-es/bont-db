@@ -6,7 +6,7 @@
 - **ORM:** Prisma 7 (Multi-schema: `public` + `phi`)
 - **Authentication:** NextAuth.js (Auth.js) v5
   - Providers: Azure AD, Google, LinkedIn
-  - Adapter: Prisma Adapter (Custom mapping to `User` / `UserIdentity`)
+  - Features: DB Account Linking with 7s timeout resilience for serverless environments.
 - **UI:** Tailwind CSS + Shadcn/UI
 
 ## 2. Database Schema & Security
@@ -23,55 +23,45 @@ We use **Composite Foreign Keys** to prevent "Organization Drift".
 - **Immutability:** Updates to `patientId` on existing encounters are blocked by DB security policy.
 
 ## 3. Multi-Tenancy & Monetization
-The application is **Organization-centric** and features a tiered Plan model.
+The application is **Organization-centric** and features a seat-based tiered Plan model.
 
 ### Context Resolution
-- **`getOrganizationContext()`**:
-  1. Checks `injexpro_org_id` cookie for user preference.
-  2. Fallbacks to the first active membership.
-- **Global Auth Context:** `AuthContextProvider` makes the current user's **Role** and **Plan** (BASIC/PRO) available to all client components.
+- **`getOrganizationContext()`**: Resolved via cookie or fallback to first active membership.
+- **Global Auth Context:** `AuthContextProvider` provides the current user's **Role** and **Plan** (BASIC/PRO) to all client components.
 
 ### Monetization Split
-- **BASIC (Free):** Ideal for individual practitioners. Includes core clinical documentation, standard PREMPT templates, manual dose calculator, and 100 treatment record limit.
-- **PRO (€59 / seat / mo):** For professional clinics and teams. Includes unlimited treatment records, clinic-wide dosage standards, ability to re-open signed encounters (audit-safe), advanced audit trails with filtering/export, and clinical analytics.
-- **Billing Model:** Seat-based billing. Quantity is automatically determined by the number of active clinical seats (Owner, Admin, Provider, Assistant) in the organization.
-- **Upgrade Moments:** Triggered via `UpgradeDialog` when BASIC users attempt to access PRO features (Re-open, Audit Logs, usage limits, advanced exports).
+- **BASIC (Free):** CORE clinical recording, 100 treatment limit, manual dose calculator, standard presets.
+- **PRO (€59 / seat / mo):**
+  - **Seat-based Billing:** Automatically determined by active clinical members.
+  - **Automation:** Smart Defaults (Full auto-fill from last visit), clinic-wide dosage standards.
+  - **Compliance:** Advanced Audit Trails (Search/Filter/Export), unlock signed records.
+  - **Analytics:** Clinical Insights (Outcome trends, dosage distribution).
+- **Upgrade Moments:** Integrated `UpgradeDialog` with feature comparison and Stripe Checkout link.
 
 ## 4. Clinical Workflow & Data Integrity
 
 ### Encounter Lifecycle
 1.  **Draft:** Default state. Features **Unsaved Changes** indicator.
-2.  **Signed:** Finalized state.
-    -   **Backend:** Updates blocked via `updateTreatment` action guard.
-    -   **Frontend:** Form becomes Read-Only.
-    -   **Re-open:** Requires **PRO Plan** and explicit "Unlock" action (Audit logged with mandatory reason).
-3.  **Void:** Soft-delete state (Audit trail preserved).
+2.  **Signed:** Finalized state. Read-only.
+3.  **Re-open:** Requires **PRO Plan** and Audit Log entry.
+4.  **Void:** Soft-delete state (Audit trail preserved).
 
 ### Smart Dose Engine
-- **Baseline (All):** Automatic calculation between Units and Volume (ml) based on vial size and dilution.
-- **Quick Presets:** Access to common medical concentrations (e.g., 100U in 2.5ml).
-- **Organization Standards (PRO):** Automatically pre-fills clinic-wide default dosage settings for all new treatments.
+- **Automatic Calculation:** Live conversion between Units and Volume (ml).
+- **Presets:** Quick load common concentrations.
+- **PRO Defaults:** Automatically pre-fills clinic-wide standards.
 
-## 5. Key Directories
-- `src/generated/client`: Prisma Client (Custom output). Use `.../enums` for client-side role/plan imports.
-- `src/phi/`: **PHI Isolation Zone**. All logic touching the `phi` schema must live here.
-- `src/components/auth-context-provider.tsx`: Global RBAC and Plan state.
-- `src/lib/permissions.ts`: Role-based and Plan-based guards (`checkPermission`, `checkPlan`).
-- `src/app/(dashboard)/settings/`: URL-driven settings navigation (`?tab=...`).
+## 5. Roadmap & Follow-up Actions
 
-## 6. Roadmap & Follow-up Actions
+### Phase 3: Scaling & Monetization (Completed)
+- [x] **Stripe Integration:** Full checkout loop and seat-based billing automation.
+- [x] **Smart Defaults:** Automated clinical workflow for PRO users.
+- [x] **Clinical Insights:** Outcome trends and dosage analytics integrated into Dashboard.
+- [x] **Interactive Pricing:** Feature comparison matrix embedded in the upgrade workflow.
+- [x] **Audit Compliance:** Advanced filtering and CSV export for security logs.
 
-### Phase 3: Scaling & Compliance (Current Focus)
-- [x] **PHI Code Isolation:** Complete isolation of `PatientIdentifier` operations.
-- [x] **Plan-based Gating:** Functional BASIC/PRO split implemented across the app.
-- [x] **Audit Log UI:** Integrated security event monitoring in Settings.
-- [x] **Advanced Audit Filter:** Powerful filtering (action, user, date) and search interface for Audit Logs.
-- [x] **Compliance Export:** CSV export for Audit Logs to satisfy institutional reporting needs.
-- [x] **Containerization:** Production Docker setup completed.
+### Phase 4: Expansion & Polish (Next)
 - [ ] **Data Residency Enablers:** Finalize region-specific database routing hooks.
-- [ ] **Stripe Integration:** Prepare for actual billing and automated plan switching.
-
-### Future Features
-- [x] **Smart Dose Engine (Base):** Automated calculations for toxin dilution.
-- [ ] **Clinical Insights:** Aggregated research data views for clinics (Non-PHI).
-- [ ] **Smart Defaults (PRO):** Learning-based suggestions for injection patterns based on history.
+- [ ] **Multi-Admin UX:** Granular team permissions UI.
+- [ ] **Advanced Dose Engine:** Smart suggestions based on patient history and indication patterns.
+- [ ] **Infrastructure as Code:** Azure Bicep templates for push-button clinic deployments.
