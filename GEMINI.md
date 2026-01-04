@@ -32,9 +32,9 @@ The application is **Organization-centric** and features a tiered Plan model.
 - **Global Auth Context:** `AuthContextProvider` makes the current user's **Role** and **Plan** (BASIC/PRO) available to all client components.
 
 ### Monetization Split
-- **BASIC (Daily Documentation):** CORE clinical recording, templates (PREMPT), patient management. No re-opening of finalized records.
-- **PRO (Compliance & Scale):** Re-opening signed encounters (with audit log), detailed audit trails, advanced exports, compliance-specific documentation modes.
-- **Upgrade Moments:** Triggered via `UpgradeDialog` when BASIC users attempt to access PRO features (Re-open, Audit Logs, advanced exports).
+- **BASIC (Daily Documentation):** CORE clinical recording, 100 treatment limit, manual dosage presets. No re-opening of finalized records.
+- **PRO (Compliance & Scale):** Unlimited treatments, organization-wide dosage standards, re-opening signed encounters (with audit log), detailed audit trails with filtering/export, advanced exports, compliance-specific documentation modes.
+- **Upgrade Moments:** Triggered via `UpgradeDialog` when BASIC users attempt to access PRO features (Re-open, Audit Logs, usage limits, advanced exports).
 
 ## 4. Clinical Workflow & Data Integrity
 
@@ -45,6 +45,11 @@ The application is **Organization-centric** and features a tiered Plan model.
     -   **Frontend:** Form becomes Read-Only.
     -   **Re-open:** Requires **PRO Plan** and explicit "Unlock" action (Audit logged with mandatory reason).
 3.  **Void:** Soft-delete state (Audit trail preserved).
+
+### Smart Dose Engine
+- **Baseline (All):** Automatic calculation between Units and Volume (ml) based on vial size and dilution.
+- **Quick Presets:** Access to common medical concentrations (e.g., 100U in 2.5ml).
+- **Organization Standards (PRO):** Automatically pre-fills clinic-wide default dosage settings for all new treatments.
 
 ## 5. Key Directories
 - `src/generated/client`: Prisma Client (Custom output). Use `.../enums` for client-side role/plan imports.
@@ -59,11 +64,13 @@ The application is **Organization-centric** and features a tiered Plan model.
 - [x] **PHI Code Isolation:** Complete isolation of `PatientIdentifier` operations.
 - [x] **Plan-based Gating:** Functional BASIC/PRO split implemented across the app.
 - [x] **Audit Log UI:** Integrated security event monitoring in Settings.
+- [x] **Advanced Audit Filter:** Powerful filtering (action, user, date) and search interface for Audit Logs.
+- [x] **Compliance Export:** CSV export for Audit Logs to satisfy institutional reporting needs.
 - [x] **Containerization:** Production Docker setup completed.
 - [ ] **Data Residency Enablers:** Finalize region-specific database routing hooks.
 - [ ] **Stripe Integration:** Prepare for actual billing and automated plan switching.
 
 ### Future Features
-- [ ] **Smart Dose Engine:** Automated calculations for toxin dilution.
+- [x] **Smart Dose Engine (Base):** Automated calculations for toxin dilution.
 - [ ] **Clinical Insights:** Aggregated research data views for clinics (Non-PHI).
-- [ ] **Advanced Audit Filter:** Search and export capabilities for Audit Logs.
+- [ ] **Smart Defaults (PRO):** Learning-based suggestions for injection patterns based on history.

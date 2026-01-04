@@ -6,7 +6,7 @@ import { NextActions } from "@/components/dashboard/next-actions"
 import { DocumentationQuality } from "@/components/dashboard/documentation-quality"
 import { UpsellTeaser } from "@/components/dashboard/upsell-teaser"
 import { StatsCard } from "@/components/stats-card"
-import { Calendar as CalendarIcon, ChevronDown, Users, Activity, TrendingUp } from "lucide-react"
+import { Users, Activity, TrendingUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Collapsible,
@@ -14,9 +14,27 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { getDashboardData } from "./actions"
+import { getOrganizationContext } from "@/lib/auth-context"
+import { checkPlan, PLAN_GATES } from "@/lib/permissions"
+import { Plan } from "@/generated/client/enums"
+import { ClinicalInsights } from "@/components/dashboard/clinical-insights"
+import { DateRangeFilter } from "@/components/dashboard/date-range-filter"
 
-export default async function Page() {
-  const data = await getDashboardData()
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>
+}) {
+  const { range } = await searchParams
+  const days = range ? parseInt(range) : 90
+
+  const [data, ctx] = await Promise.all([
+      getDashboardData(days),
+      getOrganizationContext()
+  ])
+
+  const userPlan = ctx?.organization.plan as Plan
+  const isPro = checkPlan(userPlan, PLAN_GATES.CLINICAL_INSIGHTS)
 
   // 6. Next Actions Construction
   const actions: { id: string, label: string, count: number, href: string, type: 'warning' | 'info' | 'success' }[] = []
@@ -61,11 +79,7 @@ export default async function Page() {
             <p className="text-muted-foreground">Clinical Activity & Progress</p>
         </div>
         <div className="flex items-center gap-2">
-            <Button variant="outline" className="h-9 gap-2 text-sm font-normal">
-                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                <span>Last 90 Days</span>
-                <ChevronDown className="h-3 w-3 opacity-50" />
-            </Button>
+            <DateRangeFilter />
         </div>
       </div>
       
@@ -80,13 +94,13 @@ export default async function Page() {
          <StatsCard 
             title="Total Treatments" 
             value={data.totalTreatmentsCount} 
-            subtext="All records logged"
+            subtext={`${range ? 'Last ' + range + ' days' : 'Total records logged'}`}
             icon={Activity}
          />
          <StatsCard 
-            title="Follow-up Rate (90d)" 
+            title="Follow-up Rate" 
             value={`${Math.round(data.followUpRateRecent)}%`}
-            subtext="Treatments in last 3 months"
+            subtext={`${range ? 'Last ' + range + ' days' : 'Last 90 days'}`}
             icon={TrendingUp}
          />
       </div>
@@ -94,14 +108,21 @@ export default async function Page() {
       {/* 2. Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-4 lg:px-6">
         
-        {/* Left Column (2/3) - Charts */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* Left Column (2/3) - Charts & Insights */}
+        <div className="lg:col-span-2 space-y-8">
+            <ClinicalInsights 
+                outcomeTrends={data.outcomeTrends}
+                dosePerIndication={data.dosePerIndication}
+                isPro={isPro}
+            />
+
             <ClinicalActivity 
               trendData={data.trendData} 
               topMuscles={data.topMuscles} 
+              isPro={isPro}
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <IndicationBreakdown data={data.indicationBreakdownData} />
+                 <IndicationBreakdown data={data.indicationBreakdownData} isPro={isPro} />
             </div>
         </div>
 
@@ -117,10 +138,11 @@ export default async function Page() {
         </div>
       </div>
 
-      {/* Upsell Teaser - Full Width */}
-      <div className="px-4 lg:px-6 mt-6">
-         <UpsellTeaser />
-      </div>
+      {!isPro && (
+        <div className="px-4 lg:px-6 mt-6">
+            <UpsellTeaser />
+        </div>
+      )}
 
       {/* 3. Qualification & Compliance Subsection */}
       <div className="px-4 lg:px-6 mt-4">

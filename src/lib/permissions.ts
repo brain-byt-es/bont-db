@@ -24,6 +24,7 @@ export const PLAN_GATES = {
   REOPEN_TREATMENT: Plan.PRO,
   AUDIT_LOGS: Plan.PRO,
   ADVANCED_COMPLIANCE: Plan.PRO,
+  CLINICAL_INSIGHTS: Plan.PRO,
 }
 
 export function checkPermission(role: MembershipRole, allowedRoles: MembershipRole[]): boolean {
