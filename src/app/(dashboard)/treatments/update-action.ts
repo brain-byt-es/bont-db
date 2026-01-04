@@ -18,6 +18,7 @@ interface ProcedureStep {
   muscle_id: string; 
   side: 'Left' | 'Right' | 'Bilateral' | 'Midline';
   numeric_value: number;
+  volume_ml?: number;
   mas_baseline?: string;
   mas_peak?: string;
 }
@@ -28,6 +29,8 @@ interface UpdateTreatmentFormData {
   location: string;
   category: string;
   product_label: string;
+  vial_size?: number;
+  dilution_ml?: number;
   notes?: string;
   steps?: ProcedureStep[];
   assessments?: AssessmentData[];
@@ -47,11 +50,15 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     location,
     category,
     product_label,
+    vial_size = 100,
+    dilution_ml = 2.5,
     notes,
     steps,
     assessments,
     status
   } = formData
+
+  const unitsPerMl = vial_size / dilution_ml
 
   let total_units = 0
   if (steps && Array.isArray(steps)) {
@@ -100,6 +107,8 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
         indication: category,
         productId,
         status: status === "SIGNED" ? EncounterStatus.SIGNED : undefined,
+        dilutionText: `${vial_size}U in ${dilution_ml}ml`,
+        dilutionUnitsPerMl: unitsPerMl,
         totalUnits: total_units,
         effectNotes: notes,
         updatedAt: new Date()
@@ -145,6 +154,7 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
             muscleId: step.muscle_id,
             side: side,
             units: step.numeric_value,
+            volumeMl: step.volume_ml || (step.numeric_value / unitsPerMl),
             injectionAssessments: {
                create: injAssessments
             }

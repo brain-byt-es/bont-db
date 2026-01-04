@@ -29,6 +29,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { SettingsTabs } from "./settings-tabs"
 import { cn } from "@/lib/utils"
 import { ComplianceUpgradeTeaser } from "@/components/settings/compliance-upgrade-teaser"
+import { ClinicalSettingsForm } from "@/components/settings/clinical-settings-form"
 
 export default async function SettingsPage() {
   const ctx = await getOrganizationContext()
@@ -85,6 +86,13 @@ export default async function SettingsPage() {
 
         <TabsContent value="compliance" className="space-y-4">
             <div className="grid gap-4">
+                {isPro && (
+                    <ClinicalSettingsForm 
+                        initialVialSize={settings.standard_vial_size || 100}
+                        initialDilution={settings.standard_dilution_ml || 2.5}
+                    />
+                )}
+
                 <Card className={cn(!isPro && "opacity-60 grayscale-[0.5]")}>
                     <CardHeader>
                     <CardTitle className="flex items-center gap-2">

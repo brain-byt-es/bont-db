@@ -15,12 +15,16 @@ import { getPatients } from "@/app/(dashboard)/patients/actions"
 import { Spinner } from "@/components/ui/spinner"
 import { ProcedureStep } from "@/components/procedure-steps-editor"
 
+import { UpgradeDialog } from "@/components/upgrade-dialog"
+
 interface InitialFormData {
   location?: string;
   subject_id?: string;
   date?: string | Date;
   category?: string;
   product_label?: string;
+  vial_size?: number;
+  dilution_ml?: number;
   notes?: string;
   steps?: ProcedureStep[];
 }
@@ -36,21 +40,32 @@ interface TreatmentDialogProps {
   isEditing?: boolean
   status?: string
   userRole?: string
+  usageLimitReached?: boolean
+  organization?: {
+      preferences?: {
+          standard_vial_size?: number
+          standard_dilution_ml?: number
+          enable_compliance_views?: boolean
+      } | null
+  }
 }
 
-export function TreatmentDialog({ 
-  children, 
-  open: controlledOpen, 
-  onOpenChange, 
-  patients, 
+export function TreatmentDialog({
+  children,
+  open: controlledOpen,
+  onOpenChange,
+  patients,
   defaultPatientId,
   treatmentId,
   initialData,
   isEditing = false,
   status,
-  userRole
+  userRole,
+  usageLimitReached = false,
+  organization
 }: TreatmentDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
   const [fetchedPatients, setFetchedPatients] = useState<{ id: string; patient_code: string }[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
@@ -61,9 +76,6 @@ export function TreatmentDialog({
   useEffect(() => {
     let mounted = true;
     const fetchPatients = async () => {
-      // Fetch patients if not provided, regardless of editing mode, 
-      // because we might need to change the patient (unlikely for edit, but possible) 
-      // or at least display the current one correctly.
       if (isOpen && !patients) {
         setIsLoading(true)
         try {
@@ -86,8 +98,24 @@ export function TreatmentDialog({
 
   const effectivePatients = patients || fetchedPatients
 
+  const handleOpenChange = (open: boolean) => {
+      if (open && usageLimitReached && !isEditing) {
+          setShowUpgrade(true)
+          return
+      }
+      if (setIsOpen) setIsOpen(open)
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <>
+    <UpgradeDialog 
+        open={showUpgrade} 
+        onOpenChange={setShowUpgrade}
+        title="Usage Limit Reached"
+        featureName="Unlimited treatments"
+        description="Your organization has reached the 100 treatment limit for the Basic plan. Upgrade to Pro to continue documenting and unlock advanced clinical features."
+    />
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -111,9 +139,11 @@ export function TreatmentDialog({
             onSuccess={() => setIsOpen && setIsOpen(false)}
             status={status}
             userRole={userRole}
+            organization={organization}
           />
         )}
       </DialogContent>
     </Dialog>
+    </>
   )
 }

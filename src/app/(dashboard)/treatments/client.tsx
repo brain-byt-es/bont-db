@@ -19,9 +19,22 @@ interface PatientOption {
 interface TreatmentsClientProps {
   initialTreatments: TreatmentRecord[]
   patients: PatientOption[]
+  usageLimitReached?: boolean
+  organization?: {
+      preferences?: {
+          standard_vial_size?: number
+          standard_dilution_ml?: number
+          enable_compliance_views?: boolean
+      } | null
+  }
 }
 
-export function TreatmentsClient({ initialTreatments, patients }: TreatmentsClientProps) {
+export function TreatmentsClient({
+  initialTreatments,
+  patients,
+  usageLimitReached = false,
+  organization
+}: TreatmentsClientProps) {
   const [search, setSearch] = useState("")
 
   const filteredTreatments = initialTreatments.filter(record => {
@@ -54,7 +67,11 @@ export function TreatmentsClient({ initialTreatments, patients }: TreatmentsClie
                   onChange={(e) => setSearch(e.target.value)}
                 />
             </div>
-            <TreatmentDialog patients={patients}>
+            <TreatmentDialog
+                patients={patients}
+                usageLimitReached={usageLimitReached}
+                organization={organization}
+            >
               <Button>
                 <Plus className="mr-2 size-4" />
                 New Treatment

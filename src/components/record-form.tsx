@@ -9,6 +9,7 @@ import { CalendarIcon, Save, ChevronDown, Wand2, Lock, Unlock } from "lucide-rea
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -49,6 +50,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { ProcedureStepsEditor, ProcedureStep } from "@/components/procedure-steps-editor"
 import { AssessmentManager, Assessment } from "@/components/assessment-manager"
@@ -59,8 +68,8 @@ import { toast } from "sonner"
 import { Muscle, MuscleRegion } from "@/components/muscle-selector"
 import { PiiWarningDialog } from "@/components/pii-warning-dialog"
 import { validatePII } from "@/lib/pii-validation"
-import { checkPermission, PERMISSIONS } from "@/lib/permissions"
-import { MembershipRole } from "@/generated/client/enums"
+import { checkPermission, PERMISSIONS, checkPlan } from "@/lib/permissions"
+import { MembershipRole, Plan } from "@/generated/client/enums"
 import { useAuthContext } from "@/components/auth-context-provider"
 
 const formSchema = z.object({
@@ -77,6 +86,8 @@ const formSchema = z.object({
   product_label: z.string().min(1, {
     message: "Please select a product.",
   }),
+  vial_size: z.number().min(1),
+  dilution_ml: z.number().min(0.1),
   notes: z.string().optional(),
 })
 
@@ -86,6 +97,8 @@ interface InitialFormData {
   date?: string | Date;
   category?: string;
   product_label?: string;
+  vial_size?: number;
+  dilution_ml?: number;
   notes?: string;
   steps?: ProcedureStep[];
   assessments?: Assessment[];
@@ -105,6 +118,12 @@ interface InjectionData {
   injectionAssessments: InjectionAssessment[];
 }
 
+export interface OrganizationPreferences {
+  standard_vial_size?: number
+  standard_dilution_ml?: number
+  enable_compliance_views?: boolean
+}
+
 interface RecordFormProps {
   patients: { id: string; patient_code: string }[]
   defaultSubjectId?: string
@@ -115,25 +134,30 @@ interface RecordFormProps {
   onSuccess?: () => void
   status?: string
   userRole?: string
+  organization?: {
+      preferences?: OrganizationPreferences | null
+  }
 }
 
-export function RecordForm({ 
-  patients, 
-  defaultSubjectId, 
-  initialData, 
-  treatmentId, 
+export function RecordForm({
+  patients,
+  defaultSubjectId,
+  initialData,
+  treatmentId,
   isEditing = false,
   onCancel,
   onSuccess,
   status = "DRAFT",
-  userRole: propUserRole
+  userRole: propUserRole,
+  organization
 }: RecordFormProps) {
-  const { userRole: contextUserRole } = useAuthContext()
+  const { userRole: contextUserRole, userPlan } = useAuthContext()
   const userRole = contextUserRole || propUserRole || "READONLY"
+  const isPro = checkPlan(userPlan as Plan, Plan.PRO)
   
   const isSigned = status === "SIGNED"
   const canWrite = checkPermission(userRole as MembershipRole, PERMISSIONS.WRITE_TREATMENTS)
-  
+
   const [steps, setSteps] = useState<ProcedureStep[]>(initialData?.steps || [])
   const [assessments, setAssessments] = useState<Assessment[]>(initialData?.assessments || [])
   const [muscles, setMuscles] = useState<Muscle[]>([])
@@ -157,13 +181,32 @@ export function RecordForm({
       date: initialData?.date ? new Date(initialData.date) : new Date(),
       category: initialData?.category || "",
       product_label: initialData?.product_label || "",
+      vial_size: initialData?.vial_size || (isPro ? organization?.preferences?.standard_vial_size : 100) || 100,
+      dilution_ml: initialData?.dilution_ml || (isPro ? organization?.preferences?.standard_dilution_ml : 2.5) || 2.5,
       notes: initialData?.notes || "",
     },
   })
-
   // Use useWatch to reactively subscribe to form changes without imperative subscription issues
   const watchedValues = useWatch({ control: form.control })
   const categoryValue = watchedValues.category
+  const productValue = watchedValues.product_label
+  const vialSize = watchedValues.vial_size || 100
+  const dilutionMl = watchedValues.dilution_ml || 2.5
+  const unitsPerMl = vialSize / dilutionMl
+
+  const DILUTION_PRESETS = [
+    { label: "100 U in 2.5 ml (Standard)", vial: 100, dilution: 2.5 },
+    { label: "100 U in 2.0 ml", vial: 100, dilution: 2.0 },
+    { label: "100 U in 1.0 ml (High)", vial: 100, dilution: 1.0 },
+    { label: "50 U in 1.25 ml", vial: 50, dilution: 1.25 },
+    { label: "500 U in 2.5 ml (Dysport)", vial: 500, dilution: 2.5 },
+  ]
+
+  const applyPreset = (preset: typeof DILUTION_PRESETS[0]) => {
+      form.setValue("vial_size", preset.vial, { shouldValidate: true })
+      form.setValue("dilution_ml", preset.dilution, { shouldValidate: true })
+      toast.info(`Applied preset: ${preset.label}`)
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -475,9 +518,62 @@ export function RecordForm({
               <FormItem><FormLabel>Product</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Botox">Botox</SelectItem><SelectItem value="Dysport">Dysport</SelectItem><SelectItem value="Xeomin">Xeomin</SelectItem><SelectItem value="Myobloc">Myobloc</SelectItem></SelectContent></Select><FormMessage /></FormItem>
           )} />
         </div>
+
+        {productValue && (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3 p-4 border rounded-lg bg-muted/20">
+                <FormField control={form.control} name="vial_size" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Vial Size (Units)</FormLabel>
+                        <FormControl>
+                            <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={form.control} name="dilution_ml" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Dilution (ml Saline)</FormLabel>
+                        <FormControl>
+                            <Input type="number" step="0.1" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <div className="flex flex-col justify-end space-y-2">
+                    <span className="text-xs text-muted-foreground font-medium">Quick Presets</span>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" type="button" className="w-full justify-between">
+                                Select... <ChevronDown className="h-4 w-4 ml-2" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-56">
+                            <DropdownMenuLabel>Standard Concentrations</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {DILUTION_PRESETS.map((p) => (
+                                <DropdownMenuItem key={p.label} onClick={() => applyPreset(p)}>
+                                    {p.label}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+                <div className="flex flex-col justify-end pb-2 pl-2">
+                    <span className="text-xs text-muted-foreground font-medium">Concentration</span>
+                    <span className="text-lg font-bold text-primary">{unitsPerMl.toFixed(1)} U / ml</span>
+                </div>
+            </div>
+        )}
         
         <div className="space-y-4">
-             <ProcedureStepsEditor steps={steps} onChange={setSteps} muscles={muscles} regions={regions} disabled={isSigned} />
+             <ProcedureStepsEditor 
+                steps={steps} 
+                onChange={setSteps} 
+                muscles={muscles} 
+                regions={regions} 
+                disabled={isSigned || !canWrite} 
+                unitsPerMl={unitsPerMl}
+             />
              <div className="flex justify-end font-bold text-xl">Total: {totalUnits} Units</div>
         </div>
 

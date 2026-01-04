@@ -7,92 +7,63 @@
 - **Authentication:** NextAuth.js (Auth.js) v5
   - Providers: Azure AD, Google, LinkedIn
   - Adapter: Prisma Adapter (Custom mapping to `User` / `UserIdentity`)
-  - **Linking:** Implicit linking via email + explicit linking via Profile Settings.
 - **UI:** Tailwind CSS + Shadcn/UI
 
 ## 2. Database Schema & Security
 The database is strictly partitioned for PHI (Protected Health Information) compliance.
 
 ### Schemas
-- **`public`**: Contains strictly non-PHI data (Organizations, Users, Encounters, Injections).
+- **`public`**: Contains strictly non-PHI data (Organizations, Users, Encounters, Injections, Preferences).
 - **`phi`**: Contains sensitive patient identifiers (`PatientIdentifier`).
-- **Access Control:**
-  - `migrator_admin`: Owner of schemas, runs DDL.
-  - `runtime_user`: Application user, limited to DML.
-  - `reporting_ro`: Read-only reporting user (NO ACCESS to `phi` schema).
+- **Isolation:** All PHI-related logic is physically isolated in `src/phi/*`. Data access outside this directory is restricted to non-PHI fields or safe helper extraction.
 
 ### Operational Hardening
 We use **Composite Foreign Keys** to prevent "Organization Drift".
 - `Encounter(orgId, patientId)` -> `Patient(orgId, id)`
 - **Immutability:** Updates to `patientId` on existing encounters are blocked by DB security policy.
 
-## 3. Multi-Tenancy & Identity
-The application is **Organization-centric** but supports **User Portability**.
+## 3. Multi-Tenancy & Monetization
+The application is **Organization-centric** and features a tiered Plan model.
 
 ### Context Resolution
 - **`getOrganizationContext()`**:
   1. Checks `injexpro_org_id` cookie for user preference.
   2. Fallbacks to the first active membership.
-  3. Returns `null` if no membership exists.
-- **Middleware/Layout:** `DashboardLayout` enforces existence of Org Context. Redirects to `/onboarding` if missing.
+- **Global Auth Context:** `AuthContextProvider` makes the current user's **Role** and **Plan** (BASIC/PRO) available to all client components.
 
-### Onboarding & Switching
-- **Zero-State:** Users without an organization are routed to `/onboarding`.
-- **Add Team:** Existing users can create additional organizations via `/onboarding`.
-- **Switching:** Sidebar contains an Organization Switcher. Selection persists via cookies. Automatic switch occurs after organization creation or invite acceptance.
-- **Invites:** `CLINIC_ADMIN` can generate invite links. New users land on `/invite/accept`. Features "Email Mismatch" warning for security transparency.
-
-### RBAC (Role-Based Access Control)
-- **Backend:** Enforced via `requirePermission()` helper in Server Actions.
-- **Frontend:** Components are permission-aware.
-  - `AppSidebar`: Hides restricted navigation items (e.g., Settings).
-  - `RecordForm`: Disables fields and hides write actions for `READONLY` users.
-- **Isomorphic Logic:** `src/lib/permissions.ts` provides the source of truth for both layers.
+### Monetization Split
+- **BASIC (Daily Documentation):** CORE clinical recording, templates (PREMPT), patient management. No re-opening of finalized records.
+- **PRO (Compliance & Scale):** Re-opening signed encounters (with audit log), detailed audit trails, advanced exports, compliance-specific documentation modes.
+- **Upgrade Moments:** Triggered via `UpgradeDialog` when BASIC users attempt to access PRO features (Re-open, Audit Logs, advanced exports).
 
 ## 4. Clinical Workflow & Data Integrity
 
 ### Encounter Lifecycle
-1.  **Draft:** Default state. Editable by Providers/Assistants. Features **Unsaved Changes** indicator.
+1.  **Draft:** Default state. Features **Unsaved Changes** indicator.
 2.  **Signed:** Finalized state.
     -   **Backend:** Updates blocked via `updateTreatment` action guard.
     -   **Frontend:** Form becomes Read-Only.
-    -   **Re-open:** Requires explicit "Unlock" action (Audit logged with mandatory reason).
+    -   **Re-open:** Requires **PRO Plan** and explicit "Unlock" action (Audit logged with mandatory reason).
 3.  **Void:** Soft-delete state (Audit trail preserved).
 
-### Treatment Recording (RecordForm)
-- **Smart Templates:** Dedicated "Load PREMPT" functionality.
-- **History Copying:** "Copy last visit" feature.
-- **Autosave:** Drafts are saved to `localStorage` for new records.
-- **Safety:** Critical actions (Sign, Delete, Re-open) are protected by confirmation dialogs.
-
 ## 5. Key Directories
-- `src/generated/client`: Prisma Client (Custom output). Use `.../enums` for client-side role imports.
-- `src/lib/auth-context.ts`: Security helpers (`getUserContext`, `getOrganizationContext`).
-- `src/lib/permissions.ts`: RBAC definitions and guards.
-- `src/app/actions`: Global/Shared actions (e.g., `org-switching.ts`).
-- `src/app/(dashboard)/settings`: Settings pages (Profile, Org, Team).
-- `src/app/(dashboard)/treatments/status-actions.ts`: Workflow transitions.
+- `src/generated/client`: Prisma Client (Custom output). Use `.../enums` for client-side role/plan imports.
+- `src/phi/`: **PHI Isolation Zone**. All logic touching the `phi` schema must live here.
+- `src/components/auth-context-provider.tsx`: Global RBAC and Plan state.
+- `src/lib/permissions.ts`: Role-based and Plan-based guards (`checkPermission`, `checkPlan`).
+- `src/app/(dashboard)/settings/`: URL-driven settings navigation (`?tab=...`).
 
 ## 6. Roadmap & Follow-up Actions
 
 ### Phase 3: Scaling & Compliance (Current Focus)
-
-- [x] **PHI Code Isolation:** All operations on the `phi` schema are now restricted to `src/phi/*`.
-
-- [x] **Audit Log System:** Immutable logging for critical events, fully integrated into the 'Security & Logs' settings tab for Clinic Admins.
-
-- [x] **Global Auth Context:** Implemented `AuthContextProvider` to ensure consistent RBAC evaluation across complex UI trees.
-
+- [x] **PHI Code Isolation:** Complete isolation of `PatientIdentifier` operations.
+- [x] **Plan-based Gating:** Functional BASIC/PRO split implemented across the app.
+- [x] **Audit Log UI:** Integrated security event monitoring in Settings.
 - [x] **Containerization:** Production Docker setup completed.
-
-- [ ] **Data Residency Enablers:** Finalize region-specific database routing hooks (using `src/lib/region.ts`).
-
-- [ ] **Advanced Audit Filter:** Add filtering and export capabilities to the Audit Log view.
-
-
+- [ ] **Data Residency Enablers:** Finalize region-specific database routing hooks.
+- [ ] **Stripe Integration:** Prepare for actual billing and automated plan switching.
 
 ### Future Features
-
-- [ ] **Smart Dose Engine:** Automated calculations for toxin dilution and muscle-specific distribution.
-
+- [ ] **Smart Dose Engine:** Automated calculations for toxin dilution.
 - [ ] **Clinical Insights:** Aggregated research data views for clinics (Non-PHI).
+- [ ] **Advanced Audit Filter:** Search and export capabilities for Audit Logs.

@@ -33,6 +33,7 @@ export interface ProcedureStep {
   muscle_id: string
   side: "Left" | "Right" | "Midline" | "Bilateral"
   numeric_value: number
+  volume_ml?: number
   mas_baseline?: string
   mas_peak?: string
 }
@@ -43,9 +44,17 @@ interface ProcedureStepsEditorProps {
   muscles: Muscle[]
   regions: MuscleRegion[]
   disabled?: boolean
+  unitsPerMl?: number
 }
 
-export function ProcedureStepsEditor({ steps, onChange, muscles, regions, disabled = false }: ProcedureStepsEditorProps) {
+export function ProcedureStepsEditor({
+  steps,
+  onChange,
+  muscles,
+  regions,
+  disabled = false,
+  unitsPerMl = 0
+}: ProcedureStepsEditorProps) {
   const addStep = () => {
     if (disabled) return
     const newStep: ProcedureStep = {
@@ -68,13 +77,25 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions, disabl
   }
 
   const updateStep = (id: string, field: keyof ProcedureStep, value: ProcedureStep[typeof field]) => {
-    const newSteps = steps.map((step) =>
-      step.id === id ? { ...step, [field]: value } : step
-    )
-    onChange(newSteps)
-  }
-
-  const removeStep = (id: string) => {
+      const newSteps = steps.map((step) => {
+        if (step.id !== id) return step
+        
+        const updatedStep = { ...step, [field]: value }
+  
+        // Smart Dose Calculation
+        if (unitsPerMl > 0) {
+            if (field === 'numeric_value') {
+                updatedStep.volume_ml = parseFloat((Number(value) / unitsPerMl).toFixed(3))
+            } else if (field === 'volume_ml') {
+                updatedStep.numeric_value = parseFloat((Number(value) * unitsPerMl).toFixed(1))
+            }
+        }
+  
+        return updatedStep
+      })
+      onChange(newSteps)
+    }
+    const removeStep = (id: string) => {
     onChange(steps.filter((step) => step.id !== id))
   }
 
@@ -141,6 +162,19 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions, disabl
                       disabled={disabled}
                     />
                   </div>
+                  {unitsPerMl > 0 && (
+                    <div className="space-y-2">
+                        <label className="text-xs font-medium text-muted-foreground">Volume (ml)</label>
+                        <Input
+                            type="number"
+                            step="0.01"
+                            value={step.volume_ml || (step.numeric_value / unitsPerMl) || 0}
+                            onChange={(e) => updateStep(step.id, "volume_ml", parseFloat(e.target.value))}
+                            disabled={disabled}
+                            className="bg-primary/5 border-primary/20"
+                        />
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -223,6 +257,7 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions, disabl
                 <TableHead>Target Structure</TableHead>
                 <TableHead className="w-[150px]">Side</TableHead>
                 <TableHead className="w-[120px]">Units</TableHead>
+                {unitsPerMl > 0 && <TableHead className="w-[120px]">Volume (ml)</TableHead>}
                 <TableHead className="w-[100px]">MAS Base</TableHead>
                 <TableHead className="w-[100px]">MAS Peak</TableHead>
                 <TableHead className="w-[100px]"></TableHead>
@@ -272,6 +307,18 @@ export function ProcedureStepsEditor({ steps, onChange, muscles, regions, disabl
                         disabled={disabled}
                       />
                     </TableCell>
+                    {unitsPerMl > 0 && (
+                        <TableCell>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                value={step.volume_ml || (step.numeric_value / unitsPerMl) || 0}
+                                onChange={(e) => updateStep(step.id, "volume_ml", parseFloat(e.target.value))}
+                                disabled={disabled}
+                                className="bg-primary/5 border-primary/20"
+                            />
+                        </TableCell>
+                    )}
                     <TableCell>
                       <Select
                         value={step.mas_baseline || ""}

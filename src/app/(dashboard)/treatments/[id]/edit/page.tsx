@@ -1,4 +1,4 @@
-import { RecordForm } from "@/components/record-form"
+import { RecordForm, OrganizationPreferences } from "@/components/record-form"
 import {
   Card,
   CardContent,
@@ -85,6 +85,9 @@ export default async function EditTreatmentPage({ params }: PageProps) {
             isEditing
             status={treatment.status}
             userRole={ctx.membership.role}
+            organization={{
+              preferences: ctx.organization.preferences as unknown as OrganizationPreferences
+            }}
           />
         </CardContent>
        </Card>

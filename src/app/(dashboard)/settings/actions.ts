@@ -7,6 +7,8 @@ import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 
 interface OrganizationPreferences {
   enable_compliance_views?: boolean;
+  standard_vial_size?: number;
+  standard_dilution_ml?: number;
 }
 
 export async function updateComplianceSettings(enabled: boolean) {
@@ -35,6 +37,31 @@ export async function updateComplianceSettings(enabled: boolean) {
   return { success: true }
 }
 
+export async function updateOrganizationPreferences(data: Partial<OrganizationPreferences>) {
+  const ctx = await getOrganizationContext()
+  if (!ctx) return { error: "Not found" }
+
+  const org = await prisma.organization.findUnique({
+    where: { id: ctx.organizationId },
+    select: { preferences: true }
+  })
+
+  const currentPrefs = (org?.preferences as OrganizationPreferences) || {}
+  
+  await prisma.organization.update({
+    where: { id: ctx.organizationId },
+    data: {
+      preferences: {
+        ...currentPrefs,
+        ...data
+      }
+    }
+  })
+
+  revalidatePath('/settings')
+  return { success: true }
+}
+
 export async function getComplianceSettings() {
   const ctx = await getOrganizationContext()
   if (!ctx) return { enable_compliance_views: false }
@@ -47,7 +74,9 @@ export async function getComplianceSettings() {
 
   const prefs = (org?.preferences as OrganizationPreferences) || {}
   return {
-    enable_compliance_views: !!prefs.enable_compliance_views
+    enable_compliance_views: !!prefs.enable_compliance_views,
+    standard_vial_size: prefs.standard_vial_size || 100,
+    standard_dilution_ml: prefs.standard_dilution_ml || 2.5
   }
 }
 

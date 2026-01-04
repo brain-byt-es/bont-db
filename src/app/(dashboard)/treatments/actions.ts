@@ -3,8 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
-import { BodySide, Timepoint, EncounterStatus } from "@/generated/client/client"
-import { PERMISSIONS, requirePermission } from "@/lib/permissions"
+import { BodySide, Timepoint, EncounterStatus, Plan } from "@/generated/client/client"
+import { PERMISSIONS, requirePermission, checkPlan } from "@/lib/permissions"
 
 interface AssessmentData {
   scale: string;
@@ -18,6 +18,7 @@ interface ProcedureStep {
   muscle_id: string; 
   side: 'Left' | 'Right' | 'Bilateral' | 'Midline';
   numeric_value: number;
+  volume_ml?: number;
   mas_baseline?: string;
   mas_peak?: string;
 }
@@ -28,6 +29,8 @@ interface CreateTreatmentFormData {
   location: string;
   category: string;
   product_label: string;
+  vial_size?: number;
+  dilution_ml?: number;
   notes?: string;
   steps?: ProcedureStep[];
   assessments?: AssessmentData[];
@@ -37,9 +40,20 @@ interface CreateTreatmentFormData {
 export async function createTreatment(formData: CreateTreatmentFormData) {
   const ctx = await getOrganizationContext()
   if (!ctx) throw new Error("No organization context")
-  const { organizationId, membership } = ctx
+  const { organizationId, membership, organization } = ctx
 
   requirePermission(membership.role, PERMISSIONS.WRITE_TREATMENTS)
+
+  // Usage Gating: 100 Treatments Limit for BASIC
+  const isPro = checkPlan(organization.plan as Plan, Plan.PRO)
+  if (!isPro) {
+      const count = await prisma.encounter.count({
+          where: { organizationId }
+      })
+      if (count >= 100) {
+          return { error: "Usage limit reached. Basic plans are limited to 100 treatment records. Please upgrade to Pro for unlimited documentation." }
+      }
+  }
 
   const {
     subject_id,
@@ -47,11 +61,15 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
     location,
     category,
     product_label,
+    vial_size = 100,
+    dilution_ml = 2.5,
     notes,
     steps,
     assessments,
     status = "DRAFT"
   } = formData
+
+  const unitsPerMl = vial_size / dilution_ml
 
   // Calculate total units
   let total_units = 0
@@ -98,6 +116,7 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
       muscleId: step.muscle_id,
       side: side,
       units: step.numeric_value,
+      volumeMl: step.volume_ml || (step.numeric_value / unitsPerMl),
       injectionAssessments: {
         create: injAssessments
       }
@@ -113,11 +132,6 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
     notes: a.notes,
     valueText: a.value.toString()
   }))
-
-  // Derived Regions logic could be handled here or via trigger/app logic.
-  // For now we rely on EncounterRegion model if we want to store them, 
-  // but the current schema uses `EncounterRegion` table. 
-  // We can populate it if needed, but let's stick to core data first.
 
   // Handle Product Lookup/Creation
   let productId: string | null = null
@@ -152,7 +166,8 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
       indication: category,
       productId: productId,
       
-      dilutionText: "N/A",
+      dilutionText: `${vial_size}U in ${dilution_ml}ml`,
+      dilutionUnitsPerMl: unitsPerMl,
       totalUnits: total_units,
       effectNotes: notes,
       adverseEventNotes: "keine",
@@ -287,181 +302,49 @@ export async function getTreatment(treatmentId: string) {
   }
 }
 
-
-
 export async function getLatestTreatment(patientId: string) {
-
-
-
   const ctx = await getOrganizationContext()
   if (!ctx) throw new Error("No organization context")
   const { organizationId } = ctx
 
-
-
-
-
-
-
   const treatment = await prisma.encounter.findFirst({
-
-
-
     where: {
-
-
-
       patientId,
-
-
-
       organizationId
-
-
-
     },
-
-
-
     include: {
-
-
-
       product: { select: { name: true } },
-
-
-
       injections: {
-
-
-
         include: {
-
-
-
           injectionAssessments: true
-
-
-
         }
-
-
-
       },
-
-
-
       assessments: true
-
-
-
     },
-
-
-
     orderBy: {
-
-
-
       encounterAt: 'desc'
-
-
-
     }
-
-
-
   })
-
-
-
-
-
-
 
   if (!treatment) return null
 
-
-
-
-
-
-
   // Map to legacy structure for RecordForm compatibility
-
-
-
   // AND convert Decimals to numbers
-
-
-
   return {
-
-
-
     ...treatment,
-
-
-
     totalUnits: treatment.totalUnits.toNumber(), // Convert totalUnits
-
-
-
     product: treatment.product?.name || '',
-
-
-
     treatment_site: treatment.treatmentSite,
-
-
-
     indication: treatment.indication,
-
-
-
     effect_notes: treatment.effectNotes,
-
-
-
     injections: treatment.injections.map(inj => ({
-
-
-
       ...inj,
-
-
-
       units: inj.units.toNumber(), // Convert units
-
-
-
       volumeMl: inj.volumeMl?.toNumber() ?? null // Convert volumeMl
-
-
-
     })),
-
-
-
     assessments: treatment.assessments.map(a => ({
-
-
-
       ...a,
-
-
-
       valueNum: a.valueNum?.toNumber() ?? null // Convert assessment values
-
-
-
     }))
-
-
-
   }
-
-
-
 }
-
