@@ -122,6 +122,7 @@ export const OrganizationScalarFieldEnum = {
   status: 'status',
   timezone: 'timezone',
   billingExternalId: 'billingExternalId',
+  preferences: 'preferences',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

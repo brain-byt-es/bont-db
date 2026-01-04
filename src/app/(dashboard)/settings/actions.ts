@@ -11,15 +11,44 @@ import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 // Future: Add 'settings' Json field to User or OrganizationMembership.
 
 export async function updateComplianceSettings(enabled: boolean) {
-  // TODO: Persist this preference to DB
-  console.log("Update compliance settings:", enabled)
-  revalidatePath('/')
+  const ctx = await getOrganizationContext()
+  if (!ctx) return { error: "Not found" }
+
+  // Fresh fetch to avoid stale context data (v2)
+  const org = await prisma.organization.findUnique({
+    where: { id: ctx.organizationId },
+    select: { preferences: true }
+  })
+
+  const currentPrefs = (org?.preferences as any) || {}
+  
+  await prisma.organization.update({
+    where: { id: ctx.organizationId },
+    data: {
+      preferences: {
+        ...currentPrefs,
+        enable_compliance_views: enabled
+      }
+    }
+  })
+
+  revalidatePath('/settings')
+  return { success: true }
 }
 
 export async function getComplianceSettings() {
-  // Default to false for now until we add persistence
+  const ctx = await getOrganizationContext()
+  if (!ctx) return { enable_compliance_views: false }
+
+  // Re-fetch to ensure we show the user the absolute truth from the DB
+  const org = await prisma.organization.findUnique({
+    where: { id: ctx.organizationId },
+    select: { preferences: true }
+  })
+
+  const prefs = (org?.preferences as any) || {}
   return {
-    enable_compliance_views: false
+    enable_compliance_views: !!prefs.enable_compliance_views
   }
 }
 

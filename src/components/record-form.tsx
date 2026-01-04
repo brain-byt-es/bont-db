@@ -424,7 +424,7 @@ export function RecordForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         {!canWrite && (
-             <Alert variant="default" className="mb-6 bg-slate-50 border-slate-200 text-slate-700">
+             <Alert variant="default" className="mb-6 bg-muted/50">
                 <Lock className="h-4 w-4" />
                 <AlertTitle>Read Only</AlertTitle>
                 <AlertDescription>

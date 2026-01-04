@@ -76,12 +76,23 @@ The application is **Organization-centric** but supports **User Portability**.
 ## 6. Roadmap & Follow-up Actions
 
 ### Phase 3: Scaling & Compliance (Current Focus)
-- [x] **PHI Code Separation:** Isolated all code touching the `phi` schema into `src/phi/*` with strict data extraction helpers and fragment-based joins.
-- [x] **Audit UI:** Built a dedicated view for `CLINIC_ADMIN` to browse audit logs, integrated into Organization Settings.
-- [x] **Containerization:** Added production-ready `Dockerfile` using multi-stage builds and Next.js standalone output.
-- [ ] **Infrastructure as Code:** Prepare Azure App Service deployment templates (Bicep/Terraform).
-- [x] **Regional Split (Base):** Added `src/lib/region.ts` to handle environment-based region awareness (EU/US) for future data residency enforcement.
+
+- [x] **PHI Code Isolation:** All operations on the `phi` schema are now restricted to `src/phi/*`.
+
+- [x] **Audit Log System:** Immutable logging for critical events, fully integrated into the 'Security & Logs' settings tab for Clinic Admins.
+
+- [x] **Global Auth Context:** Implemented `AuthContextProvider` to ensure consistent RBAC evaluation across complex UI trees.
+
+- [x] **Containerization:** Production Docker setup completed.
+
+- [ ] **Data Residency Enablers:** Finalize region-specific database routing hooks (using `src/lib/region.ts`).
+
+- [ ] **Advanced Audit Filter:** Add filtering and export capabilities to the Audit Log view.
+
+
 
 ### Future Features
-- [ ] **Dose Calculation:** Automatic calculation based on dilution and units.
-- [ ] **Smart Defaults:** Learning-based suggestions for injection patterns.
+
+- [ ] **Smart Dose Engine:** Automated calculations for toxin dilution and muscle-specific distribution.
+
+- [ ] **Clinical Insights:** Aggregated research data views for clinics (Non-PHI).
