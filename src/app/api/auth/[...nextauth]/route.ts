@@ -89,70 +89,75 @@ export const authOptions: AuthOptions = {
             const email = (p.email || p.preferred_username)?.toLowerCase().trim()
 
             if (providerSubject && email) {
-              // a) Lookup UserIdentity
-              const identity = await prisma.userIdentity.findUnique({
-                where: {
-                  provider_providerSubject: {
-                    provider: authProvider,
-                    providerSubject: providerSubject
-                  }
-                },
-                include: { user: true }
-              })
-
-              let user = identity?.user ?? null
-
-              // b) If not found, try finding User by email
-              if (!user) {
-                user = await prisma.user.findFirst({
-                  where: { email: email }
-                })
-
-                // c) If still no user, create User
-                if (!user) {
-                  user = await prisma.user.create({
-                    data: {
-                      email: email,
-                      displayName: p.name || email.split('@')[0],
-                      profilePhotoUrl: p.picture || p.image || null,
-                      // For Azure AD, we can set entraUserId immediately if not present
-                      entraUserId: (authProvider === 'azure_ad') ? providerSubject : null
-                    }
+              // Wrap DB operations in a shorter timeout to prevent Auth hang
+              const user = await Promise.race([
+                (async () => {
+                  const identity = await prisma.userIdentity.findUnique({
+                    where: {
+                      provider_providerSubject: {
+                        provider: authProvider,
+                        providerSubject: providerSubject
+                      }
+                    },
+                    include: { user: true }
                   })
-                } else if (authProvider === 'azure_ad' && !user.entraUserId) {
-                  // f) Link entraUserId if missing
-                   user = await prisma.user.update({
-                    where: { id: user.id },
-                    data: { entraUserId: providerSubject }
-                   })
-                }
 
-                // e) Create Identity linking
-                if (!identity) {
-                  await prisma.userIdentity.create({
-                    data: {
-                      userId: user!.id,
+                  if (identity?.user) return identity.user
+
+                  // If not found, try finding User by email
+                  let dbUser = await prisma.user.findFirst({
+                    where: { email: email }
+                  })
+
+                  if (!dbUser) {
+                    dbUser = await prisma.user.create({
+                      data: {
+                        email: email,
+                        displayName: p.name || email.split('@')[0],
+                        profilePhotoUrl: p.picture || p.image || null,
+                        entraUserId: (authProvider === 'azure_ad') ? providerSubject : null
+                      }
+                    })
+                  } else if (authProvider === 'azure_ad' && !dbUser.entraUserId) {
+                    dbUser = await prisma.user.update({
+                      where: { id: dbUser.id },
+                      data: { entraUserId: providerSubject }
+                    })
+                  }
+
+                  // Ensure identity exists
+                  await prisma.userIdentity.upsert({
+                    where: {
+                      provider_providerSubject: {
+                        provider: authProvider,
+                        providerSubject: providerSubject
+                      }
+                    },
+                    update: { emailAtAuth: email },
+                    create: {
+                      userId: dbUser.id,
                       provider: authProvider,
                       providerSubject: providerSubject,
                       emailAtAuth: email
                     }
                   })
-                }
-              }
+
+                  return dbUser
+                })(),
+                new Promise<null>((_, reject) => 
+                  setTimeout(() => reject(new Error("Database timeout")), 7000)
+                )
+              ])
               
-              // Persist DB User ID to token
               if (user) {
                 token.id = user.id
-                // Ensure token has the latest entraUserId if it was just linked
-                if (user.entraUserId) {
-                   token.entraUserId = user.entraUserId
-                }
+                if (user.entraUserId) token.entraUserId = user.entraUserId
               }
             }
           }
         } catch (error) {
-          console.error("DB Auth Linking Failed:", error)
-          // Fallback: Login proceeds without DB linking, token keeps standard mapped values
+          console.error("DB Auth Linking Failed (skipping to prevent hang):", error)
+          // We don't throw here, so the user can still log in via OAuth even if DB link fails
         }
       }
 
