@@ -42,6 +42,18 @@ enum OrganizationStatus {
   @@schema("public")
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+  PAUSED
+  @@schema("public")
+}
+
 enum MembershipRole {
   OWNER
   CLINIC_ADMIN
@@ -149,6 +161,11 @@ model Organization {
 
   billingExternalId String? @unique
 
+  stripeCustomerId       String? @unique
+  stripeSubscriptionId   String? @unique
+  stripeCurrentPeriodEnd DateTime?
+  subscriptionStatus     SubscriptionStatus @default(INCOMPLETE)
+
   preferences Json? @default("{}")
 
   createdAt DateTime @default(now())
@@ -165,6 +182,7 @@ model Organization {
 
   @@index([region])
   @@index([status])
+  @@index([stripeSubscriptionId])
   @@schema("public")
 }
 

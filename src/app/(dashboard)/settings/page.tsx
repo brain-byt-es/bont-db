@@ -10,7 +10,7 @@ import { ProfileManager } from "@/components/settings/profile-manager"
 import { redirect } from "next/navigation"
 import { TabsContent } from "@/components/ui/tabs"
 import { checkPermission, PERMISSIONS, checkPlan } from "@/lib/permissions"
-import { Plan } from "@/generated/client/enums"
+import { Plan, SubscriptionStatus } from "@/generated/client/enums"
 import { SettingsTabs } from "./settings-tabs"
 import { cn } from "@/lib/utils"
 import { ComplianceUpgradeTeaser } from "@/components/settings/compliance-upgrade-teaser"
@@ -18,11 +18,13 @@ import { ClinicalSettingsForm } from "@/components/settings/clinical-settings-fo
 import { getAuditLogs, getAuditFilterOptions } from "./audit-logs/actions"
 import { AuditLogManager } from "@/components/settings/audit-log-manager"
 import { Badge } from "@/components/ui/badge"
-import { ShieldCheck, ArrowRight, CreditCard, ExternalLink, CheckCircle2 } from "lucide-react"
+import { ShieldCheck, ArrowRight, CreditCard, ExternalLink, CheckCircle2, AlertTriangle, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { createCustomerPortalAction, syncStripeSession } from "@/app/actions/stripe"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { calculateBillableSeats } from "@/lib/stripe-billing"
+import { format } from "date-fns"
 
 export default async function SettingsPage({
   searchParams,
@@ -45,6 +47,11 @@ export default async function SettingsPage({
   const userPlan = ctx.organization.plan as Plan
   const canManageTeam = checkPermission(ctx.membership.role, PERMISSIONS.MANAGE_TEAM)
   const isPro = checkPlan(userPlan, Plan.PRO)
+  
+  // Calculate seats on the fly for display
+  const seatCount = await calculateBillableSeats(ctx.organizationId)
+  const subStatus = ctx.organization.subscriptionStatus
+  const periodEnd = ctx.organization.stripeCurrentPeriodEnd
 
   // Fetch data in parallel
   const [settings, teamData, profileData, auditLogs, auditFilterOptions] = await Promise.all([
@@ -103,32 +110,79 @@ export default async function SettingsPage({
 
             <Card className={cn(isPro ? "border-primary/20 bg-primary/5" : "")}>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <CreditCard className="h-5 w-5" />
-                        Subscription Plan
-                    </CardTitle>
-                    <CardDescription>
-                        Current Plan: <Badge variant={isPro ? "default" : "secondary"}>{userPlan}</Badge>
-                    </CardDescription>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="flex items-center gap-2">
+                                <CreditCard className="h-5 w-5" />
+                                Subscription Plan
+                            </CardTitle>
+                            <CardDescription>
+                                Manage your billing and seats.
+                            </CardDescription>
+                        </div>
+                        <Badge variant={isPro ? "default" : "secondary"} className="text-base px-3 py-1">
+                            {userPlan}
+                        </Badge>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     {isPro ? (
-                        <div className="space-y-4">
-                            <p className="text-sm text-muted-foreground">
-                                Your clinic has access to all Pro features including Audit Logs, Clinical Insights, and unlimited treatments.
-                            </p>
-                            <form action={createCustomerPortalAction}>
-                                <Button variant="outline" type="submit">
-                                    Manage Billing <ExternalLink className="ml-2 h-4 w-4" />
-                                </Button>
-                            </form>
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                <div className="p-3 bg-background rounded-md border">
+                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Status</p>
+                                    <div className="mt-1 flex items-center gap-2">
+                                        <div className={cn("h-2 w-2 rounded-full", 
+                                            subStatus === SubscriptionStatus.ACTIVE ? "bg-emerald-500" :
+                                            subStatus === SubscriptionStatus.PAST_DUE ? "bg-amber-500" : "bg-red-500"
+                                        )} />
+                                        <span className="font-semibold capitalize">{subStatus.toLowerCase().replace('_', ' ')}</span>
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-background rounded-md border">
+                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Active Seats</p>
+                                    <div className="mt-1 flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-muted-foreground" />
+                                        <span className="font-semibold">{seatCount}</span>
+                                    </div>
+                                </div>
+                                {periodEnd && (
+                                    <div className="p-3 bg-background rounded-md border">
+                                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Renews On</p>
+                                        <div className="mt-1 font-semibold">
+                                            {format(periodEnd, 'MMM d, yyyy')}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {subStatus === SubscriptionStatus.PAST_DUE && (
+                                <Alert className="bg-amber-50 text-amber-900 border-amber-200">
+                                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                    <AlertTitle>Payment Past Due</AlertTitle>
+                                    <AlertDescription>
+                                        We couldn&apos;t process your last payment. Please update your payment method to avoid losing access to Pro features.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
+                            <div className="flex items-center justify-between pt-2">
+                                <p className="text-sm text-muted-foreground">
+                                    Your clinic has access to all Pro features including Audit Logs, Clinical Insights, and unlimited treatments.
+                                </p>
+                                <form action={createCustomerPortalAction}>
+                                    <Button variant="default" type="submit">
+                                        Manage Billing & Invoices <ExternalLink className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </form>
+                            </div>
                         </div>
                     ) : (
                         <div className="space-y-4">
                             <p className="text-sm text-muted-foreground">
                                 Basic plans are limited to 100 treatments and lack advanced oversight tools.
                             </p>
-                            <Button asChild>
+                            <Button asChild size="lg" className="w-full md:w-auto">
                                 <Link href="/pricing">Upgrade to Pro</Link>
                             </Button>
                         </div>

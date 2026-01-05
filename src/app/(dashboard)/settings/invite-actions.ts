@@ -7,6 +7,7 @@ import { randomBytes, createHash } from "crypto"
 import { headers } from "next/headers"
 import { MembershipRole } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
+import { updateSubscriptionSeatCount } from "@/lib/stripe-billing"
 
 export async function getTeamData() {
   const ctx = await getOrganizationContext()
@@ -159,6 +160,9 @@ export async function removeMemberAction(memberId: string) {
         organizationId
       }
     })
+
+    // Update Billing
+    await updateSubscriptionSeatCount(organizationId)
   
     revalidatePath("/settings")
     return { success: true }

@@ -5,7 +5,8 @@ import { getOrganizationContext } from "@/lib/auth-context"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import prisma from "@/lib/prisma"
-import { MembershipRole } from "@/generated/client/enums"
+import { MembershipRole, SubscriptionStatus } from "@/generated/client/enums"
+import Stripe from "stripe"
 
 /**
  * Creates a Stripe Checkout Session for upgrading to PRO.
@@ -102,6 +103,20 @@ export async function createCustomerPortalAction() {
     redirect(session.url)
 }
 
+function mapStripeStatus(status: Stripe.Subscription.Status): SubscriptionStatus {
+    switch (status) {
+      case "active": return SubscriptionStatus.ACTIVE
+      case "past_due": return SubscriptionStatus.PAST_DUE
+      case "canceled": return SubscriptionStatus.CANCELED
+      case "unpaid": return SubscriptionStatus.UNPAID
+      case "incomplete": return SubscriptionStatus.INCOMPLETE
+      case "incomplete_expired": return SubscriptionStatus.INCOMPLETE_EXPIRED
+      case "trialing": return SubscriptionStatus.TRIALING
+      case "paused": return SubscriptionStatus.PAUSED
+      default: return SubscriptionStatus.INCOMPLETE
+    }
+}
+
 /**
  * Manually syncs the session status to the database.
  * Useful when the webhook is slower than the user redirect.
@@ -113,6 +128,25 @@ export async function syncStripeSession(sessionId: string) {
     if (session.payment_status === 'paid' || session.status === 'complete') {
         const organizationId = session.metadata?.organizationId
         const customerId = session.customer as string
+        const subscriptionId = typeof session.subscription === 'string' 
+            ? session.subscription 
+            : session.subscription?.id
+
+        // Fetch full subscription details to get period end
+        let currentPeriodEnd: Date | null = null
+        let status: SubscriptionStatus = SubscriptionStatus.ACTIVE
+
+        if (subscriptionId) {
+            // Retrieve subscription with correct types
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId) as Stripe.Subscription
+            status = mapStripeStatus(subscription.status)
+            
+            // In this Stripe SDK version, current_period_end is on the individual items
+            const periodEnd = subscription.items.data[0]?.current_period_end
+            if (periodEnd) {
+                currentPeriodEnd = new Date(periodEnd * 1000)
+            }
+        }
 
         if (organizationId) {
             await prisma.organization.update({
@@ -120,6 +154,10 @@ export async function syncStripeSession(sessionId: string) {
                 data: {
                     plan: "PRO",
                     billingExternalId: customerId,
+                    stripeCustomerId: customerId,
+                    stripeSubscriptionId: subscriptionId,
+                    subscriptionStatus: status,
+                    stripeCurrentPeriodEnd: currentPeriodEnd
                 },
             })
             return true

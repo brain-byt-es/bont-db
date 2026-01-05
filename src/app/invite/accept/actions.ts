@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma"
 import { createHash } from "crypto"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
+import { updateSubscriptionSeatCount } from "@/lib/stripe-billing"
 
 export async function acceptInviteAction(token: string) {
   const session = await getServerSession(authOptions)
@@ -88,6 +89,9 @@ export async function acceptInviteAction(token: string) {
         data: { acceptedAt: new Date() }
       })
     })
+
+    // Update Billing (Async, don't block heavily but ensure triggered)
+    await updateSubscriptionSeatCount(invite.organizationId)
     
     setOrgCookie()
   } catch (error) {
