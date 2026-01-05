@@ -47,7 +47,7 @@ export async function createCheckoutSessionAction() {
       },
     ],
     mode: "subscription",
-    success_url: `${origin}/settings?tab=organization&success=true`,
+    success_url: `${origin}/settings?tab=organization&success=true&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/settings?tab=organization&canceled=true`,
     customer_email: ctx.membership.user.email,
     metadata: {
@@ -100,4 +100,33 @@ export async function createCustomerPortalAction() {
     })
 
     redirect(session.url)
+}
+
+/**
+ * Manually syncs the session status to the database.
+ * Useful when the webhook is slower than the user redirect.
+ */
+export async function syncStripeSession(sessionId: string) {
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId)
+    
+    if (session.payment_status === 'paid' || session.status === 'complete') {
+        const organizationId = session.metadata?.organizationId
+        const customerId = session.customer as string
+
+        if (organizationId) {
+            await prisma.organization.update({
+                where: { id: organizationId },
+                data: {
+                    plan: "PRO",
+                    billingExternalId: customerId,
+                },
+            })
+            return true
+        }
+    }
+  } catch (error) {
+    console.error("Failed to sync Stripe session:", error)
+  }
+  return false
 }

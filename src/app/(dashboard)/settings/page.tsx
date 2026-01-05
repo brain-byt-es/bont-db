@@ -21,15 +21,21 @@ import { Badge } from "@/components/ui/badge"
 import { ShieldCheck, ArrowRight, CreditCard, ExternalLink, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { createCustomerPortalAction } from "@/app/actions/stripe"
+import { createCustomerPortalAction, syncStripeSession } from "@/app/actions/stripe"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; success?: string; canceled?: string }>
+  searchParams: Promise<{ tab?: string; success?: string; canceled?: string; session_id?: string }>
 }) {
-  const { tab, success, canceled } = await searchParams
+  const { success, canceled, session_id } = await searchParams
+
+  // Attempt to sync session if we just returned from Stripe
+  if (success === "true" && session_id) {
+    await syncStripeSession(session_id)
+  }
+
   const ctx = await getOrganizationContext()
 
   if (!ctx) {
