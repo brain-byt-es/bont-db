@@ -5,15 +5,20 @@ import prisma from "@/lib/prisma"
 import { getUserContext } from "@/lib/auth-context"
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
+import { getRegionForCountry } from "@/lib/countries"
+import { Region } from "@/generated/client/enums"
 
 export async function createOrganizationAction(formData: FormData) {
   const { userId } = await getUserContext()
   
   const orgName = formData.get("orgName") as string
+  const countryCode = formData.get("countryCode") as string || "DE"
 
   if (!orgName || orgName.trim().length < 3) {
     return { error: "Organization name must be at least 3 characters." }
   }
+
+  const region = getRegionForCountry(countryCode) as Region
 
   let newOrgId = ""
 
@@ -23,7 +28,7 @@ export async function createOrganizationAction(formData: FormData) {
       const org = await tx.organization.create({
         data: {
           name: orgName.trim(),
-          region: "EU", // Defaulting to EU as per project specs
+          region: region,
           status: "ACTIVE",
           memberships: {
             create: {

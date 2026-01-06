@@ -19,7 +19,7 @@ import { getAuditLogs, getAuditFilterOptions } from "./audit-logs/actions"
 import { AuditLogManager } from "@/components/settings/audit-log-manager"
 import { IntegrationsManager } from "@/components/settings/integrations-manager"
 import { Badge } from "@/components/ui/badge"
-import { ShieldCheck, ArrowRight, CreditCard, ExternalLink, CheckCircle2, AlertTriangle, Users, Info, Mail } from "lucide-react"
+import { ShieldCheck, ArrowRight, CreditCard, ExternalLink, CheckCircle2, AlertTriangle, Users, Info, Mail, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { createCustomerPortalAction, syncStripeSession } from "@/app/actions/stripe"
@@ -109,8 +109,28 @@ export default async function SettingsPage({
                     Manage your clinic&apos;s public profile and details.
                 </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-6">
                 <OrgSettingsForm initialName={ctx.organization.name} />
+                
+                <div className="pt-4 border-t space-y-3">
+                    <h4 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                        <Globe className="h-4 w-4" />
+                        Data Residency
+                    </h4>
+                    <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+                        <div className="space-y-0.5">
+                            <p className="text-sm font-semibold">
+                                {ctx.organization.region === 'EU' ? 'European Union (France)' : 'United States (East)'}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                                All clinical and PII data is physically isolated in this region.
+                            </p>
+                        </div>
+                        <Badge variant="outline" className="bg-background">
+                            {ctx.organization.region}
+                        </Badge>
+                    </div>
+                </div>
                 </CardContent>
             </Card>
 
