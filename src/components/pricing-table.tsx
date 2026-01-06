@@ -41,9 +41,9 @@ const INJEXPRO_PLANS: PricingPlan[] = [
     yearlyPrice: "Free",
     features: [
       { text: "Single user access" },
-      { text: "Core clinical documentation" },
-      { text: "Up to 100 treatment records" },
+      { text: "Unlimited clinical documentation" },
       { text: "Standard PREMPT templates" },
+      { text: "Manual dose calculator" },
       { text: "PII protection guard" },
     ],
     buttonText: "Current Plan",

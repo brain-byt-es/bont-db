@@ -50,7 +50,7 @@ export function UpgradeDialog({
   }
 
   const COMPARISON = [
-    { feature: "Treatment Records", basic: "Up to 100", pro: "Unlimited" },
+    { feature: "Treatment Records", basic: "Unlimited", pro: "Unlimited" },
     { feature: "Core Documentation", basic: true, pro: true },
     { feature: "Standard Templates", basic: true, pro: true },
     { feature: "Dose Engine", basic: "Manual Calc", pro: "Clinic Standards" },

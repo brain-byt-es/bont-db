@@ -210,7 +210,7 @@ export default async function SettingsPage({
                     ) : (
                         <div className="space-y-4">
                             <p className="text-sm text-muted-foreground">
-                                Basic plans are limited to 1 user and lack advanced clinical oversight tools.
+                                Basic plans include unlimited clinical documentation for a single user. Upgrade for team collaboration and advanced oversight tools.
                             </p>
                             <Button asChild size="lg" className="w-full md:w-auto">
                                 <Link href="/pricing">Upgrade to Pro</Link>

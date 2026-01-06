@@ -108,13 +108,13 @@ export function TreatmentDialog({
 
   return (
     <>
-    <UpgradeDialog 
-        open={showUpgrade} 
-        onOpenChange={setShowUpgrade}
-        title="Usage Limit Reached"
-        featureName="Unlimited treatments"
-        description="Your organization has reached the 100 treatment limit for the Basic plan. Upgrade to Pro to continue documenting and unlock advanced clinical features."
-    />
+        <UpgradeDialog 
+            open={showUpgrade} 
+            onOpenChange={setShowUpgrade}
+            title="Team Expansion Required"
+            featureName="Adding more team members"
+            description="Your current plan has reached its user limit. Upgrade to Pro or Enterprise to collaborate with more colleagues."
+        />
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">

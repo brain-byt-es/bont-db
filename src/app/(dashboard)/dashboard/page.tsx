@@ -61,7 +61,7 @@ export default async function Page({
 
   // Goals (Static for now, could be dynamic per org later)
   const goals = {
-    totalTreatmentsGoal: 100,
+    totalTreatmentsGoal: 250,
     withFollowUpGoal: 50,
     indicationsCoveredGoal: 2,
     spastikDystonieGoal: 25,

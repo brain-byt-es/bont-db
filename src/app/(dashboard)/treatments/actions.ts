@@ -3,8 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
-import { BodySide, Timepoint, EncounterStatus, Plan } from "@/generated/client/client"
-import { PERMISSIONS, requirePermission, checkPlan } from "@/lib/permissions"
+import { BodySide, Timepoint, EncounterStatus } from "@/generated/client/client"
+import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 
 interface AssessmentData {
   scale: string;
@@ -40,20 +40,9 @@ interface CreateTreatmentFormData {
 export async function createTreatment(formData: CreateTreatmentFormData) {
   const ctx = await getOrganizationContext()
   if (!ctx) throw new Error("No organization context")
-  const { organizationId, membership, organization } = ctx
+  const { organizationId, membership } = ctx
 
   requirePermission(membership.role, PERMISSIONS.WRITE_TREATMENTS)
-
-  // Usage Gating: 100 Treatments Limit for BASIC
-  const isPro = checkPlan(organization.plan as Plan, Plan.PRO)
-  if (!isPro) {
-      const count = await prisma.encounter.count({
-          where: { organizationId }
-      })
-      if (count >= 100) {
-          return { error: "Usage limit reached. Basic plans are limited to 100 treatment records. Please upgrade to Pro for unlimited documentation." }
-      }
-  }
 
   const {
     subject_id,

@@ -40,11 +40,16 @@ The application is **Organization-centric** and features a seat-based tiered Pla
 - **UI:** Admin Settings provides real-time billing status, active seat count, renewal dates, and direct links to Stripe Customer Portal.
 
 ### Plans
-- **BASIC (Free):** CORE clinical recording, 100 treatment limit, manual dose calculator, standard presets.
-- **PRO (€59 / seat / mo):**
+- **BASIC (Free):** CORE clinical recording, unlimited documentation for 1 user, manual dose calculator, standard presets.
+- **PRO (€59 / org / mo):**
+  - **Scale:** Up to 5 active clinical members.
   - **Automation:** Smart Defaults (Full auto-fill from last visit), clinic-wide dosage standards.
   - **Compliance:** Advanced Audit Trails (Search/Filter/Export), unlock signed records.
   - **Analytics:** Clinical Insights (Outcome trends, dosage distribution).
+- **ENTERPRISE (Custom):**
+  - **Scale:** Unlimited users & multiple locations.
+  - **Integrations:** EHR/CMS connectivity (EPIC, KISIM).
+  - **Governance:** SSO, SCIM, SLA, and Custom Contracts.
 
 ## 4. Clinical Workflow & Data Integrity
 
