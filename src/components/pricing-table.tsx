@@ -52,14 +52,14 @@ const INJEXPRO_PLANS: PricingPlan[] = [
   {
     id: "pro",
     name: "Pro",
-    description: "For small clinics & teams",
+    description: "For practices that need audit-safe documentation",
     monthlyPrice: "€59",
     yearlyPrice: "€590",
     isPro: true,
     features: [
       { text: "Up to 5 active users" },
       { text: "Smart Defaults & Presets" },
-      { text: "Re-open Signed Records" },
+      { text: "Audit-controlled re-opening of signed records" },
       { text: "Advanced Audit (Export)" },
       { text: "Clinical Insights & Analytics" },
       { text: "Team User Management" },
@@ -69,7 +69,7 @@ const INJEXPRO_PLANS: PricingPlan[] = [
   {
     id: "enterprise",
     name: "Enterprise",
-    description: "For hospital groups & networks",
+    description: "For organizations that require governed clinical systems",
     monthlyPrice: "Custom",
     yearlyPrice: "Custom",
     features: [
@@ -102,7 +102,7 @@ export function PricingTable({ className }: { className?: string }) {
     { label: "Pricing", basic: "Free", pro: "€59 / org / mo", ent: "Custom" },
     { label: "Users included", basic: "1", pro: "Up to 5", ent: "Unlimited" },
     { label: "Clinical documentation", basic: true, pro: true, ent: true },
-    { label: "Smart Dose Engine", basic: "Manual", pro: "Smart Defaults", ent: "Full Protocols" },
+    { label: "Smart Dose Engine", basic: "Manual", pro: "Smart Defaults", ent: "Protocol-driven & integrated" },
     { label: "Audit log", basic: "Basic", pro: "Advanced (Export)", ent: "Advanced + API" },
     { label: "EHR / CMS integrations", basic: false, pro: false, ent: true },
     { label: "SSO / SCIM", basic: false, pro: false, ent: true },
@@ -143,14 +143,21 @@ export function PricingTable({ className }: { className?: string }) {
                   <CardDescription className="text-sm mt-2 min-h-[40px]">
                     {plan.description}
                   </CardDescription>
-                  <div className="flex items-baseline gap-1 mt-6">
-                    <span className="text-4xl font-extrabold tracking-tight">
-                      {plan.monthlyPrice}
-                    </span>
-                    {plan.id === 'pro' && (
-                        <span className="text-sm font-medium text-muted-foreground">
-                            / month / org
+                  <div className="flex flex-col mt-6">
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-extrabold tracking-tight">
+                        {plan.monthlyPrice}
                         </span>
+                        {plan.id === 'pro' && (
+                            <span className="text-sm font-medium text-muted-foreground">
+                                / month / org
+                            </span>
+                        )}
+                    </div>
+                    {plan.id === 'enterprise' && (
+                        <p className="text-xs text-primary font-semibold mt-2">
+                            Required for integrations, contracts, and external audits.
+                        </p>
                     )}
                   </div>
                 </CardHeader>

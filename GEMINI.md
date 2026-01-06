@@ -32,7 +32,7 @@ The application is **Organization-centric** and features a tiered plan model (BA
 ### Monetization & Billing Engine
 - **Source of Truth:** Database holds the primary subscription state.
 - **Seat-based Gating:**
-  - **BASIC:** Limited to **1 active user**. Unlimited documentation.
+  - **BASIC:** Limited to **1 active user**. Unlimited clinical documentation.
   - **PRO:** Limited to **5 active users**. Pauschalpreis (Flat Fee) billed via Stripe.
   - **ENTERPRISE:** Unlimited users. Managed manually via Sales/Invoices.
 - **Automated Reconciliation:** Stripe subscription quantities are automatically synced in `src/lib/stripe-billing.ts` upon team changes (Invite/Remove).
@@ -54,6 +54,11 @@ The application is **Organization-centric** and features a tiered plan model (BA
 3.  **Re-open:** Requires **PRO Plan** and Audit Log entry.
 4.  **Void:** Soft-delete state (Audit trail preserved).
 
+### Advanced Dose Engine
+- **Automatic Calculation:** Live conversion between Units and Volume (ml).
+- **Clinical Protocols:** Indication-specific presets (e.g., PREMPT Migraine, Spasticity).
+- **Smart Suggestions:** Automated dose hints based on specific patient history and muscle selection.
+
 ## 5. Roadmap & Follow-up Actions
 
 ### Phase 3: Scaling & Monetization (Completed)
@@ -63,8 +68,13 @@ The application is **Organization-centric** and features a tiered plan model (BA
 - [x] **Support Tools:** Manual plan overrides and support period flags.
 - [x] **Admin UI:** Enhanced billing dashboard with seat usage tracking.
 
-### Phase 4: Expansion & Polish (Next)
-- [ ] **Email System Setup:** **CRITICAL:** `RESEND_API_KEY` must be configured and `resend` package installed to enable transactional emails (Invites, Payment Failures).
-- [ ] **Data Residency Enablers:** Finalize region-specific database routing hooks.
-- [ ] **Advanced Dose Engine:** Smart suggestions based on patient history.
-- [ ] **Infrastructure as Code:** Azure Bicep templates for push-button deployments.
+### Phase 4: Expansion & Polish (Completed)
+- [x] **Data Residency Enablers:** Regional onboarding selection (EU vs US) with storage transparency.
+- [x] **Advanced Dose Engine:** Intelligent historical suggestions and clinical protocol support.
+- [x] **Multi-Admin UX:** Granular role management, membership updates, and ownership transfer.
+- [x] **Strategic UX:** Compact upsell teasers and searchable country selection.
+
+### Phase 5: Infrastructure & Connectivity (Next)
+- [ ] **Email System Setup:** **CRITICAL:** `RESEND_API_KEY` must be configured and `resend` package installed to enable transactional emails.
+- [ ] **Infrastructure as Code:** Azure Bicep templates for push-button clinic deployments.
+- [ ] **Enterprise Connectivity:** Finalize EHR/CMS interface stubs for Sales demos.
