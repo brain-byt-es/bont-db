@@ -62,7 +62,7 @@ import {
 import { cn } from "@/lib/utils"
 import { ProcedureStepsEditor, ProcedureStep } from "@/components/procedure-steps-editor"
 import { AssessmentManager, Assessment } from "@/components/assessment-manager"
-import { createTreatment, getMuscles, getMuscleRegions, getLatestTreatment } from "@/app/(dashboard)/treatments/actions"
+import { createTreatment, getMuscles, getMuscleRegions, getLatestTreatment, getProtocolsAction } from "@/app/(dashboard)/treatments/actions"
 import { updateTreatment } from "@/app/(dashboard)/treatments/update-action"
 import { reopenTreatmentAction } from "@/app/(dashboard)/treatments/status-actions"
 import { toast } from "sonner"
@@ -73,6 +73,7 @@ import { checkPermission, PERMISSIONS, checkPlan } from "@/lib/permissions"
 import { MembershipRole, Plan } from "@/generated/client/enums"
 import { useAuthContext } from "@/components/auth-context-provider"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
+import { Protocol } from "@/lib/dose-engine"
 
 const formSchema = z.object({
   subject_id: z.string().min(1, {
@@ -177,6 +178,7 @@ export function RecordForm({
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [reopenReason, setReopenReason] = useState("")
   const [isSmartFilled, setIsSmartFilled] = useState(false)
+  const [protocols, setProtocols] = useState<Protocol[]>([])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -253,6 +255,15 @@ export function RecordForm({
   }, [subjectId, isEditing, isPro])
 
   useEffect(() => {
+    if (!categoryValue) return
+    const fetchProtocols = async () => {
+        const p = await getProtocolsAction(categoryValue)
+        setProtocols(p)
+    }
+    fetchProtocols()
+  }, [categoryValue])
+
+  useEffect(() => {
     const fetchData = async () => {
         const [m, r] = await Promise.all([getMuscles(), getMuscleRegions()])
         setMuscles(m)
@@ -261,32 +272,20 @@ export function RecordForm({
     fetchData()
   }, [])
 
-  // Manual Template Loader for Migraine
-  const loadMigraineTemplate = () => {
-    const templateMuscles: { name: string; side: ProcedureStep["side"]; units: number }[] = [
-        { name: "M. corrugator supercilii", side: "Left", units: 5 },
-        { name: "M. corrugator supercilii", side: "Right", units: 5 },
-        { name: "M. procerus", side: "Midline", units: 5 },
-        { name: "M. frontalis", side: "Left", units: 10 },
-        { name: "M. frontalis", side: "Right", units: 10 },
-        { name: "M. temporalis", side: "Left", units: 20 },
-        { name: "M. temporalis", side: "Right", units: 20 },
-        { name: "M. occipitalis", side: "Left", units: 15 },
-        { name: "M. occipitalis", side: "Right", units: 15 },
-        { name: "M. trapezius", side: "Left", units: 15 },
-        { name: "M. trapezius", side: "Right", units: 15 },
-        { name: "M. paraspinalis (cervical)", side: "Left", units: 10 },
-        { name: "M. paraspinalis (cervical)", side: "Right", units: 10 }
-    ]
+  const applyProtocol = (protocol: Protocol) => {
+    if (!isPro) {
+        setShowUpgradeDialog(true)
+        return
+    }
 
-    const newSteps = templateMuscles.map((t): ProcedureStep | null => {
-        const muscleDef = muscles.find(m => m.name === t.name)
+    const newSteps = protocol.steps.map((s): ProcedureStep | null => {
+        const muscleDef = muscles.find(m => m.name === s.muscleName)
         if (!muscleDef) return null
         return {
             id: Math.random().toString(36).substr(2, 9),
             muscle_id: muscleDef.id,
-            side: t.side,
-            numeric_value: t.units,
+            side: s.side,
+            numeric_value: s.units,
             mas_baseline: "",
             mas_peak: ""
         }
@@ -294,9 +293,9 @@ export function RecordForm({
 
     if (newSteps.length > 0) {
         setSteps(newSteps)
-        toast.success("Standard migraine protocol (PREMPT) loaded.")
+        toast.success(`${protocol.name} loaded.`)
     } else {
-        toast.error("Template muscles not found in database.")
+        toast.error("Protocol muscles not found in database.")
     }
   }
 
@@ -541,11 +540,28 @@ export function RecordForm({
                         Saved {format(lastSaved, "HH:mm:ss")}
                     </span>
                 )}
-                {categoryValue === 'kopfschmerz' && (
-                    <Button variant="secondary" size="sm" type="button" onClick={loadMigraineTemplate}>
-                        <Wand2 className="mr-2 h-4 w-4" /> Load PREMPT
-                    </Button>
+                
+                {protocols.length > 0 && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="secondary" size="sm" type="button" className={cn(!isPro && "opacity-80")}>
+                                {isPro ? <Wand2 className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-3 w-3" />}
+                                Load Protocol
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Clinical Protocols</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {protocols.map((p) => (
+                                <DropdownMenuItem key={p.id} onClick={() => applyProtocol(p)}>
+                                    {p.name}
+                                    {!isPro && <Lock className="ml-auto size-3 opacity-50" />}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 )}
+
                 {!isSmartFilled && (
                     <Button 
                         variant="outline" 
@@ -630,6 +646,7 @@ export function RecordForm({
                 regions={regions} 
                 disabled={isSigned || !canWrite} 
                 unitsPerMl={unitsPerMl}
+                patientId={form.watch("subject_id")}
              />
              <div className="flex justify-end font-bold text-xl">Total: {totalUnits} Units</div>
         </div>

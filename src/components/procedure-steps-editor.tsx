@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Trash2, Copy } from "lucide-react"
+import { Plus, Trash2, Copy, Sparkles } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -27,6 +27,9 @@ import {
   CardDescription
 } from "@/components/ui/card"
 import { MuscleSelector, Muscle, MuscleRegion } from "@/components/muscle-selector"
+import { getDoseSuggestionsAction } from "@/app/(dashboard)/treatments/actions"
+import { DoseSuggestion } from "@/lib/dose-engine"
+import { useEffect, useState } from "react"
 
 export interface ProcedureStep {
   id: string
@@ -45,6 +48,44 @@ interface ProcedureStepsEditorProps {
   regions: MuscleRegion[]
   disabled?: boolean
   unitsPerMl?: number
+  patientId?: string
+}
+
+function DoseSuggestionHint({ 
+    muscleId, 
+    patientId, 
+    onApply 
+}: { 
+    muscleId: string, 
+    patientId?: string, 
+    onApply: (units: number, side: ProcedureStep["side"]) => void 
+}) {
+    const [suggestion, setSuggestion] = useState<DoseSuggestion | null>(null)
+
+    useEffect(() => {
+        if (!muscleId || !patientId) return
+        const fetchSuggestion = async () => {
+            const results = await getDoseSuggestionsAction(patientId, muscleId)
+            if (results.length > 0) setSuggestion(results[0])
+        }
+        fetchSuggestion()
+    }, [muscleId, patientId])
+
+    if (!suggestion) return null
+
+    return (
+        <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-1.5 text-[10px] text-primary bg-primary/5 hover:bg-primary/10 flex items-center gap-1 mt-1"
+            onClick={() => onApply(suggestion.units, suggestion.side)}
+            type="button"
+            title={`Suggestion based on patient history: ${suggestion.units} U`}
+        >
+            <Sparkles className="size-2.5" />
+            Apply {suggestion.units} U
+        </Button>
+    )
 }
 
 export function ProcedureStepsEditor({
@@ -53,7 +94,8 @@ export function ProcedureStepsEditor({
   muscles,
   regions,
   disabled = false,
-  unitsPerMl = 0
+  unitsPerMl = 0,
+  patientId
 }: ProcedureStepsEditorProps) {
   const addStep = () => {
     if (disabled) return
@@ -161,6 +203,16 @@ export function ProcedureStepsEditor({
                       onChange={(e) => updateStep(step.id, "numeric_value", parseFloat(e.target.value))}
                       disabled={disabled}
                     />
+                    {!disabled && patientId && step.muscle_id && (
+                        <DoseSuggestionHint 
+                            muscleId={step.muscle_id} 
+                            patientId={patientId} 
+                            onApply={(units, side) => {
+                                updateStep(step.id, "numeric_value", units)
+                                updateStep(step.id, "side", side)
+                            }}
+                        />
+                    )}
                   </div>
                   {unitsPerMl > 0 && (
                     <div className="space-y-2">
@@ -306,6 +358,16 @@ export function ProcedureStepsEditor({
                         onChange={(e) => updateStep(step.id, "numeric_value", parseFloat(e.target.value))}
                         disabled={disabled}
                       />
+                      {!disabled && patientId && step.muscle_id && (
+                        <DoseSuggestionHint 
+                            muscleId={step.muscle_id} 
+                            patientId={patientId} 
+                            onApply={(units, side) => {
+                                updateStep(step.id, "numeric_value", units)
+                                updateStep(step.id, "side", side)
+                            }}
+                        />
+                      )}
                     </TableCell>
                     {unitsPerMl > 0 && (
                         <TableCell>

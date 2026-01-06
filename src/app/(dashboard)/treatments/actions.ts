@@ -5,6 +5,7 @@ import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { BodySide, Timepoint, EncounterStatus } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
+import { getDoseSuggestions, CLINICAL_PROTOCOLS } from "@/lib/dose-engine"
 
 interface AssessmentData {
   scale: string;
@@ -336,4 +337,21 @@ export async function getLatestTreatment(patientId: string) {
       valueNum: a.valueNum?.toNumber() ?? null // Convert assessment values
     }))
   }
+}
+
+/**
+ * Advanced Dose Engine: Get suggestions for a specific patient and muscle.
+ */
+export async function getDoseSuggestionsAction(patientId: string, muscleId: string) {
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  
+  return await getDoseSuggestions(ctx.organizationId, patientId, muscleId)
+}
+
+/**
+ * Get standard protocols for an indication.
+ */
+export async function getProtocolsAction(indication: string) {
+    return CLINICAL_PROTOCOLS.filter(p => p.indication === indication)
 }
