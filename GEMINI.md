@@ -23,33 +23,28 @@ We use **Composite Foreign Keys** to prevent "Organization Drift".
 - **Immutability:** Updates to `patientId` on existing encounters are blocked by DB security policy.
 
 ## 3. Multi-Tenancy & Monetization
-The application is **Organization-centric** and features a seat-based tiered Plan model.
+The application is **Organization-centric** and features a tiered plan model (BASIC, PRO, ENTERPRISE).
 
 ### Context Resolution
 - **`getOrganizationContext()`**: Resolved via cookie or fallback to first active membership.
-- **Global Auth Context:** `AuthContextProvider` provides the current user's **Role** and **Plan** (BASIC/PRO) to all client components.
+- **Effective Plan Resolution:** Manual overrides (`planOverride`) and support windows (`proUntil`) take precedence over Stripe-synced data via `getEffectivePlan()`.
 
 ### Monetization & Billing Engine
-- **Source of Truth:** Database (`Organization.subscriptionStatus`, `stripeSubscriptionId`, `stripeCurrentPeriodEnd`) controls access, not Stripe API directly.
-- **Seat-based Billing:** 
-  - **Auto-Scaling:** Seat count is automatically reconciled with Stripe via `src/lib/stripe-billing.ts` whenever a member is added (Invite Accepted) or removed.
-  - **Roles:** Active `OWNER`, `CLINIC_ADMIN`, `PROVIDER`, and `ASSISTANT` roles count as billable seats.
-- **Lifecycle Handling:**
-  - **Grace Period:** `PAST_DUE` status allows continued access but shows prominent warnings in Admin UI.
-  - **Cancellation:** `CANCELED` status reverts organization to BASIC plan.
-- **UI:** Admin Settings provides real-time billing status, active seat count, renewal dates, and direct links to Stripe Customer Portal.
+- **Source of Truth:** Database holds the primary subscription state.
+- **Seat-based Gating:**
+  - **BASIC:** Limited to **1 active user**. Unlimited documentation.
+  - **PRO:** Limited to **5 active users**. Pauschalpreis (Flat Fee) billed via Stripe.
+  - **ENTERPRISE:** Unlimited users. Managed manually via Sales/Invoices.
+- **Automated Reconciliation:** Stripe subscription quantities are automatically synced in `src/lib/stripe-billing.ts` upon team changes (Invite/Remove).
+- **Lifecycle & Support:**
+  - **Grace Period:** `PAST_DUE` status triggers warnings but maintains access.
+  - **Kill-Switch:** Manual overrides enabled for support/sales intervention.
+- **Admin UI:** Real-time seat tracking (e.g. "3 / 5 used") and direct portal integration.
 
 ### Plans
-- **BASIC (Free):** CORE clinical recording, unlimited documentation for 1 user, manual dose calculator, standard presets.
-- **PRO (€59 / org / mo):**
-  - **Scale:** Up to 5 active clinical members.
-  - **Automation:** Smart Defaults (Full auto-fill from last visit), clinic-wide dosage standards.
-  - **Compliance:** Advanced Audit Trails (Search/Filter/Export), unlock signed records.
-  - **Analytics:** Clinical Insights (Outcome trends, dosage distribution).
-- **ENTERPRISE (Custom):**
-  - **Scale:** Unlimited users & multiple locations.
-  - **Integrations:** EHR/CMS connectivity (EPIC, KISIM).
-  - **Governance:** SSO, SCIM, SLA, and Custom Contracts.
+- **BASIC (Free):** Single user, unlimited documentation, manual calculations.
+- **PRO (€59 / org / mo):** Up to 5 users, Smart Defaults, Audit Re-open, CSV Exports, Clinical Insights.
+- **ENTERPRISE (Custom):** Unlimited users, EHR Integration (EPIC, KISIM), SSO/SAML, SLA, Custom Contracts.
 
 ## 4. Clinical Workflow & Data Integrity
 
@@ -59,23 +54,17 @@ The application is **Organization-centric** and features a seat-based tiered Pla
 3.  **Re-open:** Requires **PRO Plan** and Audit Log entry.
 4.  **Void:** Soft-delete state (Audit trail preserved).
 
-### Smart Dose Engine
-- **Automatic Calculation:** Live conversion between Units and Volume (ml).
-- **Presets:** Quick load common concentrations.
-- **PRO Defaults:** Automatically pre-fills clinic-wide standards.
-
 ## 5. Roadmap & Follow-up Actions
 
 ### Phase 3: Scaling & Monetization (Completed)
-- [x] **Stripe Integration:** Full checkout loop and seat-based billing automation.
-- [x] **Robust Billing Engine:** Webhook hardening, Grace Period handling, automated seat reconciliation.
-- [x] **Smart Defaults:** Automated clinical workflow for PRO users.
-- [x] **Clinical Insights:** Outcome trends and dosage analytics integrated into Dashboard.
-- [x] **Interactive Pricing:** Feature comparison matrix embedded in the upgrade workflow.
-- [x] **Audit Compliance:** Advanced filtering and CSV export for security logs.
+- [x] **Stripe Integration:** Full checkout loop and flat-fee organization billing.
+- [x] **PRO + ENTERPRISE Split:** Hierarchical plan structure with hard seat limits.
+- [x] **Conversion Triggers:** Active upgrade prompts for Exports and Smart Defaults.
+- [x] **Support Tools:** Manual plan overrides and support period flags.
+- [x] **Admin UI:** Enhanced billing dashboard with seat usage tracking.
 
 ### Phase 4: Expansion & Polish (Next)
-- [ ] **Admin Communication:** Transactional emails for invites, payment failures, and welcome flows.
-- [ ] **Conversion Triggers:** "Upgrade Moments" at key feature gates (Re-open, Export).
+- [ ] **Email System Setup:** **CRITICAL:** `RESEND_API_KEY` must be configured and `resend` package installed to enable transactional emails (Invites, Payment Failures).
 - [ ] **Data Residency Enablers:** Finalize region-specific database routing hooks.
-- [ ] **Infrastructure as Code:** Azure Bicep templates for push-button clinic deployments.
+- [ ] **Advanced Dose Engine:** Smart suggestions based on patient history.
+- [ ] **Infrastructure as Code:** Azure Bicep templates for push-button deployments.
