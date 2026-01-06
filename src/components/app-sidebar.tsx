@@ -7,7 +7,8 @@ import {
   IconDashboard,
   IconUsers,
   IconVaccine,
-  IconSettings
+  IconSettings,
+  IconLifebuoy
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -71,6 +72,11 @@ const data = {
   ],
   navSecondary: [
     {
+      title: "Support",
+      url: "/support",
+      icon: IconLifebuoy,
+    },
+    {
       title: "Settings",
       url: "/settings",
       icon: IconSettings,
@@ -94,9 +100,11 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     name: string
   }[]
   userRole?: string
+  variant?: "sidebar" | "floating" | "inset"
+  collapsible?: "offcanvas" | "icon" | "none"
 }
 
-export function AppSidebar({ user, organization, allTeams = [], userRole = "Member", ...props }: AppSidebarProps) {
+export function AppSidebar({ user, organization, allTeams = [], userRole = "Member", variant, collapsible, ...props }: AppSidebarProps) {
   const currentUser = user || defaultUser
   const orgName = organization?.name || "InjexPro"
   const orgId = organization?.id
@@ -119,7 +127,7 @@ export function AppSidebar({ user, organization, allTeams = [], userRole = "Memb
   })
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar variant={variant} collapsible={collapsible || "offcanvas"} {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
