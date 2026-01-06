@@ -9,7 +9,7 @@ import { TeamManager } from "@/components/settings/team-manager"
 import { ProfileManager } from "@/components/settings/profile-manager"
 import { redirect } from "next/navigation"
 import { TabsContent } from "@/components/ui/tabs"
-import { checkPermission, PERMISSIONS, checkPlan, getEffectivePlan } from "@/lib/permissions"
+import { checkPermission, PERMISSIONS, checkPlan, getEffectivePlan, PLAN_SEAT_LIMITS } from "@/lib/permissions"
 import { Plan, SubscriptionStatus } from "@/generated/client/enums"
 import { SettingsTabs } from "./settings-tabs"
 import { cn } from "@/lib/utils"
@@ -18,7 +18,7 @@ import { ClinicalSettingsForm } from "@/components/settings/clinical-settings-fo
 import { getAuditLogs, getAuditFilterOptions } from "./audit-logs/actions"
 import { AuditLogManager } from "@/components/settings/audit-log-manager"
 import { Badge } from "@/components/ui/badge"
-import { ShieldCheck, ArrowRight, CreditCard, ExternalLink, CheckCircle2, AlertTriangle, Users, Info } from "lucide-react"
+import { ShieldCheck, ArrowRight, CreditCard, ExternalLink, CheckCircle2, AlertTriangle, Users, Info, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { createCustomerPortalAction, syncStripeSession } from "@/app/actions/stripe"
@@ -50,9 +50,11 @@ export default async function SettingsPage({
 
   const canManageTeam = checkPermission(ctx.membership.role, PERMISSIONS.MANAGE_TEAM)
   const isPro = checkPlan(userPlan, Plan.PRO)
+  const isEnterprise = userPlan === Plan.ENTERPRISE
   
   // Calculate seats on the fly for display
   const seatCount = await calculateBillableSeats(ctx.organizationId)
+  const seatLimit = PLAN_SEAT_LIMITS[userPlan]
   const subStatus = ctx.organization.subscriptionStatus
   const periodEnd = ctx.organization.stripeCurrentPeriodEnd
 
@@ -123,7 +125,7 @@ export default async function SettingsPage({
                                 Manage your billing and seats.
                             </CardDescription>
                         </div>
-                        <Badge variant={isPro ? "default" : "secondary"} className="text-base px-3 py-1">
+                        <Badge variant={isEnterprise ? "default" : isPro ? "default" : "secondary"} className={cn("text-base px-3 py-1", isEnterprise && "bg-purple-600 hover:bg-purple-700")}>
                             {userPlan}
                         </Badge>
                     </div>
@@ -147,20 +149,23 @@ export default async function SettingsPage({
                                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Status</p>
                                     <div className="mt-1 flex items-center gap-2">
                                         <div className={cn("h-2 w-2 rounded-full", 
+                                            isEnterprise ? "bg-purple-500" :
                                             subStatus === SubscriptionStatus.ACTIVE ? "bg-emerald-500" :
                                             subStatus === SubscriptionStatus.PAST_DUE ? "bg-amber-500" : "bg-red-500"
                                         )} />
-                                        <span className="font-semibold capitalize">{subStatus.toLowerCase().replace('_', ' ')}</span>
+                                        <span className="font-semibold capitalize">{isEnterprise ? 'Active' : subStatus.toLowerCase().replace('_', ' ')}</span>
                                     </div>
                                 </div>
                                 <div className="p-3 bg-background rounded-md border">
                                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Active Seats</p>
                                     <div className="mt-1 flex items-center gap-2">
                                         <Users className="h-4 w-4 text-muted-foreground" />
-                                        <span className="font-semibold">{seatCount}</span>
+                                        <span className="font-semibold">
+                                            {seatCount} {seatLimit !== Infinity ? `/ ${seatLimit}` : '/ Unlimited'}
+                                        </span>
                                     </div>
                                 </div>
-                                {periodEnd && (
+                                {periodEnd && !isEnterprise && (
                                     <div className="p-3 bg-background rounded-md border">
                                         <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Renews On</p>
                                         <div className="mt-1 font-semibold">
@@ -170,7 +175,7 @@ export default async function SettingsPage({
                                 )}
                             </div>
 
-                            {subStatus === SubscriptionStatus.PAST_DUE && !isOverrideActive && (
+                            {subStatus === SubscriptionStatus.PAST_DUE && !isOverrideActive && !isEnterprise && (
                                 <Alert className="bg-amber-50 text-amber-900 border-amber-200">
                                     <AlertTriangle className="h-4 w-4 text-amber-600" />
                                     <AlertTitle>Payment Past Due</AlertTitle>
@@ -181,20 +186,31 @@ export default async function SettingsPage({
                             )}
 
                             <div className="flex items-center justify-between pt-2">
-                                <p className="text-sm text-muted-foreground">
-                                    Your clinic has access to all Pro features including Audit Logs, Clinical Insights, and unlimited treatments.
+                                <p className="text-sm text-muted-foreground max-w-md">
+                                    {isEnterprise 
+                                        ? "Your organization is on an Enterprise plan. Billing and seats are managed via your account manager."
+                                        : "Your clinic has access to all Pro features including Audit Logs, Clinical Insights, and unlimited treatments."}
                                 </p>
-                                <form action={createCustomerPortalAction}>
-                                    <Button variant="default" type="submit">
-                                        Manage Billing & Invoices <ExternalLink className="ml-2 h-4 w-4" />
+                                
+                                {isEnterprise ? (
+                                    <Button variant="outline" asChild>
+                                        <a href="mailto:support@injexpro.com">
+                                            Contact Support <Mail className="ml-2 h-4 w-4" />
+                                        </a>
                                     </Button>
-                                </form>
+                                ) : (
+                                    <form action={createCustomerPortalAction}>
+                                        <Button variant="default" type="submit">
+                                            Manage Billing & Invoices <ExternalLink className="ml-2 h-4 w-4" />
+                                        </Button>
+                                    </form>
+                                )}
                             </div>
                         </div>
                     ) : (
                         <div className="space-y-4">
                             <p className="text-sm text-muted-foreground">
-                                Basic plans are limited to 100 treatments and lack advanced oversight tools.
+                                Basic plans are limited to 1 user and lack advanced clinical oversight tools.
                             </p>
                             <Button asChild size="lg" className="w-full md:w-auto">
                                 <Link href="/pricing">Upgrade to Pro</Link>

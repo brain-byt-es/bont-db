@@ -5,7 +5,7 @@ import { getOrganizationContext } from "@/lib/auth-context"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import prisma from "@/lib/prisma"
-import { MembershipRole, SubscriptionStatus } from "@/generated/client/enums"
+import { SubscriptionStatus } from "@/generated/client/enums"
 import Stripe from "stripe"
 
 /**
@@ -20,22 +20,6 @@ export async function createCheckoutSessionAction() {
     throw new Error("Stripe Price ID is not configured. Please set STRIPE_PRO_PRICE_ID in your environment variables.")
   }
 
-  // Count active clinical seats (those who can write treatments)
-  const clinicalSeatCount = await prisma.organizationMembership.count({
-    where: {
-      organizationId: ctx.organizationId,
-      status: "ACTIVE",
-      role: {
-        in: [
-          MembershipRole.OWNER,
-          MembershipRole.CLINIC_ADMIN,
-          MembershipRole.PROVIDER,
-          MembershipRole.ASSISTANT
-        ]
-      }
-    }
-  })
-
   const headerList = await headers()
   const origin = headerList.get("origin")
 
@@ -44,7 +28,7 @@ export async function createCheckoutSessionAction() {
     line_items: [
       {
         price: priceId,
-        quantity: Math.max(1, clinicalSeatCount),
+        quantity: 1, // Flat fee for the organization
       },
     ],
     mode: "subscription",

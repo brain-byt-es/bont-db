@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma"
 import { stripe } from "@/lib/stripe"
-import { MembershipRole, SubscriptionStatus, MembershipStatus } from "@/generated/client/enums"
+import { MembershipRole, SubscriptionStatus, MembershipStatus, Plan } from "@/generated/client/enums"
 import Stripe from "stripe"
 
 /**
@@ -36,6 +36,7 @@ export async function updateSubscriptionSeatCount(organizationId: string) {
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },
       select: { 
+        plan: true,
         stripeSubscriptionId: true,
         subscriptionStatus: true
       }
@@ -45,8 +46,12 @@ export async function updateSubscriptionSeatCount(organizationId: string) {
       return // No subscription to update
     }
 
+    // Enterprise is managed via Sales/Invoices manually
+    if (org.plan === Plan.ENTERPRISE) {
+        return
+    }
+
     // Only update active subscriptions (or past_due/trialing)
-    // If canceled/unpaid, we shouldn't bump quantity (or maybe we can't)
     const updateableStatuses: SubscriptionStatus[] = [
         SubscriptionStatus.ACTIVE, 
         SubscriptionStatus.TRIALING, 
@@ -57,7 +62,9 @@ export async function updateSubscriptionSeatCount(organizationId: string) {
         return
     }
 
-    const seats = await calculateBillableSeats(organizationId)
+    // Resolve target quantity
+    // Option A: PRO is Flat Fee (1 unit covers up to limit)
+    const targetQuantity = org.plan === Plan.PRO ? 1 : await calculateBillableSeats(organizationId)
     
     // Fetch subscription to get the item ID
     const subscription = await stripe.subscriptions.retrieve(org.stripeSubscriptionId) as Stripe.Subscription
@@ -69,23 +76,21 @@ export async function updateSubscriptionSeatCount(organizationId: string) {
     }
 
     // Check if update is needed
-    if (subscription.items.data[0].quantity === seats) {
+    if (subscription.items.data[0].quantity === targetQuantity) {
         return // No change
     }
 
     await stripe.subscriptions.update(org.stripeSubscriptionId, {
       items: [{
         id: subscriptionItemId,
-        quantity: seats
+        quantity: targetQuantity
       }],
-      proration_behavior: 'always_invoice' // Immediately charge/credit for seat changes
+      proration_behavior: 'always_invoice'
     })
 
-    console.log(`[Stripe Billing] Updated seat count for org ${organizationId} to ${seats}`)
+    console.log(`[Stripe Billing] Updated Stripe quantity for org ${organizationId} to ${targetQuantity} (Plan: ${org.plan})`)
 
   } catch (error) {
-    console.error(`[Stripe Billing] Failed to update seat count for org ${organizationId}:`, error)
-    // We don't throw here to avoid breaking the user flow (e.g. "Invite Accepted" shouldn't fail if Stripe is down)
-    // Ideally, we'd have a background job to reconcile this.
+    console.error(`[Stripe Billing] Failed to update Stripe for org ${organizationId}:`, error)
   }
 }

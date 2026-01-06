@@ -36,14 +36,14 @@ const INJEXPRO_PLANS: PricingPlan[] = [
   {
     id: "basic",
     name: "Basic",
-    description: "Ideal for individual practitioners",
+    description: "For individual practitioners",
     monthlyPrice: "Free",
     yearlyPrice: "Free",
     features: [
+      { text: "Single user access" },
       { text: "Core clinical documentation" },
       { text: "Up to 100 treatment records" },
       { text: "Standard PREMPT templates" },
-      { text: "Manual dose calculator" },
       { text: "PII protection guard" },
     ],
     buttonText: "Current Plan",
@@ -51,19 +51,35 @@ const INJEXPRO_PLANS: PricingPlan[] = [
   {
     id: "pro",
     name: "Pro",
-    description: "For professional clinics & teams",
+    description: "For small clinics & teams",
     monthlyPrice: "€59",
     yearlyPrice: "€590",
     isPro: true,
     features: [
+      { text: "Up to 5 active users" },
       { text: "Unlimited treatment records" },
-      { text: "Clinic-wide dosage standards" },
+      { text: "Smart defaults & presets" },
       { text: "Re-open signed encounters" },
       { text: "Advanced Audit Trails & CSV Export" },
-      { text: "Outcome trends & dose analytics" },
-      { text: "Organization-wide user management" },
+      { text: "Clinic-wide Analytics" },
     ],
     buttonText: "Upgrade to Pro",
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    description: "For hospital groups & networks",
+    monthlyPrice: "Custom",
+    yearlyPrice: "Custom",
+    features: [
+      { text: "Unlimited active users" },
+      { text: "EHR/CMS Integration (EPIC, KISIM)" },
+      { text: "SSO Enforcement (SAML/SCIM)" },
+      { text: "SLA & Priority Support" },
+      { text: "Data Processing Agreements (DPA)" },
+      { text: "Multiple Locations & Policies" },
+    ],
+    buttonText: "Contact Sales",
   },
 ];
 
@@ -83,22 +99,22 @@ export function PricingTable({ className }: { className?: string }) {
   return (
     <section className={cn("py-12", className)}>
       <div className="container px-4">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 text-center">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 text-center">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
               Choose your level of oversight
             </h2>
-            <p className="text-muted-foreground text-sm sm:text-base">
-              From simple documentation to institutional-grade clinical management.
+            <p className="text-muted-foreground text-sm sm:text-base text-balance max-w-2xl">
+              Self-serve clinical tools for practices, or governed integration systems for hospital groups.
             </p>
           </div>
           
-          <div className="flex flex-col items-stretch gap-6 md:flex-row mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 w-full">
             {INJEXPRO_PLANS.map((plan) => (
               <Card
                 key={plan.id}
                 className={cn(
-                    "flex w-full md:w-80 flex-col justify-between text-left transition-all",
+                    "flex flex-col justify-between text-left transition-all",
                     plan.isPro && "border-primary shadow-md relative"
                 )}
               >
@@ -111,25 +127,25 @@ export function PricingTable({ className }: { className?: string }) {
                   <CardTitle className="flex items-center justify-between">
                     <span>{plan.name}</span>
                   </CardTitle>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground min-h-8">
                     {plan.description}
                   </p>
                   <div className="flex items-end mt-2">
                     <span className="text-3xl font-bold">
                       {plan.monthlyPrice}
                     </span>
-                    {plan.id !== 'basic' && (
+                    {plan.id === 'pro' && (
                         <span className="text-sm font-medium text-muted-foreground mb-1 ml-1">
-                            / per provider / mo
+                            / month / org
                         </span>
                     )}
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1">
                   <Separator className="mb-6" />
-                  {plan.id === "pro" && (
+                  {plan.id !== "basic" && (
                     <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Everything in Basic, plus:
+                      Everything in {plan.id === 'pro' ? 'Basic' : 'Pro'}, plus:
                     </p>
                   )}
                   <ul className="space-y-3">
@@ -145,15 +161,23 @@ export function PricingTable({ className }: { className?: string }) {
                   </ul>
                 </CardContent>
                 <CardFooter className="mt-auto">
-                  <Button 
-                    variant={plan.isPro ? "default" : "outline"} 
-                    className="w-full"
-                    disabled={plan.id === 'basic' || isPending}
-                    onClick={plan.isPro ? handleUpgrade : undefined}
-                  >
-                    {isPending && plan.isPro ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-                    {plan.buttonText}
-                  </Button>
+                  {plan.id === 'enterprise' ? (
+                      <Button variant="outline" className="w-full" asChild>
+                          <a href="mailto:sales@injexpro.com?subject=Enterprise Inquiry">
+                              {plan.buttonText}
+                          </a>
+                      </Button>
+                  ) : (
+                    <Button 
+                        variant={plan.isPro ? "default" : "outline"} 
+                        className="w-full"
+                        disabled={plan.id === 'basic' || isPending}
+                        onClick={handleUpgrade}
+                    >
+                        {isPending && plan.isPro ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+                        {plan.buttonText}
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
             ))}

@@ -32,6 +32,7 @@ enum Region {
 enum Plan {
   BASIC
   PRO
+  ENTERPRISE
   @@schema("public")
 }
 

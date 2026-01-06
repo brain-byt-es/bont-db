@@ -5,9 +5,9 @@ import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { randomBytes, createHash } from "crypto"
 import { headers } from "next/headers"
-import { MembershipRole } from "@/generated/client/client"
-import { PERMISSIONS, requirePermission } from "@/lib/permissions"
-import { updateSubscriptionSeatCount } from "@/lib/stripe-billing"
+import { MembershipRole, Plan } from "@/generated/client/enums"
+import { PERMISSIONS, requirePermission, PLAN_SEAT_LIMITS, getEffectivePlan } from "@/lib/permissions"
+import { updateSubscriptionSeatCount, calculateBillableSeats } from "@/lib/stripe-billing"
 import { sendInviteEmail } from "@/lib/email"
 
 export async function getTeamData() {
@@ -60,6 +60,17 @@ export async function createInviteAction(formData: FormData) {
     requirePermission(membership.role, PERMISSIONS.MANAGE_TEAM)
   } catch {
     return { error: "You do not have permission to invite members." }
+  }
+
+  // Enforce Seat Limits
+  const currentSeats = await calculateBillableSeats(organizationId)
+  const effectivePlan = getEffectivePlan(organization as { plan: Plan, planOverride?: Plan | null, proUntil?: Date | null })
+  const seatLimit = PLAN_SEAT_LIMITS[effectivePlan]
+
+  if (currentSeats >= seatLimit) {
+      return { 
+          error: `Seat limit reached (${seatLimit}). Please upgrade to Enterprise for larger teams.` 
+      }
   }
 
   const email = formData.get("email") as string

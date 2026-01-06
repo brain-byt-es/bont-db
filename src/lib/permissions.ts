@@ -18,6 +18,17 @@ export const PERMISSIONS = {
 }
 
 /**
+ * Seat Limits per Plan
+ */
+export const PRO_SEAT_LIMIT = 5
+
+export const PLAN_SEAT_LIMITS = {
+    [Plan.BASIC]: 1, // Usually just the owner
+    [Plan.PRO]: PRO_SEAT_LIMIT,
+    [Plan.ENTERPRISE]: Infinity,
+}
+
+/**
  * Feature Gates based on the Organization's Plan.
  */
 export const PLAN_GATES = {
@@ -25,6 +36,17 @@ export const PLAN_GATES = {
   AUDIT_LOGS: Plan.PRO,
   ADVANCED_COMPLIANCE: Plan.PRO,
   CLINICAL_INSIGHTS: Plan.PRO,
+  ENTERPRISE_SECURITY: Plan.ENTERPRISE,
+  API_ACCESS: Plan.ENTERPRISE,
+}
+
+/**
+ * Plan Hierarchy Ranking
+ */
+const PLAN_RANK: Record<Plan, number> = {
+    [Plan.BASIC]: 0,
+    [Plan.PRO]: 1,
+    [Plan.ENTERPRISE]: 2,
 }
 
 /**
@@ -52,9 +74,7 @@ export function checkPermission(role: MembershipRole, allowedRoles: MembershipRo
 }
 
 export function checkPlan(currentPlan: Plan, requiredPlan: Plan): boolean {
-  // Simple hierarchy: PRO includes everything BASIC has.
-  if (requiredPlan === Plan.BASIC) return true
-  return currentPlan === Plan.PRO
+  return PLAN_RANK[currentPlan] >= PLAN_RANK[requiredPlan]
 }
 
 export function requirePermission(role: MembershipRole, allowedRoles: MembershipRole[], message = "Permission denied") {
