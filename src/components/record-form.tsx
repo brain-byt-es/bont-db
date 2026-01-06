@@ -72,6 +72,7 @@ import { validatePII } from "@/lib/pii-validation"
 import { checkPermission, PERMISSIONS, checkPlan } from "@/lib/permissions"
 import { MembershipRole, Plan } from "@/generated/client/enums"
 import { useAuthContext } from "@/components/auth-context-provider"
+import { UpgradeDialog } from "@/components/upgrade-dialog"
 
 const formSchema = z.object({
   subject_id: z.string().min(1, {
@@ -170,6 +171,7 @@ export function RecordForm({
   const [showPiiWarning, setShowPiiWarning] = useState(false)
   const [showSignDialog, setShowSignDialog] = useState(false)
   const [showReopenDialog, setShowReopenDialog] = useState(false)
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const [piiDetected, setPiiDetected] = useState<string[]>([])
   const [pendingValues, setPendingValues] = useState<z.infer<typeof formSchema> | null>(null)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
@@ -220,15 +222,8 @@ export function RecordForm({
     const fetchLatest = async () => {
         const latest = await getLatestTreatment(subjectId)
         if (latest) {
-             const currentValues = form.getValues()
-             
-             // BASIC logic: only fill basic fields if empty
-             if (!isPro) {
-                if (!currentValues.product_label) form.setValue("product_label", latest.product)
-                if (!currentValues.location || currentValues.location === "Main Clinic") form.setValue("location", latest.treatment_site)
-                if (!currentValues.category) form.setValue("category", latest.indication)
-                return
-             }
+             // BASIC logic: no auto-fill, upsell via button
+             if (!isPro) return
 
              // PRO logic: Smart Auto-Fill everything
              form.setValue("product_label", latest.product, { shouldValidate: true })
@@ -341,6 +336,14 @@ export function RecordForm({
         }
     }
   }, [watchedValues, steps, assessments, isEditing])
+
+  const handleCopyLastVisit = () => {
+      if (isPro) {
+          copyLastTreatmentFull()
+      } else {
+          setShowUpgradeDialog(true)
+      }
+  }
 
   const copyLastTreatmentFull = async () => {
       const currentSubjectId = form.getValues("subject_id")
@@ -495,6 +498,14 @@ export function RecordForm({
       </AlertDialogContent>
     </AlertDialog>
 
+    <UpgradeDialog 
+        open={showUpgradeDialog} 
+        onOpenChange={setShowUpgradeDialog}
+        title="Smart Clinical Defaults"
+        featureName="Auto-filling from previous visits"
+        description="Save time by automatically loading the exact dosage, muscles, and notes from the patient's last encounter. Standardize your workflow with Pro."
+    />
+
     <PiiWarningDialog open={showPiiWarning} onOpenChange={setShowPiiWarning} detectedTypes={piiDetected} onConfirm={() => { setShowPiiWarning(false); if (pendingValues) processSubmission(pendingValues) }} onCancel={() => setShowPiiWarning(false)} />
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -536,8 +547,15 @@ export function RecordForm({
                     </Button>
                 )}
                 {!isSmartFilled && (
-                    <Button variant="outline" size="sm" type="button" onClick={copyLastTreatmentFull} className="bg-primary/5 text-primary">
-                        <Save className="mr-2 h-4 w-4" /> Copy last visit
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        type="button" 
+                        onClick={handleCopyLastVisit} 
+                        className={cn("bg-primary/5 text-primary", !isPro && "opacity-80")}
+                    >
+                        {isPro ? <Save className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-3 w-3" />} 
+                        Copy last visit
                     </Button>
                 )}
             </div>

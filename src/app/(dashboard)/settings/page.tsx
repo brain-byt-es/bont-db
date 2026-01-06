@@ -17,6 +17,7 @@ import { ComplianceUpgradeTeaser } from "@/components/settings/compliance-upgrad
 import { ClinicalSettingsForm } from "@/components/settings/clinical-settings-form"
 import { getAuditLogs, getAuditFilterOptions } from "./audit-logs/actions"
 import { AuditLogManager } from "@/components/settings/audit-log-manager"
+import { IntegrationsManager } from "@/components/settings/integrations-manager"
 import { Badge } from "@/components/ui/badge"
 import { ShieldCheck, ArrowRight, CreditCard, ExternalLink, CheckCircle2, AlertTriangle, Users, Info, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -224,6 +225,12 @@ export default async function SettingsPage({
         {canManageTeam && (
           <TabsContent value="team" className="space-y-4">
               <TeamManager initialData={teamData} />
+          </TabsContent>
+        )}
+
+        {canManageTeam && (
+          <TabsContent value="integrations" className="space-y-4">
+              <IntegrationsManager />
           </TabsContent>
         )}
 

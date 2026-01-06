@@ -32,6 +32,7 @@ export function SettingsTabs({
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="organization">Organization</TabsTrigger>
         {canManageTeam && <TabsTrigger value="team">Team Members</TabsTrigger>}
+        {canManageTeam && <TabsTrigger value="integrations">Integrations</TabsTrigger>}
         <TabsTrigger value="compliance">Compliance</TabsTrigger>
         {showAudit && <TabsTrigger value="audit">Security & Logs</TabsTrigger>}
       </TabsList>
