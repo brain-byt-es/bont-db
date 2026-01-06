@@ -1,142 +1,98 @@
-# bont-docs
+# InjexPro
 
-A web-based clinical documentation system for neurological botulinum toxin treatments.
+A professional clinical documentation and governance system for neurological Botulinum Toxin treatments.
 
-The project focuses on **clean, efficient clinical workflows**, **certification-ready documentation**, and **research-friendly data structures**, without adding unnecessary friction to daily practice.
-
----
-
-## 🎯 Goals
-
-- Structured documentation of botulinum toxin treatments (neurology)
-- Readiness for AK-BoNT certification requirements
-- Built-in support for outcome tracking (scores, follow-ups)
-- Research-capable real-world data (RWD) without disrupting clinical workflow
-- Clean, minimal, clinician-friendly UI
+InjexPro focuses on **institutional-grade clinical workflows**, **regulatory compliance**, and **intelligent data structures** to turn clinical documentation into a strategic asset for clinics and hospital groups.
 
 ---
 
-## 🧠 Core Concepts
+## 🎯 Strategic Pillars
 
-- **Patients** are pseudonymized (no names or addresses)
-- **Treatments** are the central entity
-- Each treatment can include:
-  - Multiple injection targets
-  - Optional follow-ups (success control)
-  - Structured outcome scores (assessments)
-- Scores are **recommended via UI hints**, not enforced by hard constraints
+- **Clinical Excellence:** Streamlined documentation optimized for neurological practice speed.
+- **Compliance & Risk:** Audit-proof records with full attribution and longitudinal outcome tracking.
+- **Governance at Scale:** Multi-tenant architecture with granular role-based access control (RBAC).
+- **Interoperability:** Designed for integration with existing hospital systems (EPIC, KISIM).
 
 ---
 
-## 🧩 Tech Stack
+## 🏗️ Technical Architecture
 
-### Frontend
-- Next.js (App Router)
-- shadcn/ui
-- TypeScript
-- Responsive, dashboard-based layout
+### Core Stack
+- **Framework:** Next.js 15 (App Router / Turbopack)
+- **Language:** TypeScript
+- **ORM:** Prisma 7
+- **Database:** Azure PostgreSQL Flexible Server (Strict PHI Isolation)
+- **Auth:** NextAuth.js (v5) with Azure AD & Google providers
+- **Billing:** Stripe (Automated Seat-based & Flat-fee logic)
+- **UI:** Tailwind CSS 4 + shadcn/ui
 
-### Backend
-- Supabase (Postgres + Auth)
-- Row Level Security (RLS)
-- SQL views for exports and statistics
-
----
-
-## 🗂️ Main Features
-
-### Authentication
-- Email/password login
-- Protected routes
-- Login as start page, dashboard after authentication
-
-### Patients
-- Pseudonymized patient records
-- Overview table with quick access to treatment history
-
-### Treatments
-- Create and manage treatments per patient
-- Inline editing of injection targets
-- Structured fields for product, dilution, dose, effects, and adverse events
-
-### Injections
-- Repeatable rows per treatment
-- Muscle selection via searchable, region-filtered dropdown
-- Support for favorites and recently used targets
-
-### Follow-ups
-- Optional follow-up records
-- Used to mark clinical success control
-- Timepoint-based (baseline, peak effect, reinjection)
-
-### Scores / Assessments
-- Structured outcome scores (e.g. MAS, TWSTRS, HIT-6)
-- Timepoint-aware (baseline / peak effect / follow-up)
-- UI warnings if recommended scores are missing (no hard blocking)
-
-### Dashboard
-- Key progress indicators:
-  - Total treatments
-  - Treatments with follow-up
-  - Indication breakdown
-- Traffic-light logic for certification readiness
-
-### Export
-- **AK Certification (Minimal)** export
-- **AK + Follow-up** export
-- CSV format with fixed headers
-- Preview before download
+### Security & Privacy
+- **Strict Data Residency:** Choice of regional storage (EU vs US) during onboarding.
+- **PHI Isolation:** Patient identifiers are physically isolated from clinical data.
+- **Audit Trails:** Immutable logging of all clinical revisions and access events.
 
 ---
 
-## 🧪 Research Readiness
+## 💎 SaaS Tiers
 
-The data model is designed to support:
-- Longitudinal outcome analysis
-- Dose–response exploration
-- Indication- and diagnosis-based cohorts
-- Easy export to R / Python / SPSS
+### BASIC (Free)
+- **Single User Access**
+- Unlimited clinical documentation
+- Manual dose calculations
+- Basic audit logs
+- Standard templates
 
-Research functionality is **additive**, not intrusive.
+### PRO (€59 / Month / Organization)
+- **Team Collaboration** (Up to 5 active users)
+- **Smart Clinical Defaults:** Auto-fill from last patient visit
+- **Advanced Audit:** Unlock signed records and export CSV formats
+- **Clinical Insights:** Outcome trends and dosage analytics
+- **Automated Billing:** Real-time seat synchronization via Stripe
 
----
-
-## 🔐 Privacy & Security
-
-- Pseudonymized patient data only
-- No direct identifiers stored
-- Row Level Security enforced at database level
-- Single-user setup supported, multi-user possible later
-
----
-
-## 🚧 Project Status
-
-- Backend schema: stable (v1)
-- Frontend: feature-complete, UI polishing ongoing
-- Research add-ons: implemented, expandable
+### ENTERPRISE (Custom)
+- **Unlimited Scale:** Unlimited users and multiple locations
+- **System Integration:** EHR/CMS connectivity (EPIC, KISIM, HL7/FHIR)
+- **Security:** SSO Enforcement (SAML/SCIM) and Audit APIs
+- **Commercial:** SLAs, DPAs, and Invoice-based billing
 
 ---
 
-## 📌 Design Principles
+## 🧠 Advanced Clinical Intelligence
 
-- Hint, don’t block
-- Structure without bureaucracy
-- Clinical speed over theoretical perfection
-- Research as a byproduct of good documentation
+- **Advanced Dose Engine:** Real-time historical analysis providing dose suggestions based on patient history.
+- **Clinical Protocols:** Support for standard schemas like PREMPT (Migraine) and Spasticity flexor syndromes.
+- **Smart Calculations:** Automatic live conversion between Units and Volume (ml) based on vial concentration.
 
 ---
 
-## 🛣️ Possible Future Extensions
+## 🚀 Getting Started
 
-- PDF export templates
-- Multi-center support
-- Configurable outcome scales
-- Bulk import of legacy data
-- Advanced analytics views
+### Prerequisites
+- Node.js 20+
+- PostgreSQL database
+- Stripe & Resend (for emails) API keys
+
+### Installation
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up environment variables in `.env`
+4. Generate Prisma client: `npx prisma generate`
+5. Deploy database schema: `npx prisma db push`
+6. Start development server: `npm run dev`
+
+---
+
+## 🤝 Contribution
+
+We welcome contributions focused on clinical documentation standards and security.
+
+1. Create a feature branch from `main`.
+2. Follow established TypeScript and ESLint standards.
+3. Ensure all changes pass the build check: `npm run build`.
+4. Submit a Pull Request with a clear description of the clinical or technical impact.
 
 ---
 
 ## 📄 License
 
-MIT License
+MIT License - Copyright (c) 2026 BrainBytes
