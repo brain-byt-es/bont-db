@@ -98,8 +98,8 @@ export function PricingTable({ className }: { className?: string }) {
 
   return (
     <section className={cn("py-12", className)}>
-      <div className="container px-4">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 text-center">
+      <div className="container mx-auto px-4">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 text-center">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
               Choose your level of oversight

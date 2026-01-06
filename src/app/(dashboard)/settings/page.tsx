@@ -26,6 +26,7 @@ import { createCustomerPortalAction, syncStripeSession } from "@/app/actions/str
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { calculateBillableSeats } from "@/lib/stripe-billing"
 import { format } from "date-fns"
+import { PricingDialog } from "@/components/pricing-dialog"
 
 export default async function SettingsPage({
   searchParams,
@@ -233,9 +234,9 @@ export default async function SettingsPage({
                             <p className="text-sm text-muted-foreground">
                                 Basic plans include unlimited clinical documentation for a single user. Upgrade for team collaboration and advanced oversight tools.
                             </p>
-                            <Button asChild size="lg" className="w-full md:w-auto">
-                                <Link href="/pricing">Upgrade to Pro</Link>
-                            </Button>
+                            <PricingDialog>
+                                <Button size="lg" className="w-full md:w-auto">Upgrade to Pro</Button>
+                            </PricingDialog>
                         </div>
                     )}
                 </CardContent>
