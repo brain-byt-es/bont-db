@@ -27,6 +27,26 @@ export const PLAN_GATES = {
   CLINICAL_INSIGHTS: Plan.PRO,
 }
 
+/**
+ * Resolves the effective plan considering manual overrides.
+ */
+export function getEffectivePlan(org: { 
+    plan: Plan, 
+    planOverride?: Plan | null, 
+    proUntil?: Date | null 
+}): Plan {
+    // 1. Hard Override (Sales/Support)
+    if (org.planOverride) return org.planOverride
+
+    // 2. Temporary PRO (Trial/Support)
+    if (org.proUntil && new Date(org.proUntil) > new Date()) {
+        return Plan.PRO
+    }
+
+    // 3. Standard Plan (Stripe-synced)
+    return org.plan
+}
+
 export function checkPermission(role: MembershipRole, allowedRoles: MembershipRole[]): boolean {
   return allowedRoles.includes(role)
 }

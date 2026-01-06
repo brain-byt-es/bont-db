@@ -10,7 +10,8 @@ import { redirect } from "next/navigation"
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { AuthContextProvider } from "@/components/auth-context-provider"
-import { MembershipRole, Plan } from "@/generated/client/enums"
+import { MembershipRole } from "@/generated/client/enums"
+import { getEffectivePlan } from "@/lib/permissions"
 
 export default async function DashboardLayout({
   children,
@@ -49,10 +50,13 @@ export default async function DashboardLayout({
     avatar: session.user.image || "",
   } : undefined
 
+  // Resolve Effective Plan (including manual overrides)
+  const effectivePlan = getEffectivePlan(orgContext.organization)
+
   return (
     <AuthContextProvider 
       userRole={orgContext.membership.role as MembershipRole}
-      userPlan={orgContext.organization.plan as Plan}
+      userPlan={effectivePlan}
     >
       <SidebarProvider
         style={

@@ -8,6 +8,7 @@ import { headers } from "next/headers"
 import { MembershipRole } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 import { updateSubscriptionSeatCount } from "@/lib/stripe-billing"
+import { sendInviteEmail } from "@/lib/email"
 
 export async function getTeamData() {
   const ctx = await getOrganizationContext()
@@ -53,7 +54,7 @@ export async function getTeamData() {
 export async function createInviteAction(formData: FormData) {
   const ctx = await getOrganizationContext()
   if (!ctx) return { error: "No organization context" }
-  const { organizationId, membership } = ctx
+  const { organizationId, membership, organization } = ctx
 
   try {
     requirePermission(membership.role, PERMISSIONS.MANAGE_TEAM)
@@ -113,6 +114,10 @@ export async function createInviteAction(formData: FormData) {
   const protocol = host.includes("localhost") ? "http" : "https"
   
   const inviteLink = `${protocol}://${host}/invite/accept?token=${token}`
+
+  // Send Email (Async)
+  const inviterName = membership.user.displayName || "A colleague"
+  await sendInviteEmail(email, inviterName, organization.name, inviteLink)
 
   return { success: true, inviteLink }
 }

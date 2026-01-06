@@ -9,7 +9,7 @@ import { TeamManager } from "@/components/settings/team-manager"
 import { ProfileManager } from "@/components/settings/profile-manager"
 import { redirect } from "next/navigation"
 import { TabsContent } from "@/components/ui/tabs"
-import { checkPermission, PERMISSIONS, checkPlan } from "@/lib/permissions"
+import { checkPermission, PERMISSIONS, checkPlan, getEffectivePlan } from "@/lib/permissions"
 import { Plan, SubscriptionStatus } from "@/generated/client/enums"
 import { SettingsTabs } from "./settings-tabs"
 import { cn } from "@/lib/utils"
@@ -18,7 +18,7 @@ import { ClinicalSettingsForm } from "@/components/settings/clinical-settings-fo
 import { getAuditLogs, getAuditFilterOptions } from "./audit-logs/actions"
 import { AuditLogManager } from "@/components/settings/audit-log-manager"
 import { Badge } from "@/components/ui/badge"
-import { ShieldCheck, ArrowRight, CreditCard, ExternalLink, CheckCircle2, AlertTriangle, Users } from "lucide-react"
+import { ShieldCheck, ArrowRight, CreditCard, ExternalLink, CheckCircle2, AlertTriangle, Users, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { createCustomerPortalAction, syncStripeSession } from "@/app/actions/stripe"
@@ -44,7 +44,10 @@ export default async function SettingsPage({
     redirect("/onboarding")
   }
 
-  const userPlan = ctx.organization.plan as Plan
+  // Resolve Effective Plan
+  const userPlan = getEffectivePlan(ctx.organization)
+  const isOverrideActive = !!(ctx.organization.planOverride || (ctx.organization.proUntil && new Date(ctx.organization.proUntil) > new Date()))
+
   const canManageTeam = checkPermission(ctx.membership.role, PERMISSIONS.MANAGE_TEAM)
   const isPro = checkPlan(userPlan, Plan.PRO)
   
@@ -126,6 +129,17 @@ export default async function SettingsPage({
                     </div>
                 </CardHeader>
                 <CardContent>
+                    {isOverrideActive && (
+                        <Alert className="mb-6 bg-blue-50 text-blue-900 border-blue-200">
+                            <Info className="h-4 w-4 text-blue-600" />
+                            <AlertTitle>Manual Override Active</AlertTitle>
+                            <AlertDescription>
+                                Your plan is currently managed manually by support. Standard Stripe billing might be paused or overridden.
+                                {ctx.organization.proUntil && ` Access guaranteed until ${format(new Date(ctx.organization.proUntil), "MMM d, yyyy")}.`}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
                     {isPro ? (
                         <div className="space-y-6">
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -156,7 +170,7 @@ export default async function SettingsPage({
                                 )}
                             </div>
 
-                            {subStatus === SubscriptionStatus.PAST_DUE && (
+                            {subStatus === SubscriptionStatus.PAST_DUE && !isOverrideActive && (
                                 <Alert className="bg-amber-50 text-amber-900 border-amber-200">
                                     <AlertTriangle className="h-4 w-4 text-amber-600" />
                                     <AlertTitle>Payment Past Due</AlertTitle>

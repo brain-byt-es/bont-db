@@ -166,6 +166,9 @@ model Organization {
   stripeCurrentPeriodEnd DateTime?
   subscriptionStatus     SubscriptionStatus @default(INCOMPLETE)
 
+  planOverride           Plan?
+  proUntil               DateTime?
+
   preferences Json? @default("{}")
 
   createdAt DateTime @default(now())

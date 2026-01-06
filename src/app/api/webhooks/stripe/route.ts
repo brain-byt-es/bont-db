@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma"
 import Stripe from "stripe"
 import { revalidatePath } from "next/cache"
 import { SubscriptionStatus } from "@/generated/client/enums"
+import { sendPaymentFailedEmail } from "@/lib/email"
 
 function mapStripeStatus(status: Stripe.Subscription.Status): SubscriptionStatus {
   switch (status) {
@@ -129,7 +130,8 @@ export async function POST(req: Request) {
     // 4. Handle Payment Failures (Grace Period Trigger)
     if (event.type === "invoice.payment_failed") {
         const invoice = event.data.object as Stripe.Invoice
-        const subscription = invoice.parent?.subscription_details?.subscription
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const subscription = (invoice as any).subscription_details?.subscription
         const subscriptionId = typeof subscription === 'string' ? subscription : subscription?.id
         
         if (subscriptionId) {
@@ -143,7 +145,10 @@ export async function POST(req: Request) {
                     data: { subscriptionStatus: SubscriptionStatus.PAST_DUE }
                 })
                 console.log(`[Stripe] Org ${org.id} payment failed. Entering Grace Period (PAST_DUE).`)
-                // TODO: Send email to Admin
+                
+                if (invoice.customer_email && invoice.hosted_invoice_url) {
+                    await sendPaymentFailedEmail(invoice.customer_email, invoice.hosted_invoice_url)
+                }
             }
         }
     }
