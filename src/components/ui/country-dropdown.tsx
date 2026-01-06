@@ -1,10 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Check, ChevronDown, Globe } from "lucide-react"
+import React, { useCallback, useState, forwardRef, useEffect } from "react";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+// shadcn
 import {
   Command,
   CommandEmpty,
@@ -12,87 +10,180 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { COUNTRIES } from "@/lib/countries"
+} from "@/components/ui/popover";
 
-interface CountryDropdownProps {
-  value?: string
-  onChange: (value: string) => void
-  disabled?: boolean
-  placeholder?: string
+// utils
+import { cn } from "@/lib/utils";
+
+// assets
+import { ChevronDown, Check, Globe } from "lucide-react";
+import { CircleFlag } from "react-circle-flags";
+
+// data
+import { countries } from "country-data-list";
+
+// Country interface
+export interface Country {
+  alpha2: string;
+  alpha3: string;
+  countryCallingCodes: string[];
+  currencies: string[];
+  emoji?: string;
+  ioc: string;
+  languages: string[];
+  name: string;
+  status: string;
 }
 
-export function CountryDropdown({
-  value,
-  onChange,
-  disabled = false,
-  placeholder = "Select country...",
-}: CountryDropdownProps) {
-  const [open, setOpen] = React.useState(false)
+// Dropdown props
+interface CountryDropdownProps {
+  options?: Country[];
+  onChange?: (countryCode: string) => void; // Simplified for our form logic
+  value?: string;
+  disabled?: boolean;
+  placeholder?: string;
+  slim?: boolean;
+}
 
-  const selectedCountry = COUNTRIES.find((c) => c.code === value)
+const CountryDropdownComponent = (
+  {
+    options = (countries.all as Country[]).filter(
+      (country: Country) =>
+        country.emoji && country.status !== "deleted" && country.ioc !== "PRK"
+    ),
+    onChange,
+    value,
+    disabled = false,
+    placeholder = "Select a country",
+    slim = false,
+    ...props
+  }: CountryDropdownProps,
+  ref: React.ForwardedRef<HTMLButtonElement>
+) => {
+  const [open, setOpen] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<Country | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    if (value) {
+      // Check both alpha2 and alpha3 for robustness
+      const initialCountry = options.find(
+        (country) => country.alpha2 === value || country.alpha3 === value
+      );
+      if (initialCountry) {
+        setSelectedCountry(initialCountry);
+      }
+    } else {
+      setSelectedCountry(undefined);
+    }
+  }, [value, options]);
+
+  const handleSelect = useCallback(
+    (country: Country) => {
+      setSelectedCountry(country);
+      onChange?.(country.alpha2); // Return alpha2 code for our backend
+      setOpen(false);
+    },
+    [onChange]
+  );
+
+  const triggerClasses = cn(
+    "flex h-11 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+    slim === true && "w-20"
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between h-11 px-3 font-normal bg-background"
-          disabled={disabled}
-        >
-          <div className="flex items-center gap-2 truncate">
-            <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
-            {selectedCountry ? (
-              <span className="truncate text-foreground font-medium">
+      <PopoverTrigger
+        ref={ref}
+        className={triggerClasses}
+        disabled={disabled}
+        {...props}
+      >
+        {selectedCountry ? (
+          <div className="flex items-center flex-grow w-0 gap-2 overflow-hidden">
+            <div className="inline-flex items-center justify-center w-5 h-5 shrink-0 overflow-hidden rounded-full border border-muted">
+              <CircleFlag
+                countryCode={selectedCountry.alpha2.toLowerCase()}
+                height={20}
+              />
+            </div>
+            {slim === false && (
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap font-medium text-foreground">
                 {selectedCountry.name}
               </span>
-            ) : (
-              <span className="text-muted-foreground">{placeholder}</span>
             )}
           </div>
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+        ) : (
+          <div className="flex items-center gap-2">
+            {slim === false ? (
+              <>
+                <Globe size={18} className="text-muted-foreground" />
+                <span className="text-muted-foreground">{placeholder}</span>
+              </>
+            ) : (
+              <Globe size={20} />
+            )}
+          </div>
+        )}
+        <ChevronDown size={16} className="text-muted-foreground opacity-50" />
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Search country..." />
-          <CommandList className="max-h-[200px]">
+      <PopoverContent
+        collisionPadding={10}
+        side="bottom"
+        className="min-w-[--radix-popper-anchor-width] p-0 shadow-2xl"
+      >
+        <Command className="w-full">
+          <div className="sticky top-0 z-10 bg-popover border-b">
+            <CommandInput placeholder="Search country..." className="h-11" />
+          </div>
+          <CommandList className="max-h-[250px] overflow-y-auto">
             <CommandEmpty>No country found.</CommandEmpty>
             <CommandGroup>
-              {COUNTRIES.map((country) => (
-                <CommandItem
-                  key={country.code}
-                  value={country.name}
-                  onSelect={() => {
-                    onChange(country.code)
-                    setOpen(false)
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <Globe className={cn(
-                    "h-4 w-4 shrink-0",
-                    value === country.code ? "text-primary" : "text-muted-foreground/50"
-                  )} />
-                  <span className="flex-1 truncate">{country.name}</span>
-                  <Check
-                    className={cn(
-                      "h-4 w-4 shrink-0",
-                      value === country.code ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                </CommandItem>
-              ))}
+              {options
+                .filter((x) => x.name)
+                .map((option, key: number) => (
+                  <CommandItem
+                    className="flex items-center w-full gap-2 cursor-pointer py-3"
+                    key={key}
+                    value={option.name} // Used for filtering
+                    onSelect={() => handleSelect(option)}
+                  >
+                    <div className="flex flex-grow w-0 space-x-3 overflow-hidden items-center">
+                      <div className="inline-flex items-center justify-center w-5 h-5 shrink-0 overflow-hidden rounded-full border">
+                        <CircleFlag
+                          countryCode={option.alpha2.toLowerCase()}
+                          height={20}
+                        />
+                      </div>
+                      <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                        {option.name}
+                      </span>
+                    </div>
+                    <Check
+                      className={cn(
+                        "ml-auto h-4 w-4 shrink-0 text-primary",
+                        option.alpha2 === selectedCountry?.alpha2
+                          ? "opacity-100"
+                          : "opacity-0"
+                      )}
+                    />
+                  </CommandItem>
+                ))}
             </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
-  )
-}
+  );
+};
+
+CountryDropdownComponent.displayName = "CountryDropdownComponent";
+
+export const CountryDropdown = forwardRef(CountryDropdownComponent);
