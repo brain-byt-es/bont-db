@@ -7,7 +7,7 @@ import { useTheme } from "next-themes"
 import { Switch } from "@/components/ui/switch"
 
 export function ModeToggle() {
-  const { theme, setTheme } = useTheme()
+  const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
 
   // useEffect only runs on the client, so now we can safely show the UI
@@ -21,13 +21,13 @@ export function ModeToggle() {
 
   return (
     <div className="flex items-center gap-2">
-      <Sun className="h-[1.2rem] w-[1.2rem]" />
+      <Sun className="h-[1.2rem] w-[1.2rem] text-muted-foreground" />
       <Switch
         id="theme-toggle"
-        checked={theme === "dark"}
+        checked={resolvedTheme === "dark"}
         onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
       />
-      <Moon className="h-[1.2rem] w-[1.2rem]" />
+      <Moon className="h-[1.2rem] w-[1.2rem] text-muted-foreground" />
       <span className="sr-only">Toggle theme</span>
     </div>
   )
