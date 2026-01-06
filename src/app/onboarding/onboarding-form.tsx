@@ -34,9 +34,11 @@ export function OnboardingForm({ defaultName }: { defaultName: string }) {
   }
 
   return (
-    <form action={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="orgName" className="text-sm font-medium">Clinic or Organization Name</Label>
+    <form action={handleSubmit} className="space-y-8">
+      <div className="space-y-3">
+        <Label htmlFor="orgName" className="text-sm font-semibold text-foreground">
+          Clinic or Organization Name
+        </Label>
         <Input
           id="orgName"
           name="orgName"
@@ -44,12 +46,14 @@ export function OnboardingForm({ defaultName }: { defaultName: string }) {
           required
           minLength={3}
           defaultValue={defaultName}
-          className="h-11 px-3 bg-background"
+          className="h-12 px-4 bg-background text-base shadow-sm focus-visible:ring-primary"
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="country" className="text-sm font-medium">Data Residency (Location)</Label>
+      <div className="space-y-3">
+        <Label htmlFor="country" className="text-sm font-semibold text-foreground">
+          Data Residency (Location)
+        </Label>
         {/* Hidden input to sync with form submission */}
         <input type="hidden" name="countryCode" value={country} />
         <CountryDropdown 
@@ -57,20 +61,33 @@ export function OnboardingForm({ defaultName }: { defaultName: string }) {
             onChange={setCountry} 
             placeholder="Select your country"
         />
-        <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 px-1 pt-1 leading-relaxed">
-            <MapPin className="h-3 w-3 text-primary" />
-            <span>
-                Clinical and PII data will be physically isolated in the 
-                <strong className="text-foreground mx-1">
-                    {COUNTRIES.find(c => c.code === country)?.region === 'US' ? 'United States' : 'European Union'}
-                </strong> 
-                region.
-            </span>
-        </p>
+        
+        <div className="mt-4 p-4 rounded-xl border bg-primary/5 border-primary/10 flex items-start gap-3 animate-in fade-in slide-in-from-top-1">
+            <div className="mt-0.5 rounded-full bg-primary/10 p-1">
+                <MapPin className="h-4 w-4 text-primary" />
+            </div>
+            <div className="space-y-1">
+                <p className="text-[13px] font-medium leading-tight text-foreground">
+                    Regional Data Isolation
+                </p>
+                <p className="text-[12px] text-muted-foreground leading-snug">
+                    Clinical and PII data will be physically stored in the 
+                    <span className="font-bold text-primary mx-1">
+                        {COUNTRIES.find(c => c.code === country)?.region === 'US' ? 'United States' : 'European Union'}
+                    </span> 
+                    region.
+                </p>
+            </div>
+        </div>
       </div>
 
-      {error && <p className="text-sm text-destructive font-medium">{error}</p>}
-      <div className="pt-2">
+      {error && (
+        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm font-medium border border-destructive/20 animate-in shake-1">
+            {error}
+        </div>
+      )}
+      
+      <div className="pt-4">
         <SubmitButton />
       </div>
     </form>

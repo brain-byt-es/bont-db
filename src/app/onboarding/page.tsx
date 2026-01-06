@@ -17,15 +17,15 @@ export default async function OnboardingPage() {
   // to support the "Add Team" workflow.
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Welcome to InjexPro</CardTitle>
-          <CardDescription>
-            Let&apos;s set up your new workspace. What is the name of your clinic or practice?
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+      <Card className="w-full max-w-md shadow-2xl border-none">
+        <CardHeader className="text-center pt-8 pb-4">
+          <CardTitle className="text-3xl font-extrabold tracking-tight">Setup your Workspace</CardTitle>
+          <CardDescription className="text-base pt-2 text-balance px-4">
+            Initialize your clinical environment. Clinical data is isolated by region for maximum security.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-8">
           <OnboardingForm defaultName={user.name ? `${user.name}'s Clinic` : ""} />
         </CardContent>
       </Card>
