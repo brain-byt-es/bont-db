@@ -1,5 +1,6 @@
-// Placeholder for Email Service (e.g. Resend)
-// To enable: npm install resend
+import { Resend } from 'resend'
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 interface EmailPayload {
   to: string
@@ -8,12 +9,16 @@ interface EmailPayload {
 }
 
 export async function sendEmail(payload: EmailPayload) {
-  if (process.env.RESEND_API_KEY) {
-    // Real implementation would be:
-    // import { Resend } from 'resend'
-    // const resend = new Resend(process.env.RESEND_API_KEY)
-    // await resend.emails.send({ from: 'InjexPro <notifications@injexpro.com>', ...payload })
-    console.log(`[Email Service] Sending email via Resend to ${payload.to}`)
+  if (resend) {
+    try {
+        await resend.emails.send({ 
+            from: 'InjexPro <notifications@injexpro.com>', 
+            ...payload 
+        })
+        console.log(`[Email Service] Email sent to ${payload.to}`)
+    } catch (error) {
+        console.error(`[Email Service] Failed to send email to ${payload.to}:`, error)
+    }
   } else {
     // Dev Mode / Fallback
     console.log(`
