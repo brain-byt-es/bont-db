@@ -6,24 +6,28 @@ import { MembershipRole, Plan } from "@/generated/client/enums"
 interface AuthContextType {
   userRole: MembershipRole | null
   userPlan: Plan | null
+  userId: string | null
 }
 
 const AuthContext = createContext<AuthContextType>({
   userRole: null,
   userPlan: null,
+  userId: null,
 })
 
 export function AuthContextProvider({ 
   children, 
   userRole,
-  userPlan
+  userPlan,
+  userId
 }: { 
   children: ReactNode, 
   userRole: MembershipRole,
-  userPlan: Plan
+  userPlan: Plan,
+  userId: string
 }) {
   return (
-    <AuthContext.Provider value={{ userRole, userPlan }}>
+    <AuthContext.Provider value={{ userRole, userPlan, userId }}>
       {children}
     </AuthContext.Provider>
   )

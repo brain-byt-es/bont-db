@@ -57,6 +57,7 @@ export default async function DashboardLayout({
     <AuthContextProvider 
       userRole={orgContext.membership.role as MembershipRole}
       userPlan={effectivePlan}
+      userId={session.user.id}
     >
       <SidebarProvider
         style={

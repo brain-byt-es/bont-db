@@ -182,4 +182,41 @@ export async function removeMemberAction(memberId: string) {
   
     revalidatePath("/settings")
     return { success: true }
-  }
+}
+
+export async function updateMemberRoleAction(memberId: string, newRole: MembershipRole) {
+    const ctx = await getOrganizationContext()
+    if (!ctx) return { error: "No organization context" }
+    const { organizationId, membership } = ctx
+
+    try {
+        requirePermission(membership.role, PERMISSIONS.MANAGE_TEAM)
+    } catch {
+        return { error: "Permission denied" }
+    }
+
+    if (memberId === membership.id) {
+        return { error: "You cannot change your own role." }
+    }
+
+    // Special check for OWNER transfer
+    if (newRole === MembershipRole.OWNER && membership.role !== MembershipRole.OWNER) {
+        return { error: "Only the current owner can transfer organization ownership." }
+    }
+
+    await prisma.organizationMembership.update({
+        where: {
+            id: memberId,
+            organizationId
+        },
+        data: {
+            role: newRole
+        }
+    })
+
+    // Sync billing if role affects seat count (e.g. changing to/from READONLY)
+    await updateSubscriptionSeatCount(organizationId)
+
+    revalidatePath("/settings")
+    return { success: true }
+}
