@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,13 +30,15 @@ import {
 } from "@/components/ui/dialog"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Trash2, Copy, Check, UserPlus } from "lucide-react"
+import { Trash2, Copy, Check, UserPlus, Lock } from "lucide-react"
 import { createInviteAction, revokeInviteAction, removeMemberAction, updateMemberRoleAction } from "@/app/(dashboard)/settings/invite-actions"
 import { toast } from "sonner"
-import { useTransition } from "react"
 import { format } from "date-fns"
-import { MembershipRole } from "@/generated/client/enums"
+import { MembershipRole, Plan } from "@/generated/client/enums"
 import { useAuthContext } from "@/components/auth-context-provider"
+import { TeamUpgradeTeaser } from "./team-upgrade-teaser"
+import { checkPlan } from "@/lib/permissions"
+import { cn } from "@/lib/utils"
 
 interface TeamData {
   members: {
@@ -58,8 +60,10 @@ interface TeamData {
 }
 
 export function TeamManager({ initialData }: { initialData: TeamData }) {
-  const { userRole, userId } = useAuthContext()
+  const { userRole, userId, userPlan } = useAuthContext()
   const [isPending, startTransition] = useTransition()
+  
+  const isPro = checkPlan(userPlan as Plan, Plan.PRO)
   
   // Invite Form State
   const [inviteEmail, setInviteEmail] = useState("")
@@ -142,51 +146,61 @@ export function TeamManager({ initialData }: { initialData: TeamData }) {
           </DialogContent>
       </Dialog>
 
-      {/* Invite Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Invite New Member</CardTitle>
-          <CardDescription>Generate an invite link for a new team member.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleInvite} className="flex gap-4 items-end">
-            <div className="grid gap-2 flex-1">
-              <Label htmlFor="email">Email Address</Label>
-              <Input 
-                id="email" 
-                placeholder="colleague@clinic.com" 
-                type="email" 
-                required
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2 w-[240px]">
-              <Label htmlFor="role">Role</Label>
-              <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as MembershipRole)}>
-                <SelectTrigger id="role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={MembershipRole.PROVIDER}>Provider (Docs + Patients)</SelectItem>
-                  <SelectItem value={MembershipRole.ASSISTANT}>Assistant (Drafts only)</SelectItem>
-                  <SelectItem value={MembershipRole.CLINIC_ADMIN}>Admin (Team + Billing)</SelectItem>
-                  <SelectItem value={MembershipRole.READONLY}>Read Only (Viewer)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" disabled={isPending}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                {isPending ? "Generating..." : "Generate Invite"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      {/* Invite Section / Teaser */}
+      {!isPro ? (
+          <TeamUpgradeTeaser />
+      ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Invite New Member</CardTitle>
+              <CardDescription>Generate an invite link for a new team member.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleInvite} className="flex gap-4 items-end">
+                <div className="grid gap-2 flex-1">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input 
+                    id="email" 
+                    placeholder="colleague@clinic.com" 
+                    type="email" 
+                    required
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2 w-[240px]">
+                  <Label htmlFor="role">Role</Label>
+                  <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as MembershipRole)}>
+                    <SelectTrigger id="role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={MembershipRole.PROVIDER}>Provider (Docs + Patients)</SelectItem>
+                      <SelectItem value={MembershipRole.ASSISTANT}>Assistant (Drafts only)</SelectItem>
+                      <SelectItem value={MembershipRole.CLINIC_ADMIN}>Admin (Team + Billing)</SelectItem>
+                      <SelectItem value={MembershipRole.READONLY}>Read Only (Viewer)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button type="submit" disabled={isPending}>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    {isPending ? "Generating..." : "Generate Invite"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+      )}
 
       {/* Members List */}
-      <Card>
-        <CardHeader>
-            <CardTitle>Team Members</CardTitle>
+      <Card className={cn(!isPro && "opacity-90 border-dashed")}>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+                <CardTitle>Team Members</CardTitle>
+                {!isPro && <CardDescription>Invite features are disabled on Basic.</CardDescription>}
+            </div>
+            {!isPro && <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 flex gap-1.5 items-center">
+                <Lock className="size-3" /> Single User Mode
+            </Badge>}
         </CardHeader>
         <CardContent>
             <Table>
@@ -281,7 +295,7 @@ export function TeamManager({ initialData }: { initialData: TeamData }) {
                                 <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-none text-[10px]">Pending</Badge>
                             </TableCell>
                             <TableCell className="text-muted-foreground text-xs">
-                                {format(new Date(i.createdAt), "MMM d")}
+                                Sent {format(new Date(i.createdAt), "MMM d")}
                             </TableCell>
                             <TableCell className="text-right">
                                 <Button variant="ghost" size="icon" onClick={() => handleRevoke(i.id)} className="text-muted-foreground hover:text-destructive h-8 w-8">
