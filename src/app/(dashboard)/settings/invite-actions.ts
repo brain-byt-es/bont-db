@@ -69,7 +69,7 @@ export async function createInviteAction(formData: FormData) {
 
   if (currentSeats >= seatLimit) {
       return { 
-          error: `Seat limit reached (${seatLimit}). Please upgrade to Enterprise for larger teams.` 
+          error: "You've reached the maximum number of users for Pro. Pro is designed for small teams. Larger organizations require Enterprise for governance, audit, and access control. Please contact sales to expand your team." 
       }
   }
 

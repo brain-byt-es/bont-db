@@ -3,6 +3,9 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { PricingTable } from "@/components/pricing-table"
@@ -19,6 +22,14 @@ export function PricingDialog({ children, open, onOpenChange }: PricingDialogPro
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-[95vw] lg:max-w-7xl w-full p-0 overflow-hidden border-none bg-transparent shadow-none">
+        {/* Accessibility requirement: Title and Description */}
+        <div className="sr-only">
+            <DialogHeader>
+                <DialogTitle>Pricing Plans</DialogTitle>
+                <DialogDescription>Choose the best plan for your organization.</DialogDescription>
+            </DialogHeader>
+        </div>
+        
         <div className="bg-background rounded-xl border shadow-2xl overflow-y-auto max-h-[92vh] w-full">
             <PricingTable className="py-10 px-4 md:px-8" />
         </div>
