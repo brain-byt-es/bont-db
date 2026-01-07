@@ -160,6 +160,12 @@ export default async function Page({
         <h2 className="text-lg font-semibold tracking-tight">Clinical Insights</h2>
       </div>
 
+      {!isPro && (
+        <div className="px-4 lg:px-6 mb-4">
+            <UpsellTeaser />
+        </div>
+      )}
+
       {/* 3. Clinical Insights Grid (3x2) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 lg:px-6 items-stretch">
         
@@ -179,12 +185,6 @@ export default async function Page({
             className="h-full"
         />
       </div>
-
-      {!isPro && (
-        <div className="px-4 lg:px-6 mt-6">
-            <UpsellTeaser />
-        </div>
-      )}
 
     </div>
   )
