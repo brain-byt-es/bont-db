@@ -6,7 +6,7 @@ import { getUserContext } from "@/lib/auth-context"
 import { revalidatePath } from "next/cache"
 import { cookies, headers } from "next/headers"
 import { getRegionForCountry } from "@/lib/countries"
-import { Region, LegalDocumentType } from "@/generated/client/enums"
+import { Region, LegalDocumentType, MembershipRole } from "@/generated/client/enums"
 import { LEGAL_VERSIONS } from "@/lib/legal-config"
 
 export async function createOrganizationAction(formData: FormData) {
@@ -23,6 +23,28 @@ export async function createOrganizationAction(formData: FormData) {
     return { error: "Organization name must be at least 3 characters." }
   }
 
+  const trimmedName = orgName.trim()
+
+  // Check for duplicate organization name for this owner
+  const existingOrg = await prisma.organizationMembership.findFirst({
+    where: {
+      userId: userId,
+      role: MembershipRole.OWNER,
+      status: "ACTIVE",
+      organization: {
+        name: {
+          equals: trimmedName,
+          mode: "insensitive"
+        },
+        status: "ACTIVE"
+      }
+    }
+  })
+
+  if (existingOrg) {
+    return { error: "You already own an organization with this name." }
+  }
+
   const region = getRegionForCountry(countryCode) as Region
 
   let newOrgId = ""
@@ -32,7 +54,7 @@ export async function createOrganizationAction(formData: FormData) {
     await prisma.$transaction(async (tx) => {
       const org = await tx.organization.create({
         data: {
-          name: orgName.trim(),
+          name: trimmedName,
           region: region,
           status: "ACTIVE",
           memberships: {
