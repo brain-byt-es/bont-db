@@ -105,6 +105,7 @@ enum AuthProvider {
   azure_ad
   google
   linkedin
+  credentials
   @@schema("public")
 }
 
@@ -118,6 +119,7 @@ model User {
   email           String
   displayName     String
   profilePhotoUrl String?
+  passwordHash    String?
 
   identities UserIdentity[]
   memberships     OrganizationMembership[]

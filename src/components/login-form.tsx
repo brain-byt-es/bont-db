@@ -12,18 +12,51 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { signIn } from "next-auth/react"
+import { useTransition, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 
 interface LoginFormProps extends React.ComponentProps<"form"> {
   message?: string
 }
 
-export function LoginForm({
+function LoginFormContent({
   className,
-  message,
+  message: initialMessage,
   ...props
 }: LoginFormProps) {
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
+  const message = searchParams.get("message") || initialMessage
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
+
+    startTransition(async () => {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        toast.error("Invalid email or password")
+      } else {
+        toast.success("Logged in successfully")
+        router.push(callbackUrl)
+        router.refresh()
+      }
+    })
+  }
+
   return (
-    <form className={cn("flex flex-col gap-6", className)} onSubmit={(e) => e.preventDefault()} {...props}>
+    <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit} {...props}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">Login to your account</h1>
@@ -32,30 +65,33 @@ export function LoginForm({
           </p>
         </div>
         {message && (
-          <div className="text-sm font-medium text-destructive text-center">{message}</div>
+          <div className="text-sm font-medium text-primary text-center bg-primary/5 p-2 rounded border border-primary/10">{message}</div>
         )}
-        <Field className="opacity-60">
+        <Field>
           <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input id="email" name="email" type="email" placeholder="m@example.com" disabled />
+          <Input id="email" name="email" type="email" placeholder="m@example.com" required disabled={isPending} />
         </Field>
-        <Field className="opacity-60">
+        <Field>
           <div className="flex items-center">
             <FieldLabel htmlFor="password">Password</FieldLabel>
             <a
-              href="#"
-              className="ml-auto text-sm underline-offset-4 hover:underline pointer-events-none"
+              href="mailto:support@injexpro.com?subject=Password Reset"
+              className="ml-auto text-sm underline-offset-4 hover:underline"
             >
               Forgot your password?
             </a>
           </div>
-          <Input id="password" name="password" type="password" disabled />
+          <Input id="password" name="password" type="password" required disabled={isPending} />
         </Field>
-        <Field className="opacity-60">
-          <Button type="submit" disabled>Login</Button>
+        <Field>
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Login
+          </Button>
         </Field>
         <FieldSeparator>Or continue with</FieldSeparator>
         <div className="grid grid-cols-1 gap-4">
-          <Button variant="outline" type="button" onClick={() => signIn("azure-ad", { callbackUrl: "/dashboard" })}>
+          <Button variant="outline" type="button" disabled={isPending} onClick={() => signIn("azure-ad", { callbackUrl })}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21" className="mr-2 h-4 w-4">
                 <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
                 <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
@@ -64,7 +100,7 @@ export function LoginForm({
             </svg>
             Sign in with Microsoft
           </Button>
-          <Button variant="outline" type="button" onClick={() => signIn("linkedin", { callbackUrl: "/dashboard" })}>
+          <Button variant="outline" type="button" disabled={isPending} onClick={() => signIn("linkedin", { callbackUrl })}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
               <path
                 d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"
@@ -73,7 +109,7 @@ export function LoginForm({
             </svg>
             Login with LinkedIn
           </Button>
-          <Button variant="outline" type="button" onClick={() => signIn("google", { callbackUrl: "/dashboard" })}>
+          <Button variant="outline" type="button" disabled={isPending} onClick={() => signIn("google", { callbackUrl })}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -88,7 +124,7 @@ export function LoginForm({
                 fill="#FBBC05"
               />
               <path
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 fill="#EA4335"
               />
             </svg>
@@ -105,5 +141,13 @@ export function LoginForm({
         </Field>
       </FieldGroup>
     </form>
+  )
+}
+
+export function LoginForm(props: LoginFormProps) {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>}>
+      <LoginFormContent {...props} />
+    </Suspense>
   )
 }

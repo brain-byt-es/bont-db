@@ -3,7 +3,9 @@ import { AuthOptions, DefaultSession } from "next-auth"
 import AzureADProvider from "next-auth/providers/azure-ad"
 import GoogleProvider from "next-auth/providers/google"
 import LinkedInProvider from "next-auth/providers/linkedin"
+import CredentialsProvider from "next-auth/providers/credentials"
 import prisma from "@/lib/prisma"
+import bcrypt from "bcryptjs"
 
 declare module "next-auth" {
   interface Session {
@@ -26,6 +28,39 @@ declare module "next-auth/jwt" {
 
 export const authOptions: AuthOptions = {
   providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null
+        }
+
+        const user = await prisma.user.findFirst({
+          where: { email: credentials.email.toLowerCase().trim() }
+        })
+
+        if (!user || !user.passwordHash) {
+          return null
+        }
+
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash)
+
+        if (!isPasswordValid) {
+          return null
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.displayName,
+          image: user.profilePhotoUrl
+        }
+      }
+    }),
     AzureADProvider({
       clientId: process.env.AZURE_AD_CLIENT_ID!,
       clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
