@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState, useTransition, use } from "react"
+import { useTransition, use } from "react"
 import { resetPassword } from "@/app/actions/auth-reset"
 import { toast } from "sonner"
 import Link from "next/link"

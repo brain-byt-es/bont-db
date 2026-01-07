@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, ShieldCheck, Loader2 } from "lucide-react"
+import { ShieldCheck, Loader2 } from "lucide-react"
 import { useState, useTransition } from "react"
 import { acceptDPAAction } from "@/app/actions/legal"
 import { toast } from "sonner"

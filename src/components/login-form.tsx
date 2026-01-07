@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -144,9 +146,15 @@ function LoginFormContent({
 }
 
 export function LoginForm(props: LoginFormProps) {
+
   return (
+
     <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>}>
+
       <LoginFormContent {...props} />
+
     </Suspense>
+
   )
+
 }
