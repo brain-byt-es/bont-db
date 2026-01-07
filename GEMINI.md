@@ -74,7 +74,8 @@ The application is **Organization-centric** and features a tiered plan model (BA
 - [x] **Multi-Admin UX:** Granular role management, membership updates, and ownership transfer.
 - [x] **Strategic UX:** Compact upsell teasers and searchable country selection.
 
-### Phase 5: Infrastructure & Connectivity (Next)
-- [ ] **Email System Setup:** **CRITICAL:** `RESEND_API_KEY` must be configured and `resend` package installed to enable transactional emails.
+### Phase 5: Infrastructure & Connectivity (In Progress)
+- [x] **Email System Setup:** Fully integrated Resend SDK for transactional emails (Invites, Payment Failures).
+- [x] **Interactive Support:** Implemented Support/FAQ hub with functional contact form powered by Resend.
 - [ ] **Infrastructure as Code:** Azure Bicep templates for push-button clinic deployments.
 - [ ] **Enterprise Connectivity:** Finalize EHR/CMS interface stubs for Sales demos.
