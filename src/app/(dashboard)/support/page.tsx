@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Mail, MessageCircle, BookOpen, ExternalLink, LifeBuoy } from "lucide-react"
 import { ContactSupportForm } from "@/components/contact-support-form"
+import { PricingDialog } from "@/components/pricing-dialog"
 
 export default function SupportPage() {
   return (
@@ -59,9 +60,9 @@ export default function SupportPage() {
             <CardDescription>Priority support for institutions.</CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <Button variant="default" className="w-full mt-2" asChild>
-                <a href="/pricing">View Plans</a>
-            </Button>
+            <PricingDialog>
+                <Button variant="default" className="w-full mt-2">View Plans</Button>
+            </PricingDialog>
           </CardContent>
         </Card>
       </div>
