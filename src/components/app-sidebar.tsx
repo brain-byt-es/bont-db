@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ChevronsUpDown, Plus, Check } from "lucide-react"
 import { switchOrganizationAction } from "@/app/actions/org-switching"
-import { useRouter } from "next/navigation"
 import { checkPermission, PERMISSIONS } from "@/lib/permissions"
 import { MembershipRole } from "@/generated/client/enums"
 
@@ -110,7 +109,6 @@ export function AppSidebar({ user, organization, allTeams = [], userRole = "Memb
   const orgId = organization?.id
   const initials = orgName.substring(0, 2).toUpperCase()
   const { isMobile } = useSidebar()
-  const router = useRouter()
 
   const formattedRole = userRole.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase())
 
@@ -161,29 +159,31 @@ export function AppSidebar({ user, organization, allTeams = [], userRole = "Memb
                 side={isMobile ? "bottom" : "right"}
                 sideOffset={4}
               >
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Teams
-                </DropdownMenuLabel>
-                {allTeams.map((team) => (
-                  <DropdownMenuItem
-                    key={team.id}
-                    onClick={() => handleSwitch(team.id)}
-                    className="gap-2 p-2"
-                  >
-                    <div className="flex size-6 items-center justify-center rounded-sm border">
-                      <span className="font-medium text-xs">{team.name.substring(0, 1)}</span>
-                    </div>
-                    {team.name}
-                    {team.id === orgId && <Check className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="gap-2 p-2" onClick={() => router.push("/onboarding")}>
-                  <div className="flex size-6 items-center justify-center rounded-md border bg-background">
-                    <Plus className="size-4" />
-                  </div>
-                  <div className="font-medium text-muted-foreground">Add team</div>
-                </DropdownMenuItem>
+            <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1.5 uppercase tracking-wider">
+              Organizations
+            </DropdownMenuLabel>
+            {allTeams.map((org) => (
+              <DropdownMenuItem 
+                key={org.id} 
+                onClick={() => handleSwitch(org.id)}
+                className="gap-2 px-2 py-2 cursor-pointer"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-sm border bg-background shrink-0">
+                  <span className="font-medium text-xs">{org.name.substring(0, 1)}</span>
+                </div>
+                <span className="truncate flex-1">{org.name}</span>
+                {org.id === orgId && <Check className="ml-auto h-4 w-4" />}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/onboarding" className="gap-2 px-2 py-2 cursor-pointer">
+                <div className="flex h-6 w-6 items-center justify-center rounded-sm border border-dashed shrink-0">
+                  <Plus className="h-4 w-4" />
+                </div>
+                <div className="font-medium text-muted-foreground">Add organization</div>
+              </Link>
+            </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>

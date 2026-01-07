@@ -22,13 +22,15 @@ export async function getOrganizationContext() {
   let membership = null
 
   if (preferredOrgId) {
-    membership = await prisma.organizationMembership.findUnique({
+    // We use findFirst instead of findUnique to allow filtering by relation status
+    membership = await prisma.organizationMembership.findFirst({
       where: {
-        organizationId_userId: {
-          organizationId: preferredOrgId,
-          userId: userId
-        },
-        status: "ACTIVE" // Ensure strict active check
+        organizationId: preferredOrgId,
+        userId: userId,
+        status: "ACTIVE",
+        organization: {
+            status: "ACTIVE"
+        }
       },
       include: {
         organization: true,
@@ -42,7 +44,10 @@ export async function getOrganizationContext() {
     membership = await prisma.organizationMembership.findFirst({
       where: {
         userId: userId,
-        status: "ACTIVE"
+        status: "ACTIVE",
+        organization: {
+            status: "ACTIVE"
+        }
       },
       include: {
         organization: true,

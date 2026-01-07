@@ -3,7 +3,6 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ReactNode } from "react"
-import { Badge } from "@/components/ui/badge"
 
 export function SettingsTabs({
   children,
@@ -33,12 +32,7 @@ export function SettingsTabs({
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="organization">Organization</TabsTrigger>
         {canManageTeam && <TabsTrigger value="team">Team Members</TabsTrigger>}
-        {canManageTeam && (
-            <TabsTrigger value="integrations" className="flex items-center gap-2">
-                Integrations
-                <Badge variant="secondary" className="text-[9px] h-3.5 px-1 font-normal opacity-70">ENT</Badge>
-            </TabsTrigger>
-        )}
+        {canManageTeam && <TabsTrigger value="integrations">Integrations</TabsTrigger>}
         <TabsTrigger value="compliance">Compliance</TabsTrigger>        {showAudit && <TabsTrigger value="audit">Security & Logs</TabsTrigger>}
       </TabsList>
       {children}

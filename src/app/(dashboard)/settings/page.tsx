@@ -10,7 +10,7 @@ import { ProfileManager } from "@/components/settings/profile-manager"
 import { redirect } from "next/navigation"
 import { TabsContent } from "@/components/ui/tabs"
 import { checkPermission, PERMISSIONS, checkPlan, getEffectivePlan, PLAN_SEAT_LIMITS } from "@/lib/permissions"
-import { Plan, SubscriptionStatus } from "@/generated/client/enums"
+import { Plan, SubscriptionStatus, MembershipRole } from "@/generated/client/enums"
 import { SettingsTabs } from "./settings-tabs"
 import { cn } from "@/lib/utils"
 import { ComplianceUpgradeTeaser } from "@/components/settings/compliance-upgrade-teaser"
@@ -27,6 +27,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { calculateBillableSeats } from "@/lib/stripe-billing"
 import { format } from "date-fns"
 import { PricingDialog } from "@/components/pricing-dialog"
+import { DeleteOrgCard } from "./delete-org-card"
 
 export default async function SettingsPage({
   searchParams,
@@ -51,6 +52,7 @@ export default async function SettingsPage({
   const isOverrideActive = !!(ctx.organization.planOverride || (ctx.organization.proUntil && new Date(ctx.organization.proUntil) > new Date()))
 
   const canManageTeam = checkPermission(ctx.membership.role, PERMISSIONS.MANAGE_TEAM)
+  const isOwner = ctx.membership.role === MembershipRole.OWNER
   const isPro = checkPlan(userPlan, Plan.PRO)
   const isEnterprise = userPlan === Plan.ENTERPRISE
   
@@ -241,6 +243,10 @@ export default async function SettingsPage({
                     )}
                 </CardContent>
             </Card>
+
+            {isOwner && (
+                <DeleteOrgCard />
+            )}
         </TabsContent>
 
         {canManageTeam && (
