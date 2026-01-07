@@ -26,8 +26,8 @@ export function EnterpriseUpgradeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
-            <Building2 className="h-6 w-6 text-purple-600" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <Building2 className="h-6 w-6 text-primary" />
           </div>
           <DialogTitle className="text-center text-xl">{title}</DialogTitle>
           <DialogDescription className="text-center pt-2">
@@ -46,7 +46,7 @@ export function EnterpriseUpgradeDialog({
 
         <DialogFooter className="flex-col sm:flex-col gap-2">
           <Button 
-            className="w-full bg-purple-600 hover:bg-purple-700" 
+            className="w-full" 
             asChild
           >
             <a href="mailto:sales@injexpro.com?subject=Enterprise Inquiry">
@@ -65,7 +65,7 @@ export function EnterpriseUpgradeDialog({
 function FeatureItem({ text }: { text: string }) {
     return (
         <div className="flex items-center gap-3 text-sm">
-            <CheckCircle2 className="h-4 w-4 text-purple-500 shrink-0" />
+            <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
             <span className="text-muted-foreground">{text}</span>
         </div>
     )

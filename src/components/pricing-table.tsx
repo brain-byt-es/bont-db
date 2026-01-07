@@ -209,7 +209,7 @@ export function PricingTable({ className }: { className?: string }) {
                 </CardContent>
                 <CardFooter className="pt-8 pb-8">
                   {plan.id === 'enterprise' ? (
-                      <Button variant="default" className="w-full h-12 text-base font-semibold bg-purple-600 hover:bg-purple-700 text-white" asChild>
+                      <Button variant="outline" className="w-full h-12 text-base font-semibold border-primary text-primary hover:bg-primary/5" asChild>
                           <a href="mailto:sales@injexpro.com?subject=Enterprise Inquiry">
                               {plan.buttonText}
                           </a>

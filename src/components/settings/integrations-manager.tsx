@@ -20,7 +20,7 @@ export function IntegrationsManager() {
             <p className="text-sm text-muted-foreground">Connect InjexPro with your hospital infrastructure.</p>
         </div>
         {!isEnterprise && (
-            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 animate-pulse">
+            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 animate-pulse">
                 Enterprise Feature
             </Badge>
         )}
