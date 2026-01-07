@@ -13,12 +13,13 @@ interface ActionItem {
 
 interface NextActionsProps {
   actions: ActionItem[]
+  className?: string
 }
 
-export function NextActions({ actions }: NextActionsProps) {
+export function NextActions({ actions, className }: NextActionsProps) {
   if (actions.length === 0) {
     return (
-      <Card>
+      <Card className={className}>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Next Actions</CardTitle>
         </CardHeader>
@@ -33,7 +34,7 @@ export function NextActions({ actions }: NextActionsProps) {
   }
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
            Next Actions

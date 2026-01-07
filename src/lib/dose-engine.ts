@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma"
+import { BodySide } from "@/generated/client/enums"
 
 export interface DoseSuggestion {
   muscleId: string
@@ -66,30 +67,43 @@ export async function getDoseSuggestions(
     muscleId: string
 ): Promise<DoseSuggestion[]> {
   
-  // 1. Fetch History for this specific muscle and patient
+  // 1. Optimize: Fetch recent encounters first to avoid complex join
+  const recentEncounters = await prisma.encounter.findMany({
+    where: {
+      organizationId,
+      patientId
+    },
+    orderBy: {
+      encounterAt: 'desc'
+    },
+    take: 10,
+    select: { id: true }
+  })
+
+  if (recentEncounters.length === 0) return []
+
+  const encounterIds = recentEncounters.map(e => e.id)
+
+  // 2. Fetch History for this specific muscle in those encounters
   const history = await prisma.injection.findMany({
     where: {
       organizationId,
       muscleId,
-      encounter: {
-        patientId
-      }
+      encounterId: { in: encounterIds }
     },
     select: {
       units: true,
-      side: true,
-      createdAt: true
+      side: true
     },
     orderBy: {
       createdAt: 'desc'
     },
-    take: 5
+    take: 1
   })
 
   if (history.length === 0) return []
 
-  // 2. Aggregate history
-  // If we have history, suggest the most recent dose as high confidence
+  // 3. Suggest the most recent dose
   const mostRecent = history[0]
   
   return [{
@@ -102,8 +116,9 @@ export async function getDoseSuggestions(
   }]
 }
 
-function mapSide(side: string): DoseSuggestion["side"] {
-    if (side === "L") return "Left"
-    if (side === "R") return "Right"
-    return "Bilateral"
+function mapSide(side: string | BodySide): DoseSuggestion["side"] {
+    if (side === "L" || side === BodySide.L) return "Left"
+    if (side === "R" || side === BodySide.R) return "Right"
+    if (side === "B" || side === BodySide.B) return "Bilateral"
+    return "Bilateral" // Default fallback
 }

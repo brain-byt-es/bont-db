@@ -7,11 +7,11 @@ export function AuthFooter() {
         © 2025 InjexPro | All rights reserved
       </span>
       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 md:gap-x-6">
-        <Link href="/legal/privacy-policy" className="text-xs text-muted-foreground hover:underline md:text-sm">
-          Privacy Policy
+        <Link href="/legal/privacy" className="text-xs text-muted-foreground hover:underline md:text-sm">
+          Privacy
         </Link>
-        <Link href="/legal/terms-of-service" className="text-xs text-muted-foreground hover:underline md:text-sm">
-          Terms of Service
+        <Link href="/legal/terms" className="text-xs text-muted-foreground hover:underline md:text-sm">
+          Terms
         </Link>
         <Link href="/legal/disclaimer" className="text-xs text-muted-foreground hover:underline md:text-sm">
           Disclaimer
