@@ -63,6 +63,24 @@ export async function sendVerificationEmail(email: string, token: string) {
     })
 }
 
+export async function sendPasswordResetEmail(email: string, token: string) {
+    const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`
+    
+    await sendEmail({
+        to: email,
+        subject: "Reset your password - InjexPro",
+        html: `
+            <h1>Reset your password</h1>
+            <p>You requested to reset your password for InjexPro.</p>
+            <p>Click the link below to set a new password:</p>
+            <a href="${resetUrl}" style="padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a>
+            <p>Or copy this link: <a href="${resetUrl}">${resetUrl}</a></p>
+            <p>This link will expire in 1 hour.</p>
+            <p>If you didn't ask for this, you can ignore this email.</p>
+        `
+    })
+}
+
 export async function sendPaymentFailedEmail(email: string, portalUrl: string) {
     await sendEmail({
         to: email,
