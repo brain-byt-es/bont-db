@@ -139,6 +139,7 @@ interface RecordFormProps {
   status?: string
   userRole?: string
   organization?: {
+      name?: string
       preferences?: OrganizationPreferences | null
   }
 }
@@ -184,7 +185,7 @@ export function RecordForm({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      location: initialData?.location || "Main Clinic",
+      location: initialData?.location || organization?.name || "Clinic",
       subject_id: initialData?.subject_id || defaultSubjectId || "",
       date: initialData?.date ? new Date(initialData.date) : new Date(),
       category: initialData?.category || "",

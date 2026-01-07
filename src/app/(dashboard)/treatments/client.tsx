@@ -23,6 +23,7 @@ interface TreatmentsClientProps {
   patients: PatientOption[]
   usageLimitReached?: boolean
   organization?: {
+      name?: string
       preferences?: {
           standard_vial_size?: number
           standard_dilution_ml?: number
@@ -42,7 +43,15 @@ export function TreatmentsClient({
   const [createOpen, setCreateOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const filteredTreatments = initialTreatments.filter(record => {
+  // Map treatments to replace "Main Clinic" with organization name for better display
+  const displayTreatments = initialTreatments.map(t => ({
+    ...t,
+    treatment_site: (t.treatment_site === "Main Clinic" || !t.treatment_site) 
+        ? (organization?.name || "Clinic") 
+        : t.treatment_site
+  }))
+
+  const filteredTreatments = displayTreatments.filter(record => {
     const searchLower = search.toLowerCase()
     return (
       record.patient?.patient_code.toLowerCase().includes(searchLower) ||
@@ -121,7 +130,7 @@ export function TreatmentsClient({
         </div>
       </div>
 
-      {initialTreatments.length === 0 ? (
+      {displayTreatments.length === 0 ? (
         <EmptyState 
             title="No treatments recorded"
             description="Start documenting procedures to build your clinical database and unlock research insights."

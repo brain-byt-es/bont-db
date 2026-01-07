@@ -30,13 +30,31 @@ interface Treatment {
   patient?: { patient_code: string };
 }
 
+interface OrganizationPreferences {
+  standard_vial_size?: number
+  standard_dilution_ml?: number
+  enable_compliance_views?: boolean
+}
+
 interface PatientPageProps {
   patient: Patient
   treatments: Treatment[]
+  organization?: {
+    name?: string
+    preferences?: OrganizationPreferences | null
+  }
 }
 
-export default function PatientPage({ patient, treatments }: PatientPageProps) {
+export default function PatientPage({ patient, treatments, organization }: PatientPageProps) {
   const [treatmentDialogOpen, setTreatmentDialogOpen] = useState(false)
+
+  // Map treatments to replace "Main Clinic" with organization name for better branding
+  const displayTreatments = treatments.map(t => ({
+    ...t,
+    treatment_site: (t.treatment_site === "Main Clinic" || !t.treatment_site) 
+        ? (organization?.name || "Clinic") 
+        : t.treatment_site
+  }))
 
   return (
     <div className="flex flex-col gap-4 pt-6">
@@ -47,6 +65,7 @@ export default function PatientPage({ patient, treatments }: PatientPageProps) {
           onOpenChange={setTreatmentDialogOpen} 
           defaultPatientId={patient.id}
           patients={[patient]}
+          organization={organization}
         >
           <Button>
             <Plus className="mr-2 size-4" />
@@ -62,7 +81,7 @@ export default function PatientPage({ patient, treatments }: PatientPageProps) {
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
         <TabsContent value="timeline" className="pt-4">
-            <PatientTimeline treatments={treatments || []} />
+            <PatientTimeline treatments={displayTreatments} />
         </TabsContent>
         <TabsContent value="records">
           <Card>
@@ -73,7 +92,7 @@ export default function PatientPage({ patient, treatments }: PatientPageProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RecentRecordsTable records={treatments || []} />
+              <RecentRecordsTable records={displayTreatments} />
             </CardContent>
           </Card>
         </TabsContent>

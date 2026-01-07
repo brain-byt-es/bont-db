@@ -3,6 +3,7 @@ import PatientPage from "./client"
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { PatientPhiInclude, getBirthYear } from "@/phi/patient-phi"
+import { OrganizationPreferences } from "@/components/record-form"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -64,10 +65,28 @@ export default async function Page({ params }: PageProps) {
     patient: { patient_code: mappedPatient.patient_code }
   }))
 
-  return (
-    <PatientPage
-      patient={mappedPatient}
-      treatments={mappedTreatments}
-    />
-  )
-}
+    return (
+
+      <PatientPage
+
+        patient={mappedPatient}
+
+        treatments={mappedTreatments}
+
+            organization={{
+
+                name: ctx.organization.name,
+
+                preferences: ctx.organization.preferences as unknown as OrganizationPreferences
+
+              }}
+
+        
+
+      />
+
+    )
+
+  }
+
+  

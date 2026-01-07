@@ -17,14 +17,28 @@ export default async function TreatmentsPage() {
     patient_code: p.patient_code
   }))
 
-  return (
-    <TreatmentsClient 
-      initialTreatments={treatments} 
-      patients={patients} 
-      usageLimitReached={false}
-      organization={{
-        preferences: ctx?.organization.preferences as unknown as OrganizationPreferences
-      }}
-    />
-  )
-}
+    return (
+
+      <TreatmentsClient 
+
+        initialTreatments={treatments} 
+
+        patients={patients} 
+
+        usageLimitReached={false}
+
+        organization={{
+
+          name: ctx?.organization.name,
+
+          preferences: ctx?.organization.preferences as unknown as OrganizationPreferences
+
+        }}
+
+      />
+
+    )
+
+  }
+
+  
