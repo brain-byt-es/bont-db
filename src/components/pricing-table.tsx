@@ -53,8 +53,8 @@ const INJEXPRO_PLANS: PricingPlan[] = [
     id: "pro",
     name: "Pro",
     description: "For practices that need audit-safe documentation",
-    monthlyPrice: "€59",
-    yearlyPrice: "€590",
+    monthlyPrice: "$59",
+    yearlyPrice: "$590",
     isPro: true,
     features: [
       { text: "Up to 5 active users" },
@@ -103,7 +103,7 @@ export function PricingTable({ className }: { className?: string }) {
 
   const COMPARISON_GRID = [
     { label: "Intended for", basic: "Individuals", pro: "Practices & teams", ent: "Institutions" },
-    { label: "Pricing", basic: "Free", pro: "€59 / org", ent: "Custom" },
+    { label: "Pricing", basic: "Free", pro: "$59 / org", ent: "Custom" },
     { label: "Users included", basic: "1", pro: "Up to 5", ent: "Unlimited" },
     { label: "Clinical documentation", basic: true, pro: true, ent: true },
     { label: "Smart Dose Engine", basic: "Manual", pro: "Smart Defaults", ent: "Integrated" },
