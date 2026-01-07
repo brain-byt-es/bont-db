@@ -78,8 +78,8 @@ export default async function AcceptInvitePage({ searchParams }: PageProps) {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {emailMismatch && (
-             <Alert variant="default" className="text-left bg-yellow-50 text-yellow-900 border-yellow-200">
-               <AlertTriangle className="h-4 w-4 text-yellow-600" />
+             <Alert variant="default" className="text-left bg-destructive/5 text-destructive border-destructive/20">
+               <AlertTriangle className="h-4 w-4" />
                <AlertTitle>Email Mismatch</AlertTitle>
                <AlertDescription>
                  This invite was sent to <strong>{invite.email}</strong>, but you are logged in as <strong>{session.user.email}</strong>. Accepting this will link your current account.

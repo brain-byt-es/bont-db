@@ -76,8 +76,8 @@ export default async function SettingsPage({
       </div>
 
       {success === "true" && (
-          <Alert className="bg-emerald-50 border-emerald-200 text-emerald-900">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+          <Alert className="bg-primary/5 border-primary/20 text-primary">
+              <CheckCircle2 className="h-4 w-4" />
               <AlertTitle>Success!</AlertTitle>
               <AlertDescription>
                   Your plan has been updated. It might take a few seconds for all Pro features to appear.
@@ -86,7 +86,7 @@ export default async function SettingsPage({
       )}
 
       {canceled === "true" && (
-          <Alert variant="default" className="bg-amber-50 border-amber-200 text-amber-900">
+          <Alert variant="default" className="bg-muted border-border text-muted-foreground">
               <AlertTitle>Canceled</AlertTitle>
               <AlertDescription>
                   The upgrade process was canceled. No charges were made.
@@ -154,8 +154,8 @@ export default async function SettingsPage({
                 </CardHeader>
                 <CardContent>
                     {isOverrideActive && (
-                        <Alert className="mb-6 bg-blue-50 text-blue-900 border-blue-200">
-                            <Info className="h-4 w-4 text-blue-600" />
+                        <Alert className="mb-6 bg-primary/5 text-primary border-primary/20">
+                            <Info className="h-4 w-4" />
                             <AlertTitle>Manual Override Active</AlertTitle>
                             <AlertDescription>
                                 Your plan is currently managed manually by support. Standard Stripe billing might be paused or overridden.
@@ -171,9 +171,9 @@ export default async function SettingsPage({
                                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Status</p>
                                     <div className="mt-1 flex items-center gap-2">
                                         <div className={cn("h-2 w-2 rounded-full", 
-                                            isEnterprise ? "bg-purple-500" :
-                                            subStatus === SubscriptionStatus.ACTIVE ? "bg-emerald-500" :
-                                            subStatus === SubscriptionStatus.PAST_DUE ? "bg-amber-500" : "bg-red-500"
+                                            isEnterprise ? "bg-primary" :
+                                            subStatus === SubscriptionStatus.ACTIVE ? "bg-primary" :
+                                            subStatus === SubscriptionStatus.PAST_DUE ? "bg-destructive" : "bg-destructive"
                                         )} />
                                         <span className="font-semibold capitalize">{isEnterprise ? 'Active' : subStatus.toLowerCase().replace('_', ' ')}</span>
                                     </div>
@@ -198,8 +198,8 @@ export default async function SettingsPage({
                             </div>
 
                             {subStatus === SubscriptionStatus.PAST_DUE && !isOverrideActive && !isEnterprise && (
-                                <Alert className="bg-amber-50 text-amber-900 border-amber-200">
-                                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                <Alert className="bg-destructive/5 text-destructive border-destructive/20">
+                                    <AlertTriangle className="h-4 w-4" />
                                     <AlertTitle>Payment Past Due</AlertTitle>
                                     <AlertDescription>
                                         We couldn&apos;t process your last payment. Please update your payment method to avoid losing access to Pro features.

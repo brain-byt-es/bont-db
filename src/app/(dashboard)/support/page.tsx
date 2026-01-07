@@ -38,8 +38,8 @@ export default function SupportPage() {
 
         <Card className="flex flex-col justify-between">
           <CardHeader className="pb-2">
-            <div className="mb-2 w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <BookOpen className="size-5 text-blue-600" />
+            <div className="mb-2 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <BookOpen className="size-5 text-primary" />
             </div>
             <CardTitle className="text-lg">Documentation</CardTitle>
             <CardDescription>Guides and best practices.</CardDescription>

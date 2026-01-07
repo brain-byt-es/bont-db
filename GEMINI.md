@@ -9,7 +9,12 @@
   - Features: DB Account Linking with 7s timeout resilience for serverless environments.
 - **UI:** Tailwind CSS + Shadcn/UI
 
-## 2. Database Schema & Security
+## 2. UI & Styling Standards
+- **Color Mandate:** NEVER hardcode hex, rgb, or named colors (e.g., `text-[#3b82f6]` or `bg-blue-500`) in components.
+- **Variable Usage:** Always use Tailwind theme variables defined in `src/app/globals.css` (e.g., `text-primary`, `bg-muted`, `border-border`).
+- **Semantic Classes:** Prefer semantic utility classes (`text-muted-foreground`, `bg-accent`) to ensure consistent Dark Mode support and brand alignment.
+
+## 3. Database Schema & Security
 The database is strictly partitioned for PHI (Protected Health Information) compliance.
 
 ### Schemas
