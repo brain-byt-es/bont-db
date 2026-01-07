@@ -49,40 +49,37 @@ export function DPAAcceptanceGate({ needed }: DPAAcceptanceGateProps) {
           <AlertDialogTitle className="text-center text-xl">
             Data Processing Agreement Required
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-center pt-2">
-            To use InjexPro for clinical data, your organization must accept our Data Processing Agreement (DPA) to ensure compliance with GDPR and professional clinical standards.
+          <AlertDialogDescription className="text-center pt-2 space-y-2">
+            <p>
+              To document and process clinical data, InjexPro requires your organization to accept our Data Processing Agreement (DPA).
+            </p>
+            <p>
+              This is a standard requirement under GDPR and ensures that patient data is processed securely, lawfully, and only on your organization&apos;s instructions.
+            </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
         
-        <div className="py-6 space-y-4">
+        <div className="py-4 space-y-4">
             <div className="rounded-lg border p-4 bg-muted/30 space-y-3">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Accepting this DPA covers:</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Accepting the DPA confirms:</p>
                 <ul className="text-sm space-y-2">
                     <li className="flex items-start gap-2">
                         <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                        <span>Legal basis for processing Special Category Health Data.</span>
+                        <span>The legal basis for processing special category health data</span>
                     </li>
                     <li className="flex items-start gap-2">
                         <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                        <span>Technical and Organizational Measures (TOMs).</span>
+                        <span>The agreed <Link href="/legal/toms" target="_blank" className="underline decoration-muted-foreground/50 hover:text-foreground">Technical and Organizational Measures (TOMs)</Link></span>
                     </li>
                     <li className="flex items-start gap-2">
                         <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                        <span>Authorized Subprocessors list.</span>
+                        <span>The use of <Link href="/legal/subprocessors" target="_blank" className="underline decoration-muted-foreground/50 hover:text-foreground">authorized subprocessors</Link> (e.g. hosting, payments)</span>
                     </li>
                 </ul>
             </div>
-            
-            <div className="flex justify-center">
-                <Button variant="link" asChild className="text-primary gap-1">
-                    <Link href="/legal/dpa" target="_blank">
-                        Review Full DPA <ExternalLink className="h-3 w-3" />
-                    </Link>
-                </Button>
-            </div>
         </div>
 
-        <AlertDialogFooter className="flex-col sm:flex-col gap-3">
+        <AlertDialogFooter className="flex-col sm:flex-col gap-3 sm:space-x-0">
           <AlertDialogAction 
             onClick={(e) => {
                 e.preventDefault()
@@ -92,10 +89,17 @@ export function DPAAcceptanceGate({ needed }: DPAAcceptanceGateProps) {
             disabled={isPending}
           >
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Accept DPA for Organization
+            Accept DPA for this Organization
           </AlertDialogAction>
-          <p className="text-[10px] text-center text-muted-foreground">
-            By clicking accept, you represent that you have the legal authority to bind the Controller to this agreement.
+          
+          <Button variant="ghost" asChild className="w-full text-muted-foreground hover:text-foreground">
+            <Link href="/legal/dpa" target="_blank">
+                Review Full DPA
+            </Link>
+          </Button>
+
+          <p className="text-[10px] text-center text-muted-foreground px-4">
+            By clicking “Accept”, you confirm that you are authorized to accept this agreement on behalf of the organization (Controller).
           </p>
         </AlertDialogFooter>
       </AlertDialogContent>
