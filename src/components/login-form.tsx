@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -16,6 +14,7 @@ import { useTransition, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import Link from "next/link"
 
 interface LoginFormProps extends React.ComponentProps<"form"> {
   message?: string
@@ -74,12 +73,12 @@ function LoginFormContent({
         <Field>
           <div className="flex items-center">
             <FieldLabel htmlFor="password">Password</FieldLabel>
-            <a
-              href="mailto:support@injexpro.com?subject=Password Reset"
+            <Link
+              href="/forgot-password"
               className="ml-auto text-sm underline-offset-4 hover:underline"
             >
               Forgot your password?
-            </a>
+            </Link>
           </div>
           <Input id="password" name="password" type="password" required disabled={isPending} />
         </Field>
@@ -134,9 +133,9 @@ function LoginFormContent({
         <Field>
           <FieldDescription className="text-center mt-2">
             Don&apos;t have an account?{" "}
-            <a href="/signup" className="underline underline-offset-4">
+            <Link href="/signup" className="underline underline-offset-4">
               Sign up
-            </a>
+            </Link>
           </FieldDescription>
         </Field>
       </FieldGroup>
