@@ -36,7 +36,10 @@ export default async function DashboardLayout({
   const memberships = await prisma.organizationMembership.findMany({
     where: { 
         userId: session.user.id, 
-        status: "ACTIVE" 
+        status: "ACTIVE",
+        organization: {
+            status: "ACTIVE"
+        }
     },
     select: {
         organization: { select: { id: true, name: true } }
