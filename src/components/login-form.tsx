@@ -47,7 +47,7 @@ function LoginFormContent({
       })
 
       if (result?.error) {
-        toast.error("Invalid email or password")
+        toast.error("Login failed. Please check your credentials or verify your account.")
       } else {
         toast.success("Logged in successfully")
         router.push(callbackUrl)
