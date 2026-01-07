@@ -9,6 +9,7 @@ import { Plus } from "lucide-react"
 // notFound will be handled in the server component
 import { TreatmentDialog } from "@/components/treatment-create-dialog"
 import { PatientHeader } from "./patient-header"
+import { PatientTimeline } from "@/components/patient-timeline"
 
 interface Patient {
   id: string;
@@ -54,11 +55,15 @@ export default function PatientPage({ patient, treatments }: PatientPageProps) {
         </TreatmentDialog>
       </div>
 
-      <Tabs defaultValue="records" className="w-full">
+      <Tabs defaultValue="timeline" className="w-full">
         <TabsList>
+          <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="records">Records</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
+        <TabsContent value="timeline" className="pt-4">
+            <PatientTimeline treatments={treatments || []} />
+        </TabsContent>
         <TabsContent value="records">
           <Card>
             <CardHeader>

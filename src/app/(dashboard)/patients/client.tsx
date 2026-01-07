@@ -3,13 +3,14 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { SubjectsTable, Subject } from "@/components/subjects-table"
-import { Plus, Search, X } from "lucide-react"
+import { Plus, Search, X, Users } from "lucide-react"
 import { PatientCreateDialog } from "@/components/patient-create-dialog"
 import {
   Card,
   CardContent,
 } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { EmptyState } from "@/components/ui/empty"
 
 interface PatientsClientProps {
   initialSubjects: Subject[]
@@ -18,6 +19,7 @@ interface PatientsClientProps {
 export function PatientsClient({ initialSubjects }: PatientsClientProps) {
   const [search, setSearch] = useState("")
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const filteredSubjects = initialSubjects.filter(s => 
@@ -78,19 +80,33 @@ export function PatientsClient({ initialSubjects }: PatientsClientProps) {
                 )}
             </div>
 
-            <PatientCreateDialog>
-                <Button>
+            <PatientCreateDialog open={createOpen} onOpenChange={setCreateOpen}>
+                <Button onClick={() => setCreateOpen(true)}>
                   <Plus className="mr-2 size-4" />
                   New Subject
                 </Button>
             </PatientCreateDialog>
         </div>
       </div>
-      <Card>
-        <CardContent>
-          <SubjectsTable subjects={filteredSubjects} />
-        </CardContent>
-      </Card>
+
+      {initialSubjects.length === 0 ? (
+        <EmptyState 
+            title="No patients yet"
+            description="Start by adding your first patient to the database to begin clinical documentation."
+            icon={Users}
+            action={{
+                label: "Add your first patient",
+                onClick: () => setCreateOpen(true),
+                icon: Plus
+            }}
+        />
+      ) : (
+        <Card>
+            <CardContent>
+            <SubjectsTable subjects={filteredSubjects} />
+            </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

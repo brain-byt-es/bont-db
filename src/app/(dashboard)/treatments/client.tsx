@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button"
 import { RecentRecordsTable, TreatmentRecord } from "@/components/recent-records-table"
 import { TreatmentDialog } from "@/components/treatment-create-dialog"
 import { Plus, Search, X } from "lucide-react"
+import { IconVaccine } from "@tabler/icons-react"
 import {
   Card,
   CardContent,
 } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { EmptyState } from "@/components/ui/empty"
 
 interface PatientOption {
   id: string
@@ -37,6 +39,7 @@ export function TreatmentsClient({
 }: TreatmentsClientProps) {
   const [search, setSearch] = useState("")
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const filteredTreatments = initialTreatments.filter(record => {
@@ -104,22 +107,38 @@ export function TreatmentsClient({
             </div>
 
             <TreatmentDialog
+                open={createOpen}
+                onOpenChange={setCreateOpen}
                 patients={patients}
                 usageLimitReached={usageLimitReached}
                 organization={organization}
             >
-              <Button>
+              <Button onClick={() => setCreateOpen(true)}>
                 <Plus className="mr-2 size-4" />
                 New Treatment
               </Button>
             </TreatmentDialog>
         </div>
       </div>
-      <Card>
-        <CardContent>
-          <RecentRecordsTable records={filteredTreatments} />
-        </CardContent>
-      </Card>
+
+      {initialTreatments.length === 0 ? (
+        <EmptyState 
+            title="No treatments recorded"
+            description="Start documenting procedures to build your clinical database and unlock research insights."
+            icon={IconVaccine}
+            action={{
+                label: "Log your first treatment",
+                onClick: () => setCreateOpen(true),
+                icon: Plus
+            }}
+        />
+      ) : (
+        <Card>
+            <CardContent>
+            <RecentRecordsTable records={filteredTreatments} />
+            </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
