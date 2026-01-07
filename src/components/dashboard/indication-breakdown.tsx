@@ -25,9 +25,10 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF1943'
 interface IndicationBreakdownProps {
   data: { name: string; value: number }[]
   isPro: boolean
+  className?: string
 }
 
-export function IndicationBreakdown({ data, isPro }: IndicationBreakdownProps) {
+export function IndicationBreakdown({ data, isPro, className }: IndicationBreakdownProps) {
   const displayData = isPro ? data : MOCK_PIE_DATA
 
   const chartConfig = displayData.reduce((acc, item, index) => {
@@ -39,7 +40,7 @@ export function IndicationBreakdown({ data, isPro }: IndicationBreakdownProps) {
   }, {} as ChartConfig);
 
   return (
-    <Card className={cn("flex flex-col relative overflow-hidden", !isPro && "border-dashed")}>
+    <Card className={cn("flex flex-col relative overflow-hidden", !isPro && "border-dashed", className)}>
       {!isPro && <LockOverlay title="Indication Mix" />}
       <CardHeader className="items-center pb-0">
         <CardTitle className="text-sm font-medium">Indication Breakdown</CardTitle>

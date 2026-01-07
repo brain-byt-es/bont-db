@@ -35,19 +35,9 @@ interface ClinicalInsightsProps {
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-export function ClinicalInsights({ outcomeTrends, dosePerIndication, isPro }: ClinicalInsightsProps) {
+export function OutcomeTrendsCard({ outcomeTrends, isPro, className }: { outcomeTrends: OutcomeTrend[], isPro: boolean, className?: string }) {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
-          Clinical Insights
-          {!isPro && <Badge variant="secondary" className="font-normal">Upgrade to unlock</Badge>}
-        </h2>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Chart 1: Outcome Trends */}
-        <Card className={cn(!isPro && "relative overflow-hidden")}>
+        <Card className={cn("h-full", !isPro && "relative overflow-hidden", className)}>
           {!isPro && <LockOverlay />}
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -93,9 +83,12 @@ export function ClinicalInsights({ outcomeTrends, dosePerIndication, isPro }: Cl
             </div>
           </CardContent>
         </Card>
+  )
+}
 
-        {/* Chart 2: Dose Distribution */}
-        <Card className={cn(!isPro && "relative overflow-hidden")}>
+export function DoseDistributionCard({ dosePerIndication, isPro, className }: { dosePerIndication: DoseStat[], isPro: boolean, className?: string }) {
+  return (
+        <Card className={cn("h-full", !isPro && "relative overflow-hidden", className)}>
           {!isPro && <LockOverlay />}
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -139,6 +132,22 @@ export function ClinicalInsights({ outcomeTrends, dosePerIndication, isPro }: Cl
             </div>
           </CardContent>
         </Card>
+  )
+}
+
+export function ClinicalInsights({ outcomeTrends, dosePerIndication, isPro }: ClinicalInsightsProps) {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+          Clinical Insights
+          {!isPro && <Badge variant="secondary" className="font-normal">Upgrade to unlock</Badge>}
+        </h2>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <OutcomeTrendsCard outcomeTrends={outcomeTrends} isPro={isPro} />
+        <DoseDistributionCard dosePerIndication={dosePerIndication} isPro={isPro} />
       </div>
     </div>
   )

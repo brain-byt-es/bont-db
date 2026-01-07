@@ -21,13 +21,10 @@ interface ClinicalActivityProps {
   isPro: boolean
 }
 
-export function ClinicalActivity({ trendData, topMuscles, isPro }: ClinicalActivityProps) {
+export function ActivityTrendCard({ trendData, isPro, className }: { trendData: TreatmentTrend[], isPro: boolean, className?: string }) {
   const displayTrend = isPro ? trendData : MOCK_TREND
-  const displayMuscles = isPro ? topMuscles : MOCK_MUSCLES
-
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <Card className={cn(!isPro && "relative overflow-hidden")}>
+      <Card className={cn("h-full", !isPro && "relative overflow-hidden", className)}>
         {!isPro && <LockOverlay title="Activity Insights" />}
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Treatments over Time</CardTitle>
@@ -71,8 +68,13 @@ export function ClinicalActivity({ trendData, topMuscles, isPro }: ClinicalActiv
           </div>
         </CardContent>
       </Card>
+  )
+}
 
-      <Card className={cn(!isPro && "relative overflow-hidden")}>
+export function TopMusclesCard({ topMuscles, isPro, className }: { topMuscles: MuscleStat[], isPro: boolean, className?: string }) {
+  const displayMuscles = isPro ? topMuscles : MOCK_MUSCLES
+  return (
+      <Card className={cn("h-full", !isPro && "relative overflow-hidden", className)}>
         {!isPro && <LockOverlay title="Anatomical Trends" />}
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Top Injected Muscles (Spastik)</CardTitle>
@@ -101,6 +103,14 @@ export function ClinicalActivity({ trendData, topMuscles, isPro }: ClinicalActiv
           </div>
         </CardContent>
       </Card>
+  )
+}
+
+export function ClinicalActivity({ trendData, topMuscles, isPro }: ClinicalActivityProps) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <ActivityTrendCard trendData={trendData} isPro={isPro} />
+      <TopMusclesCard topMuscles={topMuscles} isPro={isPro} />
     </div>
   )
 }

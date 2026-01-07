@@ -6,6 +6,7 @@ interface DocumentationQualityProps {
   followUpRateRecent: number
   masBaselineRate: number
   masPeakRate: number
+  className?: string
 }
 
 function getProgressColor(value: number) {
@@ -18,10 +19,11 @@ export function DocumentationQuality({
   followUpRateOverall,
   followUpRateRecent,
   masBaselineRate,
-  masPeakRate
+  masPeakRate,
+  className
 }: DocumentationQualityProps) {
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold">Research Readiness</CardTitle>
         <CardDescription>Data quality for future analysis</CardDescription>

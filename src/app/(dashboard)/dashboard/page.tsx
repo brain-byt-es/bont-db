@@ -1,7 +1,7 @@
 import { QualificationStats } from "@/components/dashboard/qualification-stats"
 import { IndicationBreakdown } from "@/components/dashboard/indication-breakdown"
 import { GuidelinesChecklist } from "@/components/dashboard/guidelines-checklist"
-import { ClinicalActivity } from "@/components/dashboard/clinical-activity"
+import { ActivityTrendCard, TopMusclesCard } from "@/components/dashboard/clinical-activity"
 import { NextActions } from "@/components/dashboard/next-actions"
 import { DocumentationQuality } from "@/components/dashboard/documentation-quality"
 import { UpsellTeaser } from "@/components/dashboard/upsell-teaser"
@@ -17,7 +17,7 @@ import { getDashboardData } from "./actions"
 import { getOrganizationContext } from "@/lib/auth-context"
 import { checkPlan, PLAN_GATES } from "@/lib/permissions"
 import { Plan } from "@/generated/client/enums"
-import { ClinicalInsights } from "@/components/dashboard/clinical-insights"
+import { OutcomeTrendsCard, DoseDistributionCard } from "@/components/dashboard/clinical-insights"
 import { DateRangeFilter } from "@/components/dashboard/date-range-filter"
 
 export default async function Page({
@@ -83,69 +83,34 @@ export default async function Page({
         </div>
       </div>
       
-      {/* 1. Overview Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-4 lg:px-6">
+      {/* 1. Overview Row & Next Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-4 lg:px-6 items-stretch">
          <StatsCard 
             title="Total Patients" 
             value={data.totalPatientsCount} 
             subtext="Distinct patients treated"
             icon={Users}
+            className="h-full"
          />
          <StatsCard 
             title="Total Treatments" 
             value={data.totalTreatmentsCount} 
             subtext={`${range ? 'Last ' + range + ' days' : 'Total records logged'}`}
             icon={Activity}
+            className="h-full"
          />
          <StatsCard 
             title="Follow-up Rate" 
             value={`${Math.round(data.followUpRateRecent)}%`}
             subtext={`${range ? 'Last ' + range + ' days' : 'Last 90 days'}`}
             icon={TrendingUp}
+            className="h-full"
          />
+         <NextActions actions={actions} className="h-full" />
       </div>
 
-      {/* 2. Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-4 lg:px-6">
-        
-        {/* Left Column (2/3) - Charts & Insights */}
-        <div className="lg:col-span-2 space-y-8">
-            <ClinicalInsights 
-                outcomeTrends={data.outcomeTrends}
-                dosePerIndication={data.dosePerIndication}
-                isPro={isPro}
-            />
-
-            <ClinicalActivity 
-              trendData={data.trendData} 
-              topMuscles={data.topMuscles} 
-              isPro={isPro}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <IndicationBreakdown data={data.indicationBreakdownData} isPro={isPro} />
-            </div>
-        </div>
-
-        {/* Right Column (1/3) - Actions & Readiness */}
-        <div className="space-y-6">
-            <NextActions actions={actions} />
-            <DocumentationQuality 
-                followUpRateOverall={data.followUpRateOverall}
-                followUpRateRecent={data.followUpRateRecent}
-                masBaselineRate={data.masBaselineRate}
-                masPeakRate={data.masPeakRate}
-            />
-        </div>
-      </div>
-
-      {!isPro && (
-        <div className="px-4 lg:px-6 mt-6">
-            <UpsellTeaser />
-        </div>
-      )}
-
-      {/* 3. Qualification & Compliance Subsection */}
-      <div className="px-4 lg:px-6 mt-4">
+      {/* 2. Qualification & Compliance Subsection */}
+      <div className="px-4 lg:px-6">
         <Collapsible defaultOpen={enableCompliance} className="space-y-2">
             <div className="flex items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
                 <div className="flex flex-col gap-1">
@@ -190,6 +155,36 @@ export default async function Page({
             </CollapsibleContent>
         </Collapsible>
       </div>
+
+      <div className="px-4 lg:px-6">
+        <h2 className="text-lg font-semibold tracking-tight">Clinical Insights</h2>
+      </div>
+
+      {/* 3. Clinical Insights Grid (3x2) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 lg:px-6 items-stretch">
+        
+        {/* Row 1 */}
+        <OutcomeTrendsCard outcomeTrends={data.outcomeTrends} isPro={isPro} className="h-full" />
+        <DoseDistributionCard dosePerIndication={data.dosePerIndication} isPro={isPro} className="h-full" />
+        <ActivityTrendCard trendData={data.trendData} isPro={isPro} className="h-full" />
+
+        {/* Row 2 */}
+        <TopMusclesCard topMuscles={data.topMuscles} isPro={isPro} className="h-full" />
+        <IndicationBreakdown data={data.indicationBreakdownData} isPro={isPro} className="h-full" />
+        <DocumentationQuality 
+            followUpRateOverall={data.followUpRateOverall}
+            followUpRateRecent={data.followUpRateRecent}
+            masBaselineRate={data.masBaselineRate}
+            masPeakRate={data.masPeakRate}
+            className="h-full"
+        />
+      </div>
+
+      {!isPro && (
+        <div className="px-4 lg:px-6 mt-6">
+            <UpsellTeaser />
+        </div>
+      )}
 
     </div>
   )
