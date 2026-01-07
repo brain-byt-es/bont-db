@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, useRef } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -168,6 +168,7 @@ export function RecordForm({
   const [regions, setRegions] = useState<MuscleRegion[]>([])
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
+  const hasRestoredDraft = useRef(false)
 
   const [showPiiWarning, setShowPiiWarning] = useState(false)
   const [showSignDialog, setShowSignDialog] = useState(false)
@@ -301,23 +302,37 @@ export function RecordForm({
 
   // Autosave & Load Draft
   useEffect(() => {
-    if (isEditing) return
+    if (isEditing || hasRestoredDraft.current) return
     const savedDraft = localStorage.getItem("bont_treatment_draft")
     if (savedDraft && !initialData) {
         try {
             const draft = JSON.parse(savedDraft)
+            // 1. Check validity (24h)
             if (new Date().getTime() - new Date(draft.timestamp).getTime() < 24 * 60 * 60 * 1000) {
                 const { values, steps: draftSteps, assessments: draftAssessments } = draft
-                if (!form.getValues("subject_id")) {
-                    form.reset({ ...values, date: values.date ? new Date(values.date) : new Date() })
+                
+                // 2. Context Safety: If we are in a specific patient context, ONLY restore matching drafts
+                if (defaultSubjectId && values.subject_id !== defaultSubjectId) {
+                    return
+                }
+
+                // 3. Meaningful Content Check
+                const hasContent = !!(values.notes?.trim()) || (draftSteps && draftSteps.length > 0)
+
+                if (hasContent) {
+                    if (!form.getValues("subject_id")) {
+                        form.reset({ ...values, date: values.date ? new Date(values.date) : new Date() })
+                    }
                     if (draftSteps) setSteps(draftSteps)
                     if (draftAssessments) setAssessments(draftAssessments.map((a: Assessment & { assessed_at: string }) => ({ ...a, assessed_at: new Date(a.assessed_at) })))
-                    toast.info("Draft restored")
+                    
+                    hasRestoredDraft.current = true
+                    toast.info("Unsaved draft restored")
                 }
             }
         } catch (e) { console.error(e) }
     }
-  }, [isEditing, initialData, form])
+  }, [isEditing, initialData, form, defaultSubjectId])
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
