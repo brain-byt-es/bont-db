@@ -85,7 +85,10 @@ export async function resetPassword(token: string, password: string, confirmPass
 
     await prisma.user.update({
         where: { id: user.id },
-        data: { passwordHash }
+        data: { 
+            passwordHash,
+            emailVerified: user.emailVerified || new Date() // Verify email if not already verified
+        }
     })
 
     await prisma.verificationToken.delete({
