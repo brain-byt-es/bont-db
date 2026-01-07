@@ -123,6 +123,7 @@ model User {
 
   identities UserIdentity[]
   memberships     OrganizationMembership[]
+  legalAcceptances LegalAcceptance[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -185,6 +186,7 @@ model Organization {
   lots        InventoryLot[]
   auditLogs   AuditLog[]
   musclePreferences OrganizationMusclePreference[]
+  legalAcceptances LegalAcceptance[]
 
   @@index([region])
   @@index([status])
@@ -599,6 +601,33 @@ model InventoryLot {
   @@unique([organizationId, productId, lotNumber])
   @@index([organizationId, expiresOn])
   @@index([productId])
+  @@schema("public")
+}
+
+enum LegalDocumentType {
+  TOS
+  PRIVACY
+  DPA
+  @@schema("public")
+}
+
+model LegalAcceptance {
+  id               String            @id @default(uuid()) @db.Uuid
+  userId           String            @db.Uuid
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  organizationId   String?           @db.Uuid
+  organization     Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  documentType     LegalDocumentType
+  documentVersion  String
+  
+  acceptedAt       DateTime          @default(now())
+  acceptedIp       String?
+  userAgent        String?
+
+  @@index([userId])
+  @@index([organizationId])
   @@schema("public")
 }
 

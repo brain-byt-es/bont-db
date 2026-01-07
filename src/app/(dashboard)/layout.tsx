@@ -12,6 +12,8 @@ import prisma from "@/lib/prisma"
 import { AuthContextProvider } from "@/components/auth-context-provider"
 import { MembershipRole } from "@/generated/client/enums"
 import { getEffectivePlan } from "@/lib/permissions"
+import { DPAAcceptanceGate } from "@/components/legal/dpa-acceptance-gate"
+import { checkDPANeeded } from "@/app/actions/legal"
 
 export default async function DashboardLayout({
   children,
@@ -53,12 +55,15 @@ export default async function DashboardLayout({
   // Resolve Effective Plan (including manual overrides)
   const effectivePlan = getEffectivePlan(orgContext.organization)
 
+  const dpaNeeded = await checkDPANeeded()
+
   return (
     <AuthContextProvider 
       userRole={orgContext.membership.role as MembershipRole}
       userPlan={effectivePlan}
       userId={session.user.id}
     >
+      <DPAAcceptanceGate needed={dpaNeeded} />
       <SidebarProvider
         style={
           {

@@ -4,11 +4,16 @@ import { redirect } from "next/navigation"
 import prisma from "@/lib/prisma"
 import { getUserContext } from "@/lib/auth-context"
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { getRegionForCountry } from "@/lib/countries"
-import { Region } from "@/generated/client/enums"
+import { Region, LegalDocumentType } from "@/generated/client/enums"
+import { LEGAL_VERSIONS } from "@/lib/legal-config"
 
 export async function createOrganizationAction(formData: FormData) {
+  const headersList = await headers()
+  const userAgent = headersList.get("user-agent") || undefined
+  const acceptedIp = headersList.get("x-forwarded-for") || "unknown"
+
   const { userId } = await getUserContext()
   
   const orgName = formData.get("orgName") as string
@@ -36,7 +41,17 @@ export async function createOrganizationAction(formData: FormData) {
               role: "OWNER",
               status: "ACTIVE"
             }
-          }
+          },
+          // Record DPA acceptance if Non-US
+          legalAcceptances: region !== Region.US ? {
+            create: {
+              userId: userId,
+              documentType: LegalDocumentType.DPA,
+              documentVersion: LEGAL_VERSIONS.DPA,
+              acceptedIp,
+              userAgent
+            }
+          } : undefined
         }
       })
       newOrgId = org.id

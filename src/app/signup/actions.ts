@@ -3,7 +3,9 @@
 import { z } from "zod"
 import prisma from "@/lib/prisma"
 import bcrypt from "bcryptjs"
-import { AuthProvider } from "@/generated/client/enums"
+import { AuthProvider, LegalDocumentType } from "@/generated/client/enums"
+import { headers } from "next/headers"
+import { LEGAL_VERSIONS } from "@/lib/legal-config"
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -16,6 +18,10 @@ const signupSchema = z.object({
 })
 
 export async function signupAction(formData: FormData) {
+  const headersList = await headers()
+  const userAgent = headersList.get("user-agent") || undefined
+  const acceptedIp = headersList.get("x-forwarded-for") || "unknown"
+
   const name = formData.get("name") as string
   const email = (formData.get("email") as string)?.toLowerCase().trim()
   const password = formData.get("password") as string
@@ -54,6 +60,24 @@ export async function signupAction(formData: FormData) {
             provider: AuthProvider.credentials,
             providerSubject: email, // For credentials, email is the subject
             emailAtAuth: email,
+          }
+        },
+        legalAcceptances: {
+          createMany: {
+            data: [
+              {
+                documentType: LegalDocumentType.TOS,
+                documentVersion: LEGAL_VERSIONS.TOS,
+                acceptedIp,
+                userAgent
+              },
+              {
+                documentType: LegalDocumentType.PRIVACY,
+                documentVersion: LEGAL_VERSIONS.PRIVACY,
+                acceptedIp,
+                userAgent
+              }
+            ]
           }
         }
       }

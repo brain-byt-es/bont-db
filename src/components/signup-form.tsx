@@ -95,7 +95,7 @@ export function SignupForm({
             htmlFor="terms"
             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 pt-1"
           >
-            I accept the <a href="/legal/terms-of-service" className="underline hover:text-primary">Terms of Service</a> and <a href="/legal/privacy-policy" className="underline hover:text-primary">Privacy Policy</a>
+            I accept the <a href="/legal/terms" target="_blank" className="underline hover:text-primary">Terms of Service</a> and <a href="/legal/privacy" target="_blank" className="underline hover:text-primary">Privacy Policy</a>
           </label>
         </div>
         <Field>
