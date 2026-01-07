@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
-import { BodySide, Timepoint, EncounterStatus } from "@/generated/client/client"
+import { BodySide, Timepoint, EncounterStatus, Prisma } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 import { getDoseSuggestions, CLINICAL_PROTOCOLS } from "@/lib/dose-engine"
 import { logAuditAction } from "@/lib/audit-logger"
@@ -345,18 +345,315 @@ export async function getLatestTreatment(patientId: string) {
 }
 
 /**
+
  * Advanced Dose Engine: Get suggestions for a specific patient and muscle.
+
  */
+
 export async function getDoseSuggestionsAction(patientId: string, muscleId: string) {
+
   const ctx = await getOrganizationContext()
+
   if (!ctx) throw new Error("No organization context")
+
   
+
   return await getDoseSuggestions(ctx.organizationId, patientId, muscleId)
+
 }
 
+
+
 /**
- * Get standard protocols for an indication.
+
+
+
+ * Save a custom treatment protocol for the organization.
+
+
+
  */
-export async function getProtocolsAction(indication: string) {
-    return CLINICAL_PROTOCOLS.filter(p => p.indication === indication)
+
+
+
+export async function saveProtocolAction(name: string, indication: string, steps: ProcedureStep[]) {
+
+
+
+  const ctx = await getOrganizationContext()
+
+
+
+  if (!ctx) throw new Error("No organization context")
+
+
+
+  
+
+
+
+  requirePermission(ctx.membership.role, PERMISSIONS.MANAGE_ORGANIZATION)
+
+
+
+
+
+
+
+    const protocol = await prisma.clinicalProtocol.create({
+
+
+
+
+
+
+
+      data: {
+
+
+
+
+
+
+
+        organizationId: ctx.organizationId,
+
+
+
+
+
+
+
+        createdByUserId: ctx.membership.userId,
+
+
+
+
+
+
+
+        name,
+
+
+
+
+
+
+
+        indication,
+
+
+
+
+
+
+
+        steps: steps.map(s => ({
+
+
+
+
+
+
+
+            muscleId: s.muscle_id,
+
+
+
+
+
+
+
+            units: s.numeric_value,
+
+
+
+
+
+
+
+            side: s.side
+
+
+
+
+
+
+
+        })) as unknown as Prisma.InputJsonValue
+
+
+
+
+
+
+
+      }
+
+
+
+
+
+
+
+    })
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+  await logAuditAction(ctx, "PROTOCOL_CREATED", "ClinicalProtocol", protocol.id, { name })
+
+
+
+
+
+
+
+  return { success: true }
+
+
+
 }
+
+
+
+
+
+
+
+/**
+
+
+
+ * Get all available protocols (Global + Custom) for an indication.
+
+
+
+ */
+
+
+
+export async function getProtocolsAction(indication: string) {
+
+
+
+    const ctx = await getOrganizationContext()
+
+
+
+    const globalProtocols = CLINICAL_PROTOCOLS.filter(p => p.indication === indication)
+
+
+
+    
+
+
+
+    if (!ctx) return globalProtocols
+
+
+
+
+
+
+
+    const customProtocols = await prisma.clinicalProtocol.findMany({
+
+
+
+        where: {
+
+
+
+            organizationId: ctx.organizationId,
+
+
+
+            indication
+
+
+
+        },
+
+
+
+        orderBy: { name: 'asc' }
+
+
+
+    })
+
+
+
+
+
+
+
+    const mappedCustom = customProtocols.map(p => ({
+
+
+
+        id: p.id,
+
+
+
+        name: p.name,
+
+
+
+        indication: p.indication,
+
+
+
+        isCustom: true,
+
+
+
+        steps: (p.steps as Array<{ muscleId: string, units: number, side: string }>).map(s => ({
+
+
+
+            muscleId: s.muscleId,
+
+
+
+            units: s.units,
+
+
+
+            side: s.side
+
+
+
+        }))
+
+
+
+    }))
+
+
+
+
+
+
+
+    return [...globalProtocols, ...mappedCustom]
+
+
+
+}
+
+
+
+

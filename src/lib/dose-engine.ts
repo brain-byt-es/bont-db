@@ -14,10 +14,12 @@ export interface Protocol {
   id: string
   name: string
   indication: string
+  isCustom?: boolean
   steps: {
-    muscleName: string
+    muscleName?: string
+    muscleId?: string
     units: number
-    side: "Left" | "Right" | "Bilateral" | "Midline"
+    side: "Left" | "Right" | "Bilateral" | "Midline" | string
   }[]
 }
 

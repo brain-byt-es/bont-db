@@ -53,7 +53,7 @@ const rawMuscles = [
   {"id":"4001254d-3c9c-4507-b611-763d5a581178","region_id":"8c92c079-ef3c-4f96-a2cb-efc4d6c4be79","name":"M. tibialis anterior","synonyms":["Vorderer Schienbeinmuskel"],"sort_order":250},
   {"id":"403ec0b4-2812-4c35-a0f6-87a1c3a3ef06","region_id":"87b02b90-8234-430e-83e1-6231e57aaa45","name":"M. masseter","synonyms":["Kaumuskel"],"sort_order":140},
   {"id":"414aec4e-b662-49fd-bd98-63cb43f7c11f","region_id":"87b02b90-8234-430e-83e1-6231e57aaa45","name":"M. longus capitis","synonyms":["Langer Kopfmuskel"],"sort_order":320},
-  {"id":"42f37c5f-1242-4e54-8711-e087914d0095","region_id":"f38c9aa9-1fc9-4b15-8eec-5627a53374ab","name":"M. brachioradialis","synonyms":["Oberarmspeichenmuskel"],"sort_order":50},
+  {"id":"42f37c5f-1242-4e54-8711-e087914d0095","region_id":"f38c9aa9-1fc9-4b15-8eec-5627a53374ab","name":"M. brachialis","synonyms":["Armbeuger"],"sort_order":30},
   {"id":"457879b0-5fdd-4512-8046-3a7974ee3776","region_id":"8c92c079-ef3c-4f96-a2cb-efc4d6c4be79","name":"M. quadratus plantae","synonyms":["Sohlenviereckmuskel"],"sort_order":360},
   {"id":"47f63b22-424c-478b-985b-7d45903ee73d","region_id":"6fe2d7f7-3e00-49fc-a75b-468075fd86ec","name":"M. rhomboideus minor","synonyms":["Kleiner Rautenmuskel"],"sort_order":150},
   {"id":"499dc3e0-2709-4808-9921-10d8f85f3373","region_id":"87b02b90-8234-430e-83e1-6231e57aaa45","name":"M. obliquus capitis inferior","synonyms":["Unterer schiefer Kopfmuskel"],"sort_order":350},
@@ -165,6 +165,16 @@ const rawMuscles = [
   {"id":"manual-paraspinalis","region_id":"87b02b90-8234-430e-83e1-6231e57aaa45","name":"M. paraspinalis (cervical)","synonyms":["Nackenmuskulatur", "Paravertebral"],"sort_order":420}
 ]
 
+const rawDiagnoses = [
+  { code: "G24.3", label: "Spasmodic torticollis", system: "ICD-10" },
+  { code: "G24.5", label: "Blepharospasm", system: "ICD-10" },
+  { code: "G80.0", label: "Spastic quadriplegic cerebral palsy", system: "ICD-10" },
+  { code: "G81.1", label: "Spastic hemiplegia", system: "ICD-10" },
+  { code: "G43.3", label: "Chronic migraine", system: "ICD-10" },
+  { code: "R61.9", label: "Hyperhidrosis, unspecified", system: "ICD-10" },
+  { code: "M62.8", label: "Other specified disorders of muscle (Spasticity)", system: "ICD-10" },
+]
+
 async function main() {
   console.log('🌱 Starting seed with FULL original data...')
 
@@ -198,6 +208,24 @@ async function main() {
         synonyms: muscle.synonyms,
         sortOrder: muscle.sort_order,
         regionId: region.id
+      }
+    })
+  }
+
+  console.log('📖 Seeding Diagnoses...')
+  for (const diag of rawDiagnoses) {
+    await prisma.diagnosis.upsert({
+      where: { 
+        codeSystem_code: {
+          codeSystem: diag.system,
+          code: diag.code
+        }
+      },
+      update: { label: diag.label },
+      create: {
+        codeSystem: diag.system,
+        code: diag.code,
+        label: diag.label
       }
     })
   }

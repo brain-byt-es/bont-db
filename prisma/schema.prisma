@@ -125,6 +125,7 @@ model User {
   identities UserIdentity[]
   memberships     OrganizationMembership[]
   legalAcceptances LegalAcceptance[]
+  createdProtocols ClinicalProtocol[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -197,6 +198,7 @@ model Organization {
   auditLogs   AuditLog[]
   musclePreferences OrganizationMusclePreference[]
   legalAcceptances LegalAcceptance[]
+  protocols   ClinicalProtocol[]
 
   @@index([region])
   @@index([status])
@@ -638,6 +640,26 @@ model LegalAcceptance {
 
   @@index([userId])
   @@index([organizationId])
+  @@schema("public")
+}
+
+model ClinicalProtocol {
+  id               String            @id @default(uuid()) @db.Uuid
+  organizationId   String            @db.Uuid
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdByUserId  String            @db.Uuid
+  createdByUser    User              @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  name             String
+  indication       String
+  steps            Json              // Array of { muscleId, units, side }
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([organizationId])
+  @@index([createdByUserId])
   @@schema("public")
 }
 

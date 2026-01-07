@@ -5,7 +5,7 @@ import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Save, ChevronDown, Wand2, Lock, Unlock, Sparkles } from "lucide-react"
+import { CalendarIcon, Save, ChevronDown, Wand2, Lock, Unlock, Sparkles, Plus as PlusIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -62,7 +62,7 @@ import {
 import { cn } from "@/lib/utils"
 import { ProcedureStepsEditor, ProcedureStep } from "@/components/procedure-steps-editor"
 import { AssessmentManager, Assessment } from "@/components/assessment-manager"
-import { createTreatment, getMuscles, getMuscleRegions, getLatestTreatment, getProtocolsAction } from "@/app/(dashboard)/treatments/actions"
+import { createTreatment, getMuscles, getMuscleRegions, getLatestTreatment, getProtocolsAction, saveProtocolAction } from "@/app/(dashboard)/treatments/actions"
 import { updateTreatment } from "@/app/(dashboard)/treatments/update-action"
 import { reopenTreatmentAction } from "@/app/(dashboard)/treatments/status-actions"
 import { toast } from "sonner"
@@ -274,19 +274,26 @@ export function RecordForm({
     fetchData()
   }, [])
 
-  const applyProtocol = (protocol: Protocol) => {
+  const applyProtocol = (protocol: Protocol & { isCustom?: boolean }) => {
     if (!isPro) {
         setShowUpgradeDialog(true)
         return
     }
 
-    const newSteps = protocol.steps.map((s): ProcedureStep | null => {
-        const muscleDef = muscles.find(m => m.name === s.muscleName)
+    const newSteps = protocol.steps.map((s: { muscleId?: string, muscleName?: string, units: number, side: string }): ProcedureStep | null => {
+        // Handle Custom vs Global
+        let muscleDef = null
+        if (protocol.isCustom && s.muscleId) {
+            muscleDef = muscles.find(m => m.id === s.muscleId)
+        } else {
+            muscleDef = muscles.find(m => m.name === s.muscleName)
+        }
+
         if (!muscleDef) return null
         return {
             id: Math.random().toString(36).substr(2, 9),
             muscle_id: muscleDef.id,
-            side: s.side,
+            side: s.side as ProcedureStep["side"],
             numeric_value: s.units,
             mas_baseline: "",
             mas_peak: ""
@@ -299,6 +306,28 @@ export function RecordForm({
     } else {
         toast.error("Protocol muscles not found in database.")
     }
+  }
+
+  const handleSaveProtocol = () => {
+      if (!isPro) {
+          setShowUpgradeDialog(true)
+          return
+      }
+      
+      const name = prompt("Enter a name for this protocol template:")
+      if (!name) return
+
+      startTransition(async () => {
+          try {
+              await saveProtocolAction(name, categoryValue || "andere", steps)
+              toast.success("Protocol saved to 'My Protocols'")
+              // Refresh protocols list
+              const p = await getProtocolsAction(categoryValue || "andere")
+              setProtocols(p)
+          } catch {
+              toast.error("Failed to save protocol")
+          }
+      })
   }
 
   // Autosave & Load Draft
@@ -576,6 +605,13 @@ export function RecordForm({
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
+                )}
+
+                {steps.length > 0 && (
+                    <Button variant="outline" size="sm" type="button" onClick={handleSaveProtocol} className={cn(!isPro && "opacity-80")}>
+                        <PlusIcon className="mr-2 h-4 w-4" />
+                        Save as My Protocol
+                    </Button>
                 )}
 
                 {!isSmartFilled && (
