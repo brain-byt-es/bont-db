@@ -6,6 +6,7 @@ import { LEGAL_VERSIONS } from "@/lib/legal-config"
 import { LegalDocumentType } from "@/generated/client/enums"
 import { headers } from "next/headers"
 import { revalidatePath } from "next/cache"
+import { logAuditAction } from "@/lib/audit-logger"
 
 export async function acceptDPAAction() {
   const ctx = await getOrganizationContext()
@@ -19,7 +20,7 @@ export async function acceptDPAAction() {
   const userAgent = headersList.get("user-agent") || undefined
   const acceptedIp = headersList.get("x-forwarded-for") || "unknown"
 
-  await prisma.legalAcceptance.create({
+  const acceptance = await prisma.legalAcceptance.create({
     data: {
       userId: ctx.membership.userId,
       organizationId: ctx.organizationId,
@@ -29,6 +30,8 @@ export async function acceptDPAAction() {
       userAgent
     }
   })
+
+  await logAuditAction(ctx, "DPA_ACCEPTED", "LegalAcceptance", acceptance.id, { version: LEGAL_VERSIONS.DPA })
 
   revalidatePath("/")
   return { success: true }

@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma"
 import { MembershipRole, OrganizationStatus } from "@/generated/client/enums"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { logAuditAction } from "@/lib/audit-logger"
 
 export async function deleteOrganizationAction() {
   const { userId } = await getUserContext()
@@ -45,6 +46,8 @@ export async function deleteOrganizationAction() {
         status: OrganizationStatus.CLOSED
       }
     })
+
+    await logAuditAction(ctx, "ORGANIZATION_DELETED", "Organization", ctx.organizationId)
   } catch (error) {
     console.error("Failed to delete organization:", error)
     return { error: "Failed to delete organization." }

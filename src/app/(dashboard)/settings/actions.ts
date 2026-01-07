@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
+import { logAuditAction } from "@/lib/audit-logger"
 
 interface OrganizationPreferences {
   enable_compliance_views?: boolean;
@@ -33,6 +34,8 @@ export async function updateComplianceSettings(enabled: boolean) {
     }
   })
 
+  await logAuditAction(ctx, "COMPLIANCE_SETTINGS_UPDATED", "Organization", ctx.organizationId, { enabled })
+
   revalidatePath('/settings')
   return { success: true }
 }
@@ -57,6 +60,8 @@ export async function updateOrganizationPreferences(data: Partial<OrganizationPr
       }
     }
   })
+
+  await logAuditAction(ctx, "ORG_PREFERENCES_UPDATED", "Organization", ctx.organizationId, data)
 
   revalidatePath('/settings')
   return { success: true }
@@ -102,6 +107,8 @@ export async function updateOrganizationName(formData: FormData) {
       where: { id: organizationId },
       data: { name: name.trim() }
     })
+
+    await logAuditAction(ctx, "ORG_NAME_UPDATED", "Organization", organizationId, { oldName: ctx.organization.name, newName: name })
     
     revalidatePath("/dashboard")
     revalidatePath("/settings")

@@ -8,6 +8,7 @@ import { cookies, headers } from "next/headers"
 import { getRegionForCountry } from "@/lib/countries"
 import { Region, LegalDocumentType, MembershipRole } from "@/generated/client/enums"
 import { LEGAL_VERSIONS } from "@/lib/legal-config"
+import { logAuditAction } from "@/lib/audit-logger"
 
 export async function createOrganizationAction(formData: FormData) {
   const headersList = await headers()
@@ -92,6 +93,21 @@ export async function createOrganizationAction(formData: FormData) {
         sameSite: "lax",
         maxAge: 60 * 60 * 24 * 365 // 1 year
       })
+
+      // Fetch membership for logging
+      const membership = await prisma.organizationMembership.findFirst({
+          where: { organizationId: newOrgId, userId: userId }
+      })
+
+      if (membership) {
+          const ctx = { organizationId: newOrgId, membership }
+          
+          await logAuditAction(ctx, "ORGANIZATION_CREATED", "Organization", newOrgId, { name: trimmedName, region })
+          
+          if (region !== Region.US) {
+              await logAuditAction(ctx, "DPA_ACCEPTED", "LegalAcceptance", undefined, { version: LEGAL_VERSIONS.DPA, method: "ONBOARDING_AUTO" })
+          }
+      }
   }
 
   revalidatePath("/")
