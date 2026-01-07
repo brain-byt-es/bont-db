@@ -185,7 +185,7 @@ export function PricingTable({ className }: { className?: string }) {
                         </span>
                         {plan.id === 'pro' && (
                             <span className="text-sm font-medium text-muted-foreground">
-                                / {billingCycle === "monthly" ? "mo" : "yr"}
+                                / {billingCycle === "monthly" ? "month" : "year"}
                             </span>
                         )}
                     </div>
