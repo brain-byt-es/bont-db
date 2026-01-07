@@ -204,7 +204,7 @@ export function PricingTable({ className }: { className?: string }) {
                 </CardContent>
                 <CardFooter className="pt-8 pb-8">
                   {plan.id === 'enterprise' ? (
-                      <Button variant="ghost" className="w-full h-12 text-sm font-semibold border-border hover:bg-muted" asChild>
+                      <Button variant="outline" className="w-full h-12 text-sm font-semibold border-primary/30 text-primary hover:bg-primary/5" asChild>
                           <a href="mailto:sales@injexpro.com?subject=Enterprise Inquiry">
                               {plan.buttonText}
                           </a>
@@ -226,35 +226,35 @@ export function PricingTable({ className }: { className?: string }) {
           </div>
 
           {/* Comparison Section (More subtle) */}
-          <div className="w-full mt-8 space-y-8 opacity-90">
+          <div className="w-full mt-8 space-y-8">
             <div className="text-center">
-                <h3 className="text-xl font-bold">Feature Comparison</h3>
+                <h3 className="text-xl font-bold tracking-tight">Feature Comparison</h3>
             </div>
-            <div className="rounded-xl border bg-card/50 overflow-hidden shadow-sm max-w-5xl mx-auto">
-                <div className="grid grid-cols-4 bg-muted/30 p-4 font-bold border-b text-xs md:text-sm">
+            <div className="rounded-xl border bg-card overflow-hidden shadow-sm max-w-5xl mx-auto">
+                <div className="grid grid-cols-4 bg-muted/50 p-4 font-bold border-b text-xs md:text-sm">
                     <div>Capability</div>
-                    <div className="text-center text-muted-foreground/70 font-normal">Basic</div>
-                    <div className="text-center text-muted-foreground/70 font-normal">Pro</div>
-                    <div className="text-center text-muted-foreground/70 font-normal">Enterprise</div>
+                    <div className="text-center">Basic</div>
+                    <div className="text-center">Pro</div>
+                    <div className="text-center">Enterprise</div>
                 </div>
-                <div className="divide-y divide-border/50">
+                <div className="divide-y divide-border">
                     {COMPARISON_GRID.map((row, i) => (
                         <div key={i} className="grid grid-cols-4 p-4 items-center text-xs">
-                            <div className="font-medium text-muted-foreground">{row.label}</div>
-                            <div className="text-center flex justify-center text-muted-foreground/60">
+                            <div className="font-medium text-foreground">{row.label}</div>
+                            <div className="text-center flex justify-center">
                                 {typeof row.basic === 'boolean' ? (
-                                    row.basic ? <CircleCheck className="size-3.5" /> : "-"
-                                ) : row.basic}
+                                    row.basic ? <CircleCheck className="size-4 text-primary/70" /> : "-"
+                                ) : <span className="text-muted-foreground">{row.basic}</span>}
                             </div>
                             <div className="text-center flex justify-center font-medium">
                                 {typeof row.pro === 'boolean' ? (
-                                    row.pro ? <CircleCheck className="size-3.5 text-primary" /> : "-"
-                                ) : row.pro}
+                                    row.pro ? <CircleCheck className="size-4 text-primary" /> : "-"
+                                ) : <span className="text-foreground">{row.pro}</span>}
                             </div>
-                            <div className="text-center flex justify-center text-muted-foreground/60">
+                            <div className="text-center flex justify-center">
                                 {typeof row.ent === 'boolean' ? (
-                                    row.ent ? <CircleCheck className="size-4" /> : "-"
-                                ) : row.ent}
+                                    row.ent ? <CircleCheck className="size-4 text-primary/70" /> : "-"
+                                ) : <span className="text-muted-foreground">{row.ent}</span>}
                             </div>
                         </div>
                     ))}
@@ -264,19 +264,21 @@ export function PricingTable({ className }: { className?: string }) {
 
           {/* Enterprise Narrative Section (Only shown to PRO or as a subtle footer) */}
           {isAlreadyPro && (
-            <div className="grid md:grid-cols-2 gap-12 w-full pt-12 border-t animate-in fade-in duration-700">
+            <div className="grid md:grid-cols-2 gap-12 w-full pt-16 border-t animate-in fade-in duration-700">
                 <div className="space-y-6">
-                    <h3 className="text-2xl font-bold">Scaling to Enterprise</h3>
-                    <p className="text-muted-foreground">As your institution grows, documentation requires formal governance and system integration.</p>
-                    <div className="space-y-4">
+                    <h3 className="text-3xl font-bold tracking-tight">Scaling to Enterprise</h3>
+                    <p className="text-muted-foreground text-lg">As your institution grows, documentation requires formal governance and system integration.</p>
+                    <div className="space-y-6">
                         <NarrativePoint title="System Integration" desc="Connect EPIC, KISIM or custom EHR systems to eliminate double documentation." />
                         <NarrativePoint title="Governance & Risk" desc="SSO enforcement, custom SLAs, and dedicated account management for hospital groups." />
                     </div>
                 </div>
-                <Card className="bg-muted border-dashed p-8 flex flex-col justify-center items-center text-center space-y-6 shadow-none">
-                    <h3 className="text-xl font-bold">Ready for institutional scale?</h3>
-                    <p className="text-sm text-muted-foreground">For teams larger than 10 or complex hospital environments.</p>
-                    <Button size="default" variant="outline" className="w-full border-primary text-primary hover:bg-primary/5 font-bold" asChild>
+                <Card className="bg-primary text-primary-foreground p-8 flex flex-col justify-center items-center text-center space-y-6 shadow-2xl border-none">
+                    <div className="space-y-2">
+                        <h3 className="text-2xl font-bold">Ready for institutional scale?</h3>
+                        <p className="text-sm opacity-90">For teams larger than 5 or complex hospital environments.</p>
+                    </div>
+                    <Button size="lg" variant="secondary" className="w-full text-primary font-bold shadow-lg" asChild>
                         <a href="mailto:sales@injexpro.com?subject=Enterprise Inquiry">Talk to Enterprise Team</a>
                     </Button>
                 </Card>
