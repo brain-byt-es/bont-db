@@ -49,13 +49,15 @@ export function DPAAcceptanceGate({ needed }: DPAAcceptanceGateProps) {
           <AlertDialogTitle className="text-center text-xl">
             Data Processing Agreement Required
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-center pt-2 space-y-2">
-            <p>
-              To document and process clinical data, InjexPro requires your organization to accept our Data Processing Agreement (DPA).
-            </p>
-            <p>
-              This is a standard requirement under GDPR and ensures that patient data is processed securely, lawfully, and only on your organization&apos;s instructions.
-            </p>
+          <AlertDialogDescription className="text-center pt-2 space-y-2" asChild>
+            <div>
+              <p>
+                To document and process clinical data, InjexPro requires your organization to accept our Data Processing Agreement (DPA).
+              </p>
+              <p>
+                This is a standard requirement under GDPR and ensures that patient data is processed securely, lawfully, and only on your organization&apos;s instructions.
+              </p>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         
