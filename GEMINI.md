@@ -63,6 +63,7 @@ The application is **Organization-centric** and features a tiered plan model (BA
 - **Automatic Calculation:** Live conversion between Units and Volume (ml).
 - **Clinical Protocols:** Indication-specific presets (e.g., PREMPT Migraine, Spasticity).
 - **Smart Suggestions:** Automated dose hints based on specific patient history and muscle selection.
+- **Query Optimization:** Two-step history fetching (Encounters -> Injections) to avoid complex joins and ensure high performance.
 
 ## 5. Roadmap & Follow-up Actions
 
@@ -90,3 +91,10 @@ The application is **Organization-centric** and features a tiered plan model (BA
 - [x] **Interactive Support:** Implemented Support/FAQ hub with functional contact form powered by Resend.
 - [ ] **Infrastructure as Code:** Azure Bicep templates for push-button clinic deployments.
 - [ ] **Enterprise Connectivity:** Finalize EHR/CMS interface stubs for Sales demos.
+
+### Phase 7: Advanced Authentication & Governance (Completed)
+- [x] **Secure Auth Flow:** Implemented mandatory Email Verification and full Password Reset flow with secure tokens.
+- [x] **Org Governance:** Enabled organization soft-deletion (Close) for owners, with safeguards to prevent deletion of the last active organization.
+- [x] **Multi-tenancy Hardening:** Added duplicate organization name checks and strict status filtering in the auth context.
+- [x] **Comprehensive Audit logging:** Centralized `logAuditAction` utility tracking Treatment status changes, Admin edits, and Legal acceptances with IP/UA context.
+- [x] **Performance & Reliability:** Optimized Dose Engine queries and robust client-side pre-fetching for patient selection.
