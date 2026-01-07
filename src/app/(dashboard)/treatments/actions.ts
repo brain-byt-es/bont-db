@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma"
 import { BodySide, Timepoint, EncounterStatus } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 import { getDoseSuggestions, CLINICAL_PROTOCOLS } from "@/lib/dose-engine"
+import { logAuditAction } from "@/lib/audit-logger"
 
 interface AssessmentData {
   scale: string;
@@ -143,7 +144,7 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
   }
 
   // Create Encounter with ALL nested data
-  await prisma.encounter.create({
+  const encounter = await prisma.encounter.create({
     data: {
       organizationId,
       patientId: subject_id,
@@ -170,6 +171,8 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
       }
     }
   })
+
+  await logAuditAction(ctx, "TREATMENT_CREATED", "Encounter", encounter.id, { patientId: subject_id, totalUnits: total_units })
 
   revalidatePath('/patients')
   // Return success info instead of redirecting
@@ -280,6 +283,7 @@ export async function getTreatment(treatmentId: string) {
   return {
     ...treatment,
     totalUnits: treatment.totalUnits.toNumber(),
+    dilutionUnitsPerMl: treatment.dilutionUnitsPerMl?.toNumber() ?? null,
     injections: treatment.injections.map(inj => ({
       ...inj,
       units: inj.units.toNumber(),
@@ -323,6 +327,7 @@ export async function getLatestTreatment(patientId: string) {
   return {
     ...treatment,
     totalUnits: treatment.totalUnits.toNumber(), // Convert totalUnits
+    dilutionUnitsPerMl: treatment.dilutionUnitsPerMl?.toNumber() ?? null,
     product: treatment.product?.name || '',
     treatment_site: treatment.treatmentSite,
     indication: treatment.indication,
