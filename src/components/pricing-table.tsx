@@ -1,10 +1,8 @@
 "use client";
 
-import { CircleCheck, Sparkles } from "lucide-react";
-import { useTransition } from "react";
-
+import { CircleCheck, Sparkles, Loader2 } from "lucide-react";
+import { useTransition, useState } from "react";
 import { cn } from "@/lib/utils";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,8 +13,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { createCheckoutSessionAction } from "@/app/actions/stripe";
-import { Loader2 } from "lucide-react";
+import { useAuthContext } from "@/components/auth-context-provider";
+import { Plan } from "@/generated/client/enums";
 
 interface PricingFeature {
   text: string;
@@ -69,7 +69,7 @@ const INJEXPRO_PLANS: PricingPlan[] = [
   {
     id: "enterprise",
     name: "Enterprise",
-    description: "For organizations that require governed clinical systems",
+    description: "For institutions requiring governed clinical systems",
     monthlyPrice: "Custom",
     yearlyPrice: "Custom",
     features: [
@@ -85,7 +85,11 @@ const INJEXPRO_PLANS: PricingPlan[] = [
 ];
 
 export function PricingTable({ className }: { className?: string }) {
+  const { userPlan } = useAuthContext();
   const [isPending, startTransition] = useTransition();
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+
+  const isAlreadyPro = userPlan === Plan.PRO || userPlan === Plan.ENTERPRISE;
 
   const handleUpgrade = () => {
     startTransition(async () => {
@@ -98,12 +102,12 @@ export function PricingTable({ className }: { className?: string }) {
   };
 
   const COMPARISON_GRID = [
-    { label: "Intended for", basic: "Individuals", pro: "Practices & teams", ent: "Clinics & institutions" },
-    { label: "Pricing", basic: "Free", pro: "€59 / org / mo", ent: "Custom" },
+    { label: "Intended for", basic: "Individuals", pro: "Practices & teams", ent: "Institutions" },
+    { label: "Pricing", basic: "Free", pro: "€59 / org", ent: "Custom" },
     { label: "Users included", basic: "1", pro: "Up to 5", ent: "Unlimited" },
     { label: "Clinical documentation", basic: true, pro: true, ent: true },
-    { label: "Smart Dose Engine", basic: "Manual", pro: "Smart Defaults", ent: "Protocol-driven & integrated" },
-    { label: "Audit log", basic: "Basic", pro: "Advanced (Export)", ent: "Advanced + API" },
+    { label: "Smart Dose Engine", basic: "Manual", pro: "Smart Defaults", ent: "Integrated" },
+    { label: "Audit log", basic: "Basic", pro: "Export", ent: "Export + API" },
     { label: "EHR / CMS integrations", basic: false, pro: false, ent: true },
     { label: "SSO / SCIM", basic: false, pro: false, ent: true },
     { label: "SLA & Contracts", basic: false, pro: false, ent: true },
@@ -116,21 +120,47 @@ export function PricingTable({ className }: { className?: string }) {
           
           <div className="text-center space-y-4">
             <h2 className="text-3xl font-bold tracking-tight sm:text-5xl text-balance">
-              Built for clinics that need audit safety, integration, and scale.
+              Best-in-class clinical documentation
             </h2>
-            <p className="text-muted-foreground text-lg max-w-3xl mx-auto text-balance">
-              InjexPro Enterprise is designed for organizations that require system integration, 
-              contractual compliance, and operational governance — not just documentation.
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto text-balance">
+              Choose the level of audit-safety and collaboration that fits your practice.
             </p>
           </div>
+
+          {/* Billing Toggle */}
+          <div className="flex items-center gap-4 bg-muted/50 p-1 rounded-full border border-border">
+            <button 
+                onClick={() => setBillingCycle("monthly")}
+                className={cn(
+                    "px-6 py-2 text-sm font-medium rounded-full transition-all",
+                    billingCycle === "monthly" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+            >
+                Monthly
+            </button>
+            <button 
+                onClick={() => setBillingCycle("yearly")}
+                className={cn(
+                    "px-6 py-2 text-sm font-medium rounded-full transition-all flex items-center gap-2",
+                    billingCycle === "yearly" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+            >
+                Yearly
+                <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none text-[10px] h-4 px-1.5 font-bold">
+                    -15%
+                </Badge>
+            </button>
+          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
             {INJEXPRO_PLANS.map((plan) => (
               <Card
                 key={plan.id}
                 className={cn(
                     "flex flex-col justify-between text-left transition-all border-2",
-                    plan.isPro ? "border-primary shadow-xl scale-105 z-10 relative" : "border-border shadow-sm"
+                    plan.isPro 
+                        ? "border-primary shadow-xl scale-105 z-10 relative" 
+                        : "border-border shadow-sm opacity-95"
                 )}
               >
                 {plan.isPro && (
@@ -146,17 +176,17 @@ export function PricingTable({ className }: { className?: string }) {
                   <div className="flex flex-col mt-6">
                     <div className="flex items-baseline gap-1">
                         <span className="text-4xl font-extrabold tracking-tight">
-                        {plan.monthlyPrice}
+                            {billingCycle === "monthly" ? plan.monthlyPrice : plan.yearlyPrice}
                         </span>
                         {plan.id === 'pro' && (
                             <span className="text-sm font-medium text-muted-foreground">
-                                / month / org
+                                / {billingCycle === "monthly" ? "mo" : "yr"} / org
                             </span>
                         )}
                     </div>
                     {plan.id === 'enterprise' && (
-                        <p className="text-xs text-primary font-semibold mt-2">
-                            Required for integrations, contracts, and external audits.
+                        <p className="text-[11px] text-muted-foreground font-medium mt-2">
+                            Tailored for institutional scale and custom contracts.
                         </p>
                     )}
                   </div>
@@ -166,7 +196,7 @@ export function PricingTable({ className }: { className?: string }) {
                   <ul className="space-y-4">
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-start gap-3 text-sm">
-                        <CircleCheck className="size-5 text-primary shrink-0" />
+                        <CircleCheck className={cn("size-5 shrink-0", plan.isPro ? "text-primary" : "text-muted-foreground/60")} />
                         <span className="leading-snug">{feature.text}</span>
                       </li>
                     ))}
@@ -174,7 +204,7 @@ export function PricingTable({ className }: { className?: string }) {
                 </CardContent>
                 <CardFooter className="pt-8 pb-8">
                   {plan.id === 'enterprise' ? (
-                      <Button variant="outline" className="w-full h-12 text-base font-semibold border-primary text-primary hover:bg-primary/5" asChild>
+                      <Button variant="ghost" className="w-full h-12 text-sm font-semibold border-border hover:bg-muted" asChild>
                           <a href="mailto:sales@injexpro.com?subject=Enterprise Inquiry">
                               {plan.buttonText}
                           </a>
@@ -195,70 +225,63 @@ export function PricingTable({ className }: { className?: string }) {
             ))}
           </div>
 
-          {/* Comparison Section */}
-          <div className="w-full mt-12 space-y-8">
+          {/* Comparison Section (More subtle) */}
+          <div className="w-full mt-8 space-y-8 opacity-90">
             <div className="text-center">
-                <h3 className="text-2xl font-bold">Plan Comparison</h3>
-                <p className="text-muted-foreground mt-2 text-sm">Detailed feature breakdown for clinical institutions.</p>
+                <h3 className="text-xl font-bold">Feature Comparison</h3>
             </div>
-            <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
-                <div className="grid grid-cols-4 bg-muted/50 p-4 font-bold border-b text-sm md:text-base">
+            <div className="rounded-xl border bg-card/50 overflow-hidden shadow-sm max-w-5xl mx-auto">
+                <div className="grid grid-cols-4 bg-muted/30 p-4 font-bold border-b text-xs md:text-sm">
                     <div>Capability</div>
-                    <div className="text-center">Basic</div>
-                    <div className="text-center">Pro</div>
-                    <div className="text-center text-primary">Enterprise</div>
+                    <div className="text-center text-muted-foreground/70 font-normal">Basic</div>
+                    <div className="text-center text-muted-foreground/70 font-normal">Pro</div>
+                    <div className="text-center text-muted-foreground/70 font-normal">Enterprise</div>
                 </div>
-                <div className="divide-y">
+                <div className="divide-y divide-border/50">
                     {COMPARISON_GRID.map((row, i) => (
-                        <div key={i} className="grid grid-cols-4 p-4 items-center text-sm">
-                            <div className="font-medium">{row.label}</div>
-                            <div className="text-center flex justify-center text-muted-foreground">
+                        <div key={i} className="grid grid-cols-4 p-4 items-center text-xs">
+                            <div className="font-medium text-muted-foreground">{row.label}</div>
+                            <div className="text-center flex justify-center text-muted-foreground/60">
                                 {typeof row.basic === 'boolean' ? (
-                                    row.basic ? <CircleCheck className="size-4 text-primary/60" /> : "-"
+                                    row.basic ? <CircleCheck className="size-3.5" /> : "-"
                                 ) : row.basic}
                             </div>
                             <div className="text-center flex justify-center font-medium">
                                 {typeof row.pro === 'boolean' ? (
-                                    row.pro ? <CircleCheck className="size-4 text-primary" /> : "-"
+                                    row.pro ? <CircleCheck className="size-3.5 text-primary" /> : "-"
                                 ) : row.pro}
                             </div>
-                            <div className="text-center flex justify-center font-bold text-primary">
+                            <div className="text-center flex justify-center text-muted-foreground/60">
                                 {typeof row.ent === 'boolean' ? (
-                                    row.ent ? <CircleCheck className="size-5" /> : "-"
+                                    row.ent ? <CircleCheck className="size-4" /> : "-"
                                 ) : row.ent}
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
-            <p className="text-xs text-center text-muted-foreground">
-                Integrations and enterprise security features are only available as part of an Enterprise agreement.
-            </p>
           </div>
 
-          {/* Enterprise Narrative Section */}
-          <div className="grid md:grid-cols-2 gap-12 w-full pt-12 border-t">
-            <div className="space-y-6">
-                <h3 className="text-3xl font-bold">Why Enterprise?</h3>
-                <p className="text-muted-foreground text-lg">Enterprise customers choose InjexPro because risk and documentation must be contractually governed.</p>
-                <div className="space-y-4">
-                    <NarrativePoint title="Audit-Proof Documentation" desc="Every clinical action is part of a governed system with full attribution." />
-                    <NarrativePoint title="System Integration" desc="Existing EHR systems are integrated, not replaced, eliminating double documentation." />
-                    <NarrativePoint title="Governance & Risk" desc="Data handling and access are contractually secured with enterprise-grade SLAs." />
+          {/* Enterprise Narrative Section (Only shown to PRO or as a subtle footer) */}
+          {isAlreadyPro && (
+            <div className="grid md:grid-cols-2 gap-12 w-full pt-12 border-t animate-in fade-in duration-700">
+                <div className="space-y-6">
+                    <h3 className="text-2xl font-bold">Scaling to Enterprise</h3>
+                    <p className="text-muted-foreground">As your institution grows, documentation requires formal governance and system integration.</p>
+                    <div className="space-y-4">
+                        <NarrativePoint title="System Integration" desc="Connect EPIC, KISIM or custom EHR systems to eliminate double documentation." />
+                        <NarrativePoint title="Governance & Risk" desc="SSO enforcement, custom SLAs, and dedicated account management for hospital groups." />
+                    </div>
                 </div>
+                <Card className="bg-muted border-dashed p-8 flex flex-col justify-center items-center text-center space-y-6 shadow-none">
+                    <h3 className="text-xl font-bold">Ready for institutional scale?</h3>
+                    <p className="text-sm text-muted-foreground">For teams larger than 10 or complex hospital environments.</p>
+                    <Button size="default" variant="outline" className="w-full border-primary text-primary hover:bg-primary/5 font-bold" asChild>
+                        <a href="mailto:sales@injexpro.com?subject=Enterprise Inquiry">Talk to Enterprise Team</a>
+                    </Button>
+                </Card>
             </div>
-            <Card className="bg-primary text-primary-foreground p-8 flex flex-col justify-center items-center text-center space-y-6 shadow-2xl">
-                <h3 className="text-2xl font-bold">Ready to discuss Enterprise?</h3>
-                <ul className="text-left space-y-2 opacity-90 text-sm">
-                    <li>• EPIC, KISIM & HL7 Integrations</li>
-                    <li>• Security & Compliance Requirements</li>
-                    <li>• Large Organization Scale</li>
-                </ul>
-                <Button size="lg" variant="secondary" className="w-full text-primary font-bold" asChild>
-                    <a href="mailto:sales@injexpro.com?subject=Enterprise Inquiry">Contact Sales</a>
-                </Button>
-            </Card>
-          </div>
+          )}
         </div>
       </div>
     </section>
@@ -268,10 +291,10 @@ export function PricingTable({ className }: { className?: string }) {
 function NarrativePoint({ title, desc }: { title: string, desc: string }) {
     return (
         <div className="space-y-1">
-            <h4 className="font-bold text-foreground flex items-center gap-2">
+            <h4 className="font-bold text-foreground flex items-center gap-2 text-sm">
                 <CircleCheck className="size-4 text-primary" /> {title}
             </h4>
-            <p className="text-muted-foreground text-sm pl-6">{desc}</p>
+            <p className="text-muted-foreground text-xs pl-6">{desc}</p>
         </div>
     )
 }
