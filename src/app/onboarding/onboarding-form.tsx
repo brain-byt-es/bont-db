@@ -9,8 +9,9 @@ import { useFormStatus } from "react-dom"
 import { toast } from "sonner"
 import { useState } from "react"
 import { COUNTRIES } from "@/lib/countries"
-import { MapPin } from "lucide-react"
+import { MapPin, ShieldCheck } from "lucide-react"
 import { CountryDropdown } from "@/components/ui/country-dropdown"
+import Link from "next/link"
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -85,14 +86,44 @@ export function OnboardingForm({ defaultName }: { defaultName: string }) {
       </div>
 
       {isEU && (
-        <div className="flex items-start space-x-2 pt-2 animate-in fade-in">
-          <Checkbox id="dpa" name="dpa" required />
-          <label
-            htmlFor="dpa"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 pt-1"
-          >
-            I accept the <a href="/legal/dpa" target="_blank" className="underline hover:text-primary">Data Processing Agreement (DPA)</a> and confirm I am authorized to bind my organization.
-          </label>
+        <div className="space-y-4 animate-in fade-in pt-2">
+            <div className="rounded-xl border p-4 bg-muted/30 space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-sm">Data Processing Agreement (DPA)</h3>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    To document and process clinical data, InjexPro requires your organization to accept our DPA. This is a standard requirement under GDPR and ensures that patient data is processed securely, lawfully, and only on your organization&apos;s instructions.
+                </p>
+                
+                <div className="pt-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">This agreement confirms:</p>
+                    <ul className="text-sm space-y-2 text-muted-foreground">
+                        <li className="flex items-start gap-2">
+                            <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                            <span>The legal basis for processing special category health data</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                            <span>The agreed <Link href="/legal/toms" target="_blank" className="underline decoration-muted-foreground/50 hover:text-foreground">Technical and Organizational Measures (TOMs)</Link></span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                            <span>The use of <Link href="/legal/subprocessors" target="_blank" className="underline decoration-muted-foreground/50 hover:text-foreground">authorized subprocessors</Link></span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div className="flex items-start space-x-2 px-1">
+                <Checkbox id="dpa" name="dpa" required className="mt-1" />
+                <label
+                    htmlFor="dpa"
+                    className="text-sm font-medium leading-normal peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                    I accept the <Link href="/legal/dpa" target="_blank" className="underline hover:text-primary">Data Processing Agreement (DPA)</Link> and confirm that I am authorized to accept this agreement on behalf of the organization (Controller).
+                </label>
+            </div>
         </div>
       )}
 
