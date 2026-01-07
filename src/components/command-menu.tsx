@@ -13,6 +13,7 @@ import {
 } from "@tabler/icons-react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
+import { getPatients } from "@/app/(dashboard)/patients/actions"
 
 import {
   CommandDialog,
@@ -27,6 +28,7 @@ import {
 
 export function CommandMenu() {
   const [open, setOpen] = React.useState(false)
+  const [patients, setPatients] = React.useState<{id: string, patient_code: string}[]>([])
   const router = useRouter()
   const { setTheme } = useTheme()
 
@@ -42,6 +44,14 @@ export function CommandMenu() {
     return () => document.removeEventListener("keydown", down)
   }, [])
 
+  React.useEffect(() => {
+    if (open) {
+      getPatients()
+        .then((data) => setPatients(data))
+        .catch((err) => console.error("Failed to fetch patients for command menu", err))
+    }
+  }, [open])
+
   const runCommand = React.useCallback((command: () => void) => {
     setOpen(false)
     command()
@@ -49,7 +59,7 @@ export function CommandMenu() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Type a command or search..." />
+      <CommandInput placeholder="Type a command or search for a patient..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Suggestions">
@@ -66,6 +76,25 @@ export function CommandMenu() {
             <span>Treatments</span>
           </CommandItem>
         </CommandGroup>
+        
+        {patients.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Patients">
+              {patients.map((patient) => (
+                <CommandItem 
+                  key={patient.id} 
+                  onSelect={() => runCommand(() => router.push(`/patients/${patient.id}`))}
+                  value={patient.patient_code}
+                >
+                  <IconUsers className="mr-2 h-4 w-4" />
+                  <span>{patient.patient_code}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
         <CommandSeparator />
         <CommandGroup heading="Actions">
           <CommandItem onSelect={() => runCommand(() => router.push("/patients?action=new"))}>
