@@ -7,10 +7,11 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Mail, MessageCircle, BookOpen, ExternalLink, LifeBuoy } from "lucide-react"
+import { ContactSupportForm } from "@/components/contact-support-form"
 
 export default function SupportPage() {
   return (
-    <div className="flex flex-col gap-8 pt-6 max-w-4xl mx-auto pb-12">
+    <div className="flex flex-col gap-8 pt-6 max-w-4xl mx-auto pb-12 px-4 lg:px-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Support & FAQ</h1>
         <p className="text-muted-foreground">
@@ -29,7 +30,7 @@ export default function SupportPage() {
           </CardHeader>
           <CardContent className="pt-0">
             <Button variant="outline" className="w-full mt-2" asChild>
-                <a href="mailto:support@injexpro.com">Contact Us</a>
+                <a href="mailto:support@injexpro.com">Open Mail App</a>
             </Button>
           </CardContent>
         </Card>
@@ -111,17 +112,18 @@ export default function SupportPage() {
         </div>
       </div>
 
-      <div className="bg-muted/50 rounded-xl p-8 text-center space-y-4 border border-dashed">
-        <h3 className="font-semibold">Still have questions?</h3>
-        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            Our team of clinical specialists and engineers is ready to help you optimize your workflow.
-        </p>
-        <Button asChild>
-            <a href="mailto:support@injexpro.com">
-                Send us a message
-            </a>
-        </Button>
-      </div>
+      <Card className="bg-muted/50 border-dashed overflow-hidden">
+        <CardHeader className="text-center pb-2">
+            <CardTitle>Still have questions?</CardTitle>
+            <CardDescription>
+                Our team of clinical specialists and engineers is ready to help you optimize your workflow.
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="max-w-md mx-auto pb-8">
+            <ContactSupportForm />
+        </CardContent>
+      </Card>
     </div>
   )
 }
+
