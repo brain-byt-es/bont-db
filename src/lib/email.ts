@@ -15,11 +15,18 @@ interface EmailPayload {
 export async function sendEmail(payload: EmailPayload) {
   if (resend) {
     try {
-        await resend.emails.send({ 
-            from: 'InjexPro <notifications@injexpro.com>', 
+        const from = process.env.EMAIL_FROM || 'InjexPro <notifications@notification.injexpro.com>'
+        const data = await resend.emails.send({ 
+            from, 
             ...payload 
         })
-        console.log(`[Email Service] Email sent to ${payload.to}`)
+        
+        if (data.error) {
+            console.error(`[Email Service] Resend API Error:`, data.error)
+            throw new Error(data.error.message)
+        }
+
+        console.log(`[Email Service] Email sent to ${payload.to}. ID: ${data.data?.id}`)
     } catch (error) {
         console.error(`[Email Service] Failed to send email to ${payload.to}:`, error)
     }
@@ -28,6 +35,7 @@ export async function sendEmail(payload: EmailPayload) {
     console.log(`
 ========== [EMAIL MOCK] ==========
 To: ${payload.to}
+From: ${process.env.EMAIL_FROM || 'InjexPro <notifications@notification.injexpro.com>'}
 Subject: ${payload.subject}
 ----------------------------------
 ${payload.html}
