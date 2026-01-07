@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { createOrganizationAction } from "./actions"
 import { useFormStatus } from "react-dom"
 import { toast } from "sonner"
@@ -23,6 +24,8 @@ function SubmitButton() {
 export function OnboardingForm({ defaultName }: { defaultName: string }) {
   const [error, setError] = useState<string | null>(null)
   const [country, setCountry] = useState("DE")
+
+  const isEU = COUNTRIES.find(c => c.code === country)?.region === 'EU'
 
   async function handleSubmit(formData: FormData) {
     setError(null)
@@ -73,13 +76,25 @@ export function OnboardingForm({ defaultName }: { defaultName: string }) {
                 <p className="text-[12px] text-muted-foreground leading-snug">
                     Clinical and PII data will be physically stored in the 
                     <span className="font-bold text-primary mx-1">
-                        {COUNTRIES.find(c => c.code === country)?.region === 'US' ? 'United States' : 'European Union'}
+                        {isEU ? 'European Union' : 'United States'}
                     </span> 
                     region.
                 </p>
             </div>
         </div>
       </div>
+
+      {isEU && (
+        <div className="flex items-start space-x-2 pt-2 animate-in fade-in">
+          <Checkbox id="dpa" name="dpa" required />
+          <label
+            htmlFor="dpa"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 pt-1"
+          >
+            I accept the <a href="/legal/dpa" target="_blank" className="underline hover:text-primary">Data Processing Agreement (DPA)</a> and confirm I am authorized to bind my organization.
+          </label>
+        </div>
+      )}
 
       {error && (
         <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm font-medium border border-destructive/20 animate-in shake-1">
