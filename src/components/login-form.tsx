@@ -50,8 +50,8 @@ function LoginFormContent({
         toast.error("Login failed. Please check your credentials or verify your account.")
       } else {
         toast.success("Logged in successfully")
-        // Force a hard redirect to ensure session cookies are properly recognized
-        window.location.href = callbackUrl
+        router.push(callbackUrl)
+        router.refresh()
       }
     })
   }
