@@ -79,7 +79,13 @@ The application is **Organization-centric** and features a tiered plan model (BA
 - [x] **Multi-Admin UX:** Granular role management, membership updates, and ownership transfer.
 - [x] **Strategic UX:** Compact upsell teasers and searchable country selection.
 
-### Phase 5: Infrastructure & Connectivity (In Progress)
+### Phase 5: Legal & Compliance Framework (Completed)
+- [x] **Legal Hub:** Centralized, accessible pages for Terms, Privacy, DPA, Subprocessors, and TOMs using Tailwind typography.
+- [x] **DPA Acceptance Gate:** Mandatory, high-conversion modal blocking clinical access until DPA is accepted by Organization Owner.
+- [x] **Compliance Audit Trail:** `LegalAcceptance` table tracks execution details (User, IP, Version, Timestamp) for GDPR accountability.
+- [x] **UX Optimization:** "Product-moment" design for DPA gate with clear "Why" messaging and minimal friction.
+
+### Phase 6: Infrastructure & Connectivity (In Progress)
 - [x] **Email System Setup:** Fully integrated Resend SDK for transactional emails (Invites, Payment Failures).
 - [x] **Interactive Support:** Implemented Support/FAQ hub with functional contact form powered by Resend.
 - [ ] **Infrastructure as Code:** Azure Bicep templates for push-button clinic deployments.
