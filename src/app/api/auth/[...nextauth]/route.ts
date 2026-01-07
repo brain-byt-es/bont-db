@@ -95,8 +95,16 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, profile, account }) {
-      // 1. Initial Mapping (Standard)
+    async jwt({ token, user, profile, account }) {
+      // 0. Credentials Provider or Initial Login
+      if (user) {
+        token.id = user.id
+        token.email = user.email
+        token.displayName = user.name || undefined
+        token.picture = user.image || undefined
+      }
+
+      // 1. Initial Mapping (Standard for OAuth)
       if (profile) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const p = profile as any
