@@ -128,28 +128,33 @@ export function PricingTable({ className }: { className?: string }) {
           </div>
 
           {/* Billing Toggle */}
-          <div className="flex items-center gap-4 bg-muted/50 p-1 rounded-full border border-border">
-            <button 
-                onClick={() => setBillingCycle("monthly")}
-                className={cn(
-                    "px-6 py-2 text-sm font-medium rounded-full transition-all",
-                    billingCycle === "monthly" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-            >
-                Monthly
-            </button>
-            <button 
-                onClick={() => setBillingCycle("yearly")}
-                className={cn(
-                    "px-6 py-2 text-sm font-medium rounded-full transition-all flex items-center gap-2",
-                    billingCycle === "yearly" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-            >
-                Yearly
-                <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none text-[10px] h-4 px-1.5 font-bold">
-                    -15%
-                </Badge>
-            </button>
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-4 bg-muted/50 p-1 rounded-full border border-border">
+                <button 
+                    onClick={() => setBillingCycle("monthly")}
+                    className={cn(
+                        "px-6 py-2 text-sm font-medium rounded-full transition-all",
+                        billingCycle === "monthly" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    Monthly
+                </button>
+                <button 
+                    onClick={() => setBillingCycle("yearly")}
+                    className={cn(
+                        "px-6 py-2 text-sm font-medium rounded-full transition-all flex items-center gap-2",
+                        billingCycle === "yearly" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    Yearly
+                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none text-[10px] h-4 px-1.5 font-bold">
+                        -15%
+                    </Badge>
+                </button>
+            </div>
+            <p className="text-[11px] text-emerald-600 font-medium animate-in fade-in slide-in-from-top-1">
+                Save 2 months with annual billing.
+            </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
