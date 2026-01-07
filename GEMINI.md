@@ -43,7 +43,7 @@ The application is **Organization-centric** and features a tiered plan model (BA
 
 ### Plans
 - **BASIC (Free):** Single user, unlimited documentation, manual calculations.
-- **PRO ($59 / org / mo):** Up to 5 users, Smart Defaults, Audit Re-open, CSV Exports, Clinical Insights.
+- **PRO ($49 / mo):** Up to 5 users, Smart Defaults, Audit Re-open, CSV Exports, Clinical Insights.
 - **ENTERPRISE (Custom):** Unlimited users, EHR Integration (EPIC, KISIM), SSO/SAML, SLA, Custom Contracts.
 
 ## 4. Clinical Workflow & Data Integrity

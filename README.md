@@ -42,7 +42,7 @@ InjexPro focuses on **institutional-grade clinical workflows**, **regulatory com
 - Basic audit logs
 - Standard templates
 
-### PRO ($59 / Month / Organization)
+### PRO ($49 / Month)
 - **Team Collaboration** (Up to 5 active users)
 - **Smart Clinical Defaults:** Auto-fill from last patient visit
 - **Advanced Audit:** Unlock signed records and export CSV formats

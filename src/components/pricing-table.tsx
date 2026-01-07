@@ -53,8 +53,8 @@ const INJEXPRO_PLANS: PricingPlan[] = [
     id: "pro",
     name: "Pro",
     description: "For practices that need audit-safe documentation",
-    monthlyPrice: "$59",
-    yearlyPrice: "$590",
+    monthlyPrice: "$49",
+    yearlyPrice: "$490",
     isPro: true,
     features: [
       { text: "Up to 5 active users" },
@@ -103,7 +103,7 @@ export function PricingTable({ className }: { className?: string }) {
 
   const COMPARISON_GRID = [
     { label: "Intended for", basic: "Individuals", pro: "Practices & teams", ent: "Institutions" },
-    { label: "Pricing", basic: "Free", pro: "$59 / org", ent: "Custom" },
+    { label: "Pricing", basic: "Free", pro: "$49", ent: "Custom" },
     { label: "Users included", basic: "1", pro: "Up to 5", ent: "Unlimited" },
     { label: "Clinical documentation", basic: true, pro: true, ent: true },
     { label: "Smart Dose Engine", basic: "Manual", pro: "Smart Defaults", ent: "Integrated" },
@@ -180,7 +180,7 @@ export function PricingTable({ className }: { className?: string }) {
                         </span>
                         {plan.id === 'pro' && (
                             <span className="text-sm font-medium text-muted-foreground">
-                                / {billingCycle === "monthly" ? "mo" : "yr"} / org
+                                / {billingCycle === "monthly" ? "mo" : "yr"}
                             </span>
                         )}
                     </div>
@@ -204,7 +204,7 @@ export function PricingTable({ className }: { className?: string }) {
                 </CardContent>
                 <CardFooter className="pt-8 pb-8">
                   {plan.id === 'enterprise' ? (
-                      <Button variant="outline" className="w-full h-12 text-sm font-semibold border-primary/30 text-primary hover:bg-primary/5" asChild>
+                      <Button variant="default" className="w-full h-12 text-base font-semibold bg-purple-600 hover:bg-purple-700 text-white" asChild>
                           <a href="mailto:sales@injexpro.com?subject=Enterprise Inquiry">
                               {plan.buttonText}
                           </a>
@@ -231,7 +231,7 @@ export function PricingTable({ className }: { className?: string }) {
                 <h3 className="text-xl font-bold tracking-tight">Feature Comparison</h3>
             </div>
             <div className="rounded-xl border bg-card overflow-hidden shadow-sm max-w-5xl mx-auto">
-                <div className="grid grid-cols-4 bg-muted/50 p-4 font-bold border-b text-xs md:text-sm">
+                <div className="grid grid-cols-4 bg-muted/50 p-4 font-bold border-b text-xs md:text-sm text-muted-foreground">
                     <div>Capability</div>
                     <div className="text-center">Basic</div>
                     <div className="text-center">Pro</div>
@@ -239,7 +239,7 @@ export function PricingTable({ className }: { className?: string }) {
                 </div>
                 <div className="divide-y divide-border">
                     {COMPARISON_GRID.map((row, i) => (
-                        <div key={i} className="grid grid-cols-4 p-4 items-center text-xs">
+                        <div key={i} className="grid grid-cols-4 p-4 items-center text-xs bg-background">
                             <div className="font-medium text-foreground">{row.label}</div>
                             <div className="text-center flex justify-center">
                                 {typeof row.basic === 'boolean' ? (
@@ -262,24 +262,29 @@ export function PricingTable({ className }: { className?: string }) {
             </div>
           </div>
 
-          {/* Enterprise Narrative Section (Only shown to PRO or as a subtle footer) */}
+          {/* Enterprise Narrative Section (Only shown to PRO users) */}
           {isAlreadyPro && (
             <div className="grid md:grid-cols-2 gap-12 w-full pt-16 border-t animate-in fade-in duration-700">
                 <div className="space-y-6">
-                    <h3 className="text-3xl font-bold tracking-tight">Scaling to Enterprise</h3>
-                    <p className="text-muted-foreground text-lg">As your institution grows, documentation requires formal governance and system integration.</p>
-                    <div className="space-y-6">
-                        <NarrativePoint title="System Integration" desc="Connect EPIC, KISIM or custom EHR systems to eliminate double documentation." />
-                        <NarrativePoint title="Governance & Risk" desc="SSO enforcement, custom SLAs, and dedicated account management for hospital groups." />
+                    <h3 className="text-3xl font-bold tracking-tight">Why Enterprise?</h3>
+                    <p className="text-muted-foreground text-lg">Enterprise institutions choose InjexPro because risk and documentation must be contractually governed.</p>
+                    <div className="space-y-4">
+                        <NarrativePoint title="Audit-Proof Documentation" desc="Every clinical action is part of a governed system with full attribution." />
+                        <NarrativePoint title="System Integration" desc="Existing EHR systems are integrated, not replaced, eliminating double documentation." />
+                        <NarrativePoint title="Governance & Risk" desc="Data handling and access are contractually secured with enterprise-grade SLAs." />
                     </div>
                 </div>
                 <Card className="bg-primary text-primary-foreground p-8 flex flex-col justify-center items-center text-center space-y-6 shadow-2xl border-none">
                     <div className="space-y-2">
-                        <h3 className="text-2xl font-bold">Ready for institutional scale?</h3>
-                        <p className="text-sm opacity-90">For teams larger than 5 or complex hospital environments.</p>
+                        <h3 className="text-2xl font-bold">Ready to discuss Enterprise?</h3>
+                        <ul className="text-left space-y-2 opacity-90 text-sm mx-auto w-fit">
+                            <li>• EPIC, KISIM & HL7 Integrations</li>
+                            <li>• Security & Compliance Requirements</li>
+                            <li>• Teams larger than 5 users</li>
+                        </ul>
                     </div>
                     <Button size="lg" variant="secondary" className="w-full text-primary font-bold shadow-lg" asChild>
-                        <a href="mailto:sales@injexpro.com?subject=Enterprise Inquiry">Talk to Enterprise Team</a>
+                        <a href="mailto:sales@injexpro.com?subject=Enterprise Inquiry">Contact Enterprise Sales</a>
                     </Button>
                 </Card>
             </div>
