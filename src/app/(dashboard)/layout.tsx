@@ -14,6 +14,7 @@ import { MembershipRole } from "@/generated/client/enums"
 import { getEffectivePlan } from "@/lib/permissions"
 import { DPAAcceptanceGate } from "@/components/legal/dpa-acceptance-gate"
 import { checkDPANeeded } from "@/app/actions/legal"
+import { CommandMenu } from "@/components/command-menu"
 
 export default async function DashboardLayout({
   children,
@@ -66,6 +67,7 @@ export default async function DashboardLayout({
       userPlan={effectivePlan}
       userId={session.user.id}
     >
+      <CommandMenu />
       <DPAAcceptanceGate needed={dpaNeeded} />
       <SidebarProvider
         style={
