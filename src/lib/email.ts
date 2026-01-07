@@ -32,6 +32,37 @@ ${payload.html}
   }
 }
 
+export async function sendWelcomeEmail(email: string, name: string) {
+    await sendEmail({
+        to: email,
+        subject: "Welcome to InjexPro",
+        html: `
+            <h1>Welcome to InjexPro, ${name}!</h1>
+            <p>We're excited to have you on board.</p>
+            <p>InjexPro helps you streamline your clinical documentation and ensure compliance.</p>
+            <p>Get started by setting up your organization:</p>
+            <a href="https://app.injexpro.com/login" style="padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
+        `
+    })
+}
+
+export async function sendVerificationEmail(email: string, token: string) {
+    const verificationUrl = `${process.env.NEXTAUTH_URL}/verify-email?token=${token}`
+    
+    await sendEmail({
+        to: email,
+        subject: "Verify your email - InjexPro",
+        html: `
+            <h1>Verify your email address</h1>
+            <p>Thanks for signing up for InjexPro.</p>
+            <p>Please confirm your email address by clicking the link below:</p>
+            <a href="${verificationUrl}" style="padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a>
+            <p>Or copy this link: <a href="${verificationUrl}">${verificationUrl}</a></p>
+            <p>This link will expire in 24 hours.</p>
+        `
+    })
+}
+
 export async function sendPaymentFailedEmail(email: string, portalUrl: string) {
     await sendEmail({
         to: email,
