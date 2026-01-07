@@ -76,7 +76,7 @@ export function TreatmentDialog({
   useEffect(() => {
     let mounted = true;
     const fetchPatients = async () => {
-      if (isOpen && !patients) {
+      if (isOpen && (!patients || patients.length === 0)) {
         setIsLoading(true)
         try {
           const data = await getPatients()
