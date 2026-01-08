@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -43,7 +44,21 @@ export function OrgSettingsForm({
   }
 
   return (
-    <form action={action} className="space-y-6">
+    <div className="space-y-8">
+      <div className="flex items-center gap-6 pb-4 border-b">
+        <Avatar className="h-20 w-20 border-2 border-muted shadow-sm rounded-lg">
+            <AvatarImage src={initialLogo} className="object-contain p-1" />
+            <AvatarFallback className="text-xl bg-primary/5 text-primary rounded-lg">
+                {initialName.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+        </Avatar>
+        <div className="space-y-1">
+            <h3 className="font-semibold text-xl">{initialName}</h3>
+            <p className="text-sm text-muted-foreground italic">Organization Identity</p>
+        </div>
+      </div>
+
+      <form action={action} className="space-y-6">
       <div className="grid gap-2">
         <Label htmlFor="name">Organization Name</Label>
         <Input 
@@ -98,9 +113,18 @@ export function OrgSettingsForm({
         </p>
       </div>
 
-      <div className="pt-2">
-        <SubmitButton />
-      </div>
-    </form>
-  )
-}
+            <div className="pt-2">
+
+              <SubmitButton />
+
+            </div>
+
+          </form>
+
+          </div>
+
+        )
+
+      }
+
+      
