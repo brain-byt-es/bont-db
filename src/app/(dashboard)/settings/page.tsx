@@ -113,7 +113,10 @@ export default async function SettingsPage({
                 </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                <OrgSettingsForm initialName={ctx.organization.name} />
+                <OrgSettingsForm 
+                    initialName={ctx.organization.name} 
+                    initialView={settings.standard_patient_view}
+                />
                 
                 <div className="pt-4 border-t space-y-3">
                     <h4 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">

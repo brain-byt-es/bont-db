@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RecentRecordsTable } from "@/components/recent-records-table"
 import { Plus } from "lucide-react"
-// notFound will be handled in the server component
 import { TreatmentDialog } from "@/components/treatment-create-dialog"
 import { PatientHeader } from "./patient-header"
 import { PatientTimeline } from "@/components/patient-timeline"
@@ -34,6 +33,7 @@ interface OrganizationPreferences {
   standard_vial_size?: number
   standard_dilution_ml?: number
   enable_compliance_views?: boolean
+  standard_patient_view?: 'timeline' | 'records' | 'notes'
 }
 
 interface PatientPageProps {
@@ -49,7 +49,7 @@ export default function PatientPage({ patient, treatments, organization }: Patie
   const [treatmentDialogOpen, setTreatmentDialogOpen] = useState(false)
 
   // Map treatments to replace "Main Clinic" with organization name for better branding
-  const displayTreatments = treatments.map(t => ({
+  const displayTreatments = (treatments || []).map(t => ({
     ...t,
     treatment_site: (t.treatment_site === "Main Clinic" || !t.treatment_site) 
         ? (organization?.name || "Clinic") 
@@ -67,14 +67,14 @@ export default function PatientPage({ patient, treatments, organization }: Patie
           patients={[patient]}
           organization={organization}
         >
-          <Button>
+          <Button onClick={() => setTreatmentDialogOpen(true)}>
             <Plus className="mr-2 size-4" />
             New Record
           </Button>
         </TreatmentDialog>
       </div>
 
-      <Tabs defaultValue="timeline" className="w-full">
+      <Tabs defaultValue={organization?.preferences?.standard_patient_view || "timeline"} className="w-full">
         <TabsList>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="records">Records</TabsTrigger>
@@ -102,7 +102,7 @@ export default function PatientPage({ patient, treatments, organization }: Patie
               <CardTitle>Clinical Notes</CardTitle>
             </CardHeader>
             <CardContent>
-              <p>{patient.notes || "No notes available."}</p>
+              <p className="whitespace-pre-wrap">{patient.notes || "No notes available."}</p>
             </CardContent>
           </Card>
         </TabsContent>

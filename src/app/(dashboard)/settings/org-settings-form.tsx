@@ -3,9 +3,16 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { updateOrganizationName } from "./actions"
+import { updateOrganizationName, updateOrganizationPreferences } from "./actions"
 import { useFormStatus } from "react-dom"
 import { toast } from "sonner"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -17,7 +24,13 @@ function SubmitButton() {
   )
 }
 
-export function OrgSettingsForm({ initialName }: { initialName: string }) {
+export function OrgSettingsForm({ 
+    initialName, 
+    initialView = "timeline" 
+}: { 
+    initialName: string, 
+    initialView?: string 
+}) {
   async function action(formData: FormData) {
     const result = await updateOrganizationName(formData)
     if (result?.error) {
@@ -28,7 +41,7 @@ export function OrgSettingsForm({ initialName }: { initialName: string }) {
   }
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="space-y-6">
       <div className="grid gap-2">
         <Label htmlFor="name">Organization Name</Label>
         <Input 
@@ -40,7 +53,36 @@ export function OrgSettingsForm({ initialName }: { initialName: string }) {
           minLength={3}
         />
       </div>
-      <SubmitButton />
+
+      <div className="grid gap-2 pt-4 border-t">
+        <Label htmlFor="standard_view">Default Patient Detail View</Label>
+        <Select 
+            defaultValue={initialView} 
+            onValueChange={async (value) => {
+                const res = await updateOrganizationPreferences({ 
+                    standard_patient_view: value as 'timeline' | 'records' | 'notes' 
+                })
+                if (res.success) toast.success("Default view updated")
+                else toast.error("Failed to update preference")
+            }}
+        >
+          <SelectTrigger id="standard_view">
+            <SelectValue placeholder="Select default view" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="timeline">Timeline</SelectItem>
+            <SelectItem value="records">Records</SelectItem>
+            <SelectItem value="notes">Notes</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-[11px] text-muted-foreground italic">
+            Choose which tab opens by default when viewing a patient profile.
+        </p>
+      </div>
+
+      <div className="pt-2">
+        <SubmitButton />
+      </div>
     </form>
   )
 }

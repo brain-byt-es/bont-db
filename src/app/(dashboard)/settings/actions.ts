@@ -10,6 +10,7 @@ interface OrganizationPreferences {
   enable_compliance_views?: boolean;
   standard_vial_size?: number;
   standard_dilution_ml?: number;
+  standard_patient_view?: 'timeline' | 'records' | 'notes';
 }
 
 export async function updateComplianceSettings(enabled: boolean) {
@@ -81,7 +82,8 @@ export async function getComplianceSettings() {
   return {
     enable_compliance_views: !!prefs.enable_compliance_views,
     standard_vial_size: prefs.standard_vial_size || 100,
-    standard_dilution_ml: prefs.standard_dilution_ml || 2.5
+    standard_dilution_ml: prefs.standard_dilution_ml || 2.5,
+    standard_patient_view: prefs.standard_patient_view || 'timeline'
   }
 }
 
