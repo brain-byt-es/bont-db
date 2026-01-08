@@ -132,7 +132,7 @@ export function AppSidebar({ user, organization, allTeams = [], userRole = "Memb
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="hover:bg-transparent">
               <Link href="/dashboard">
-                <Logo logoUrl={(organization?.preferences as OrganizationPreferences | null)?.logo_url} />
+                <Logo />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -145,7 +145,12 @@ export function AppSidebar({ user, organization, allTeams = [], userRole = "Memb
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground mt-2 border border-sidebar-border"
                 >
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                     <span className="font-bold text-xs">{initials}</span>
+                     <Logo 
+                        logoUrl={(organization?.preferences as OrganizationPreferences | null)?.logo_url} 
+                        initials={initials}
+                        showText={false} 
+                        className="gap-0" 
+                     />
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">{orgName}</span>
