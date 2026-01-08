@@ -74,6 +74,7 @@ import { MembershipRole, Plan } from "@/generated/client/enums"
 import { useAuthContext } from "@/components/auth-context-provider"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
 import { Protocol } from "@/lib/dose-engine"
+import { DiagnosisPicker } from "@/components/diagnosis-picker"
 
 const formSchema = z.object({
   subject_id: z.string().min(1, {
@@ -86,6 +87,7 @@ const formSchema = z.object({
   category: z.string().min(1, {
     message: "Please select a category.",
   }),
+  diagnosis_id: z.string().optional(),
   product_label: z.string().min(1, {
     message: "Please select a product.",
   }),
@@ -649,9 +651,41 @@ export function RecordForm({
           <FormField control={form.control} name="date" render={({ field }) => (
               <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
           )} />
+          
           <FormField control={form.control} name="category" render={({ field }) => (
-              <FormItem><FormLabel>Category</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger></FormControl><SelectContent><SelectItem value="kopfschmerz">Headache</SelectItem><SelectItem value="dystonie">Dystonia</SelectItem><SelectItem value="spastik">Spasticity</SelectItem><SelectItem value="autonom">Autonomous</SelectItem><SelectItem value="andere">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+              <FormItem>
+                <FormLabel>Indication</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select indication" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        <SelectItem value="kopfschmerz">Headache</SelectItem>
+                        <SelectItem value="dystonie">Dystonia</SelectItem>
+                        <SelectItem value="spastik">Spasticity</SelectItem>
+                        <SelectItem value="autonom">Autonomous</SelectItem>
+                        <SelectItem value="andere">Other</SelectItem>
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
           )} />
+
+          <FormField control={form.control} name="diagnosis_id" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Specific Diagnosis (ICD-10)</FormLabel>
+                <FormControl>
+                    <DiagnosisPicker 
+                        value={field.value || ""} 
+                        onChange={field.onChange} 
+                    />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+          )} />
+
           <FormField control={form.control} name="product_label" render={({ field }) => (
               <FormItem><FormLabel>Product</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Botox">Botox</SelectItem><SelectItem value="Dysport">Dysport</SelectItem><SelectItem value="Xeomin">Xeomin</SelectItem><SelectItem value="Myobloc">Myobloc</SelectItem></SelectContent></Select><FormMessage /></FormItem>
           )} />
