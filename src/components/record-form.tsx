@@ -499,6 +499,19 @@ export function RecordForm({
       })
   }
 
+  const handleClear = () => {
+      if (!confirm("Clear all entries? This will reset the form.")) return
+      form.reset()
+      setSteps([])
+      setAssessments([])
+      setIsSmartFilled(false)
+      if (!isEditing) {
+          localStorage.removeItem("bont_treatment_draft")
+          setLastSaved(null)
+      }
+      toast.info("Form cleared")
+  }
+
   return (
     <>
     <AlertDialog open={showSignDialog} onOpenChange={setShowSignDialog}>
@@ -717,7 +730,12 @@ export function RecordForm({
         </fieldset>
 
         <div className="flex items-center justify-between pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
+            <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
+                {!isSigned && canWrite && (
+                    <Button type="button" variant="outline" onClick={handleClear} className="bg-transparent">Clear Form</Button>
+                )}
+            </div>
             
             <div className="flex gap-4 items-center">
             {hasUnsavedChanges && !isSigned && canWrite && (
