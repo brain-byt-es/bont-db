@@ -109,6 +109,22 @@ enum AuthProvider {
   @@schema("public")
 }
 
+enum QualificationSpecialty {
+  NEUROLOGY
+  NEUROPEDIATRICS
+  HNO
+  ORTHOPEDICS
+  OTHER
+  @@schema("public")
+}
+
+enum SupervisionMode {
+  NONE
+  DIRECT
+  GUARANTOR
+  @@schema("public")
+}
+
 /* =========================
    Global Users (Entra)
    ========================= */
@@ -219,6 +235,11 @@ model OrganizationMembership {
   status         MembershipStatus @default(INVITED)
 
   mfaEnforced    Boolean @default(true)
+
+  // Certification Roadmap
+  specialty       QualificationSpecialty @default(NEUROLOGY)
+  supervisionMode SupervisionMode @default(NONE)
+  defaultSupervisorName String?
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -349,6 +370,10 @@ model Encounter {
 
   effectNotes           String?
   adverseEventNotes     String?
+
+  // Certification Fields
+  isSupervised          Boolean @default(false)
+  supervisorName        String?
 
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt

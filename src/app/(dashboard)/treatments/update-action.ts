@@ -32,6 +32,8 @@ interface UpdateTreatmentFormData {
   vial_size?: number;
   dilution_ml?: number;
   notes?: string;
+  is_supervised?: boolean;
+  supervisor_name?: string;
   steps?: ProcedureStep[];
   assessments?: AssessmentData[];
   status?: "DRAFT" | "SIGNED";
@@ -53,6 +55,8 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     vial_size = 100,
     dilution_ml = 2.5,
     notes,
+    is_supervised = false,
+    supervisor_name,
     steps,
     assessments,
     status
@@ -107,6 +111,11 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
         indication: category,
         productId,
         status: status === "SIGNED" ? EncounterStatus.SIGNED : undefined,
+        
+        // Certification
+        isSupervised: is_supervised,
+        supervisorName: supervisor_name,
+
         dilutionText: `${vial_size}U in ${dilution_ml}ml`,
         dilutionUnitsPerMl: unitsPerMl,
         totalUnits: total_units,

@@ -7,6 +7,7 @@ import { getOrganizationContext } from "@/lib/auth-context"
 import { OrgSettingsForm } from "./org-settings-form"
 import { TeamManager } from "@/components/settings/team-manager"
 import { ProfileManager } from "@/components/settings/profile-manager"
+import { QualificationManager } from "@/components/settings/qualification-manager"
 import { redirect } from "next/navigation"
 import { TabsContent } from "@/components/ui/tabs"
 import { checkPermission, PERMISSIONS, checkPlan, getEffectivePlan, PLAN_SEAT_LIMITS } from "@/lib/permissions"
@@ -102,6 +103,16 @@ export default async function SettingsPage({
       >
         <TabsContent value="profile" className="space-y-4">
             <ProfileManager initialData={profileData} />
+        </TabsContent>
+        
+        <TabsContent value="qualification" className="space-y-4">
+            <QualificationManager 
+                initialData={{
+                    specialty: ctx.membership.specialty,
+                    supervisionMode: ctx.membership.supervisionMode,
+                    defaultSupervisorName: ctx.membership.defaultSupervisorName
+                }} 
+            />
         </TabsContent>
         
         <TabsContent value="organization" className="space-y-4">

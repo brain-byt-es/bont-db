@@ -9,6 +9,7 @@ import { Plus } from "lucide-react"
 import { TreatmentDialog } from "@/components/treatment-create-dialog"
 import { PatientHeader } from "./patient-header"
 import { PatientTimeline } from "@/components/patient-timeline"
+import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
 
 interface Patient {
   id: string;
@@ -29,13 +30,6 @@ interface Treatment {
   patient?: { patient_code: string };
 }
 
-interface OrganizationPreferences {
-  standard_vial_size?: number
-  standard_dilution_ml?: number
-  enable_compliance_views?: boolean
-  standard_patient_view?: 'timeline' | 'records' | 'notes'
-}
-
 interface PatientPageProps {
   patient: Patient
   treatments: Treatment[]
@@ -44,6 +38,8 @@ interface PatientPageProps {
     preferences?: OrganizationPreferences | null
   }
 }
+
+
 
 export default function PatientPage({ patient, treatments, organization }: PatientPageProps) {
   const [treatmentDialogOpen, setTreatmentDialogOpen] = useState(false)

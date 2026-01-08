@@ -1,17 +1,9 @@
-import { QualificationStats } from "@/components/dashboard/qualification-stats"
-import { GuidelinesChecklist } from "@/components/dashboard/guidelines-checklist"
 import { ActivityTrendCard, TopMusclesCard } from "@/components/dashboard/clinical-activity"
 import { NextActions } from "@/components/dashboard/next-actions"
 import { DocumentationQuality } from "@/components/dashboard/documentation-quality"
 import { UpsellTeaser } from "@/components/dashboard/upsell-teaser"
 import { StatsCard } from "@/components/stats-card"
-import { Users, Activity, TrendingUp, ChevronDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+import { Users, Activity, TrendingUp } from "lucide-react"
 import { getDashboardData } from "./actions"
 import { getOrganizationContext } from "@/lib/auth-context"
 import { checkPlan, PLAN_GATES } from "@/lib/permissions"
@@ -23,6 +15,7 @@ import {
     ProductUtilizationCard 
 } from "@/components/dashboard/clinical-insights"
 import { DateRangeFilter } from "@/components/dashboard/date-range-filter"
+import { CertificationRoadmap } from "@/components/dashboard/certification-roadmap"
 
 export default async function Page({
   searchParams,
@@ -40,7 +33,7 @@ export default async function Page({
   const userPlan = ctx?.organization.plan as Plan
   const isPro = checkPlan(userPlan, PLAN_GATES.CLINICAL_INSIGHTS)
 
-  // 6. Next Actions Construction
+  // Next Actions Construction
   const actions: { id: string, label: string, count: number, href: string, type: 'warning' | 'info' | 'success' }[] = []
 
   if (data.overdueFollowUpsCount > 0) {
@@ -62,16 +55,6 @@ export default async function Page({
       type: 'info'
     })
   }
-
-  // Goals (Static for now, could be dynamic per org later)
-  const goals = {
-    totalTreatmentsGoal: 250,
-    withFollowUpGoal: 50,
-    indicationsCoveredGoal: 2,
-    spastikDystonieGoal: 25,
-  }
-  
-  const enableCompliance = false // Default to false
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-6 pt-6 pb-8">
@@ -113,51 +96,9 @@ export default async function Page({
          <NextActions actions={actions} className="h-full" />
       </div>
 
-      {/* 2. Qualification & Compliance Subsection */}
+      {/* 2. Qualification & Certification Subsection */}
       <div className="px-4 lg:px-6">
-        <Collapsible defaultOpen={enableCompliance} className="space-y-2">
-            <div className="flex items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
-                <div className="flex flex-col gap-1">
-                    <h3 className="font-semibold leading-none tracking-tight">Qualification & Compliance</h3>
-                    <p className="text-sm text-muted-foreground">Certification requirements and guidelines.</p>
-                </div>
-                <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="w-9 p-0">
-                        <ChevronDown className="h-4 w-4" />
-                        <span className="sr-only">Toggle</span>
-                    </Button>
-                </CollapsibleTrigger>
-            </div>
-            <CollapsibleContent className="space-y-4 pt-2">
-                <div className="rounded-lg border bg-card p-6 shadow-sm space-y-6">
-                    <QualificationStats
-                        totalTreatments={data.totalTreatmentsCount}
-                        totalTreatmentsGoal={goals.totalTreatmentsGoal}
-                        withFollowUp={data.followUpsCount}
-                        withFollowUpGoal={goals.withFollowUpGoal}
-                        indicationsCovered={data.indicationsCoveredCount}
-                        indicationsCoveredGoal={goals.indicationsCoveredGoal}
-                        spastikDystonie={data.spastikDystonieCount}
-                        spastikDystonieGoal={goals.spastikDystonieGoal}
-                        showGoals={true}
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <GuidelinesChecklist
-                            totalTreatments={data.totalTreatmentsCount}
-                            totalTreatmentsGoal={goals.totalTreatmentsGoal}
-                            withFollowUp={data.followUpsCount}
-                            withFollowUpGoal={goals.withFollowUpGoal}
-                            spastikDystonie={data.spastikDystonieCount}
-                            spastikDystonieGoal={goals.spastikDystonieGoal}
-                        />
-                         <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
-                            <h4 className="font-medium text-foreground mb-2">Why this matters?</h4>
-                            <p>To achieve full qualification, you need to demonstrate a broad range of treatments and consistent follow-up documentation. Use the filtered lists to identify gaps.</p>
-                         </div>
-                    </div>
-                </div>
-            </CollapsibleContent>
-        </Collapsible>
+        <CertificationRoadmap data={data.certification} />
       </div>
 
       <div className="px-4 lg:px-6">
@@ -170,20 +111,16 @@ export default async function Page({
         </div>
       )}
 
-      {/* 3. Clinical Insights Grid (3x3 or 3x2) */}
+      {/* 3. Clinical Insights Grid (3x3) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 lg:px-6 items-stretch">
-        
-        {/* Row 1 */}
         <OutcomeTrendsCard outcomeTrends={data.outcomeTrends} isPro={isPro} className="h-full" />
         <DoseDistributionCard dosePerIndication={data.dosePerIndication} isPro={isPro} className="h-full" />
         <CaseMixCard data={data.caseMix} isPro={isPro} className="h-full" />
 
-        {/* Row 2 */}
         <ProductUtilizationCard data={data.productUtilization} isPro={isPro} className="h-full" />
         <ActivityTrendCard trendData={data.trendData} isPro={isPro} className="h-full" />
         <TopMusclesCard topMuscles={data.topMuscles} isPro={isPro} className="h-full" />
         
-        {/* Row 3 */}
         <div className="lg:col-span-3">
             <DocumentationQuality 
                 followUpRateOverall={data.followUpRateOverall}

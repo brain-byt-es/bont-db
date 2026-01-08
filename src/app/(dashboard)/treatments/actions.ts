@@ -30,10 +30,13 @@ interface CreateTreatmentFormData {
   date: Date;
   location: string;
   category: string;
+  diagnosis_id?: string;
   product_label: string;
   vial_size?: number;
   dilution_ml?: number;
   notes?: string;
+  is_supervised?: boolean;
+  supervisor_name?: string;
   steps?: ProcedureStep[];
   assessments?: AssessmentData[];
   status?: "DRAFT" | "SIGNED";
@@ -51,10 +54,13 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
     date,
     location,
     category,
+    diagnosis_id,
     product_label,
     vial_size = 100,
     dilution_ml = 2.5,
     notes,
+    is_supervised = false,
+    supervisor_name,
     steps,
     assessments,
     status = "DRAFT"
@@ -157,6 +163,10 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
       indication: category,
       productId: productId,
       
+      // Certification
+      isSupervised: is_supervised,
+      supervisorName: supervisor_name,
+      
       dilutionText: `${vial_size}U in ${dilution_ml}ml`,
       dilutionUnitsPerMl: unitsPerMl,
       totalUnits: total_units,
@@ -168,7 +178,12 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
       },
       assessments: {
         create: assessmentsCreate
-      }
+      },
+      diagnoses: diagnosis_id ? {
+        create: {
+            diagnosisId: diagnosis_id
+        }
+      } : undefined
     }
   })
 

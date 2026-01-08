@@ -1,4 +1,5 @@
-import { RecordForm, OrganizationPreferences } from "@/components/record-form"
+import { RecordForm } from "@/components/record-form"
+import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
 import {
   Card,
   CardContent,

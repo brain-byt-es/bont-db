@@ -3,6 +3,7 @@
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { subDays, format } from "date-fns"
+import { QualificationSpecialty } from "@/generated/client/enums"
 
 export interface DashboardData {
   totalPatientsCount: number
@@ -35,6 +36,18 @@ export interface DashboardData {
   // Counts for goals
   indicationsCoveredCount: number
   spastikDystonieCount: number
+
+  // Certification Roadmap
+  certification: {
+      specialty: QualificationSpecialty
+      totalProgress: number
+      totalGoal: number
+      followUpProgress: number
+      followUpGoal: number
+      indicationGroups: { id: string; name: string; count: number; met: boolean }[]
+      rule25Met: boolean
+      isEligibleFull: boolean
+  }
 }
 
 export async function getDashboardData(days: number = 90): Promise<DashboardData> {
@@ -232,6 +245,25 @@ export async function getDashboardData(days: number = 90): Promise<DashboardData
   const masBaselineRate = totalSpastikInjections > 0 ? (masBaselineCount / totalSpastikInjections) * 100 : 0
   const masPeakRate = totalSpastikInjections > 0 ? (masPeakCount / totalSpastikInjections) * 100 : 0
 
+  // 6. Certification Logic (AK Botulinum)
+  const specialty = ctx.membership.specialty
+  const totalGoal = specialty === QualificationSpecialty.NEUROPEDIATRICS ? 50 : 100
+  const followUpGoal = totalGoal / 2
+
+  const groups = [
+      { id: 'spastik', name: 'Spasticity', count: indicationsGrouped.find(g => g.indication === 'spastik')?._count.indication || 0 },
+      { id: 'dystonie', name: 'Dystonia', count: indicationsGrouped.find(g => g.indication === 'dystonie')?._count.indication || 0 },
+      { id: 'kopfschmerz', name: 'Headache', count: indicationsGrouped.find(g => g.indication === 'kopfschmerz')?._count.indication || 0 },
+      { id: 'autonom', name: 'Autonomic', count: indicationsGrouped.find(g => g.indication === 'autonom')?._count.indication || 0 },
+  ]
+
+  const rule25Met = groups.some(g => ['spastik', 'dystonie'].includes(g.id) && g.count >= 25)
+  const coveredGroupsCount = groups.filter(g => g.count > 0).length
+  const isEligibleFull = totalTreatmentsCount >= totalGoal && 
+                         treatmentsWithFollowupCount >= followUpGoal && 
+                         coveredGroupsCount >= 2 && 
+                         rule25Met
+
   return {
     totalPatientsCount,
     totalTreatmentsCount,
@@ -252,6 +284,16 @@ export async function getDashboardData(days: number = 90): Promise<DashboardData
     indicationsCoveredCount,
     spastikDystonieCount,
     overdueFollowUpsCount,
-    missingBaselineCount
+    missingBaselineCount,
+    certification: {
+        specialty,
+        totalProgress: totalTreatmentsCount,
+        totalGoal,
+        followUpProgress: treatmentsWithFollowupCount,
+        followUpGoal,
+        indicationGroups: groups.map(g => ({ ...g, met: g.count > 0 })),
+        rule25Met,
+        isEligibleFull
+    }
   }
 }

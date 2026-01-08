@@ -15,6 +15,7 @@ import { getEffectivePlan } from "@/lib/permissions"
 import { DPAAcceptanceGate } from "@/components/legal/dpa-acceptance-gate"
 import { checkDPANeeded } from "@/app/actions/legal"
 import { CommandMenu } from "@/components/command-menu"
+import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
 
 export default async function DashboardLayout({
   children,
@@ -80,7 +81,7 @@ export default async function DashboardLayout({
         <AppSidebar 
           variant="inset" 
           user={appUser} 
-          organization={{ id: orgContext.organization.id, name: orgContext.organization.name }} 
+          organization={orgContext.organization as { id: string; name: string; preferences: OrganizationPreferences | null }} 
           allTeams={allTeams}
           userRole={orgContext.membership.role}
         />

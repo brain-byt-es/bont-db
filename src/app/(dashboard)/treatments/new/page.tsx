@@ -1,4 +1,5 @@
-import { RecordForm, OrganizationPreferences } from "@/components/record-form"
+import { RecordForm } from "@/components/record-form"
+import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
 import {
   Card,
   CardContent,
@@ -41,7 +42,11 @@ export default async function NewTreatmentPage({
             defaultSubjectId={subjectId} 
             userRole={ctx.membership.role}
             organization={{
-              preferences: ctx.organization.preferences as unknown as OrganizationPreferences
+              name: ctx.organization.name,
+              preferences: {
+                  ...(ctx.organization.preferences as OrganizationPreferences | null),
+                  default_supervisor_name: ctx.membership.defaultSupervisorName || undefined
+              }
             }}
           />
         </CardContent>

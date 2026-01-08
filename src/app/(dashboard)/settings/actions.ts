@@ -12,6 +12,7 @@ export interface OrganizationPreferences {
   standard_dilution_ml?: number;
   standard_patient_view?: 'timeline' | 'records' | 'notes';
   logo_url?: string;
+  default_supervisor_name?: string;
 }
 
 export async function updateComplianceSettings(enabled: boolean) {

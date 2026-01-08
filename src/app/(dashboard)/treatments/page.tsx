@@ -2,7 +2,7 @@ import { TreatmentsClient } from "./client"
 import { getTreatments } from "./actions"
 import { getPatients } from "../patients/actions"
 import { getOrganizationContext } from "@/lib/auth-context"
-import { OrganizationPreferences } from "@/components/record-form"
+import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
 
 export default async function TreatmentsPage() {
   const [treatments, patientsRaw, ctx] = await Promise.all([

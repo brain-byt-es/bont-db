@@ -94,6 +94,25 @@ The application is **Organization-centric** and features a tiered plan model (BA
 - [x] **Visual Clinical History:** Implementation of a visual Patient Treatment Timeline to track progress chronologically.
 - [x] **UX Refinements:** Added purposeful Empty States, transparent reset actions, and environment-aware organization switching.
 
+### Phase 10: AK Botulinum Certification Roadmap (Planned)
+The core mission of InjexPro is to streamline the certification process for the **Arbeitskreis Botulinumtoxin**. This phase focuses on automated tracking and evidence generation.
+
+- [ ] **Qualification Profile (Settings):**
+    - Define target specialty (Neurology: 100/50 rule vs. Neuropediatrics: 50 rule).
+    - Configure Supervision mode (Direct vs. Guarantor/Bürge) and supervisor names.
+- [ ] **Dynamic Certification Tracker (Dashboard):**
+    - High-end "Progress Tree" visualizing the path to Full vs. Partial certificates.
+    - **Total treatments gate:** XX / 100 (or 50).
+    - **Success control gate:** XX / 50 treatments with documented clinical response (follow-ups).
+    - **Indication mix validator:** Ensure min. 2 categories (Spasticity, Dystonia, etc.) are covered.
+    - **The "25 Rule" Tracker:** Visualizing the requirement for 25 treatments in a primary indication.
+- [ ] **Supervision Integration (Treatments):**
+    - Add an optional "Supervision" section to the treatment form (collapsible).
+    - Filter evidence lists by supervised status if required by the doctor's profile.
+- [ ] **Automated Evidence Export:**
+    - One-click generation of the AK Botulinum application bundle.
+    - Prioritizes the best-documented treatments (those with follow-ups and outcome scores).
+
 ### Phase 9: Infrastructure & Connectivity (In Progress)
 - [x] **Email System Setup:** Fully integrated Resend SDK for transactional emails (Invites, Payment Failures, Verification).
 - [x] **Interactive Support:** Implemented Support/FAQ hub with functional contact form powered by Resend.

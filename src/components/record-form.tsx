@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Form,
   FormControl,
@@ -75,6 +76,7 @@ import { useAuthContext } from "@/components/auth-context-provider"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
 import { Protocol } from "@/lib/dose-engine"
 import { DiagnosisPicker } from "@/components/diagnosis-picker"
+import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
 
 const formSchema = z.object({
   subject_id: z.string().min(1, {
@@ -94,13 +96,9 @@ const formSchema = z.object({
   vial_size: z.number().min(1),
   dilution_ml: z.number().min(0.1),
   notes: z.string().optional(),
+  is_supervised: z.boolean(),
+  supervisor_name: z.string().optional(),
 })
-
-export interface OrganizationPreferences {
-  standard_vial_size?: number
-  standard_dilution_ml?: number
-  enable_compliance_views?: boolean
-}
 
 interface InitialFormData {
   location?: string;
@@ -196,6 +194,8 @@ export function RecordForm({
       vial_size: initialData?.vial_size || (isPro ? organization?.preferences?.standard_vial_size : 100) || 100,
       dilution_ml: initialData?.dilution_ml || (isPro ? organization?.preferences?.standard_dilution_ml : 2.5) || 2.5,
       notes: initialData?.notes || "",
+      is_supervised: false,
+      supervisor_name: organization?.preferences?.default_supervisor_name || "",
     },
   })
 
@@ -517,7 +517,9 @@ export function RecordForm({
           notes: "",
           vial_size: (isPro ? organization?.preferences?.standard_vial_size : 100) || 100,
           dilution_ml: (isPro ? organization?.preferences?.standard_dilution_ml : 2.5) || 2.5,
-          date: new Date()
+          date: new Date(),
+          is_supervised: false,
+          supervisor_name: organization?.preferences?.default_supervisor_name || "",
       })
       
       setSteps([])
@@ -799,6 +801,55 @@ export function RecordForm({
         <FormField control={form.control} name="notes" render={({ field }) => (
             <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea placeholder="..." className="resize-none" {...field} /></FormControl><FormMessage /></FormItem>
         )} />
+
+        <Collapsible>
+          <div className="flex items-center space-x-2">
+            <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-full justify-between">
+                    Certification Details (Optional) <ChevronDown className="h-4 w-4" />
+                </Button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent className="mt-4 space-y-4 p-4 border rounded-lg bg-muted/10">
+            <div className="flex items-center space-x-2">
+                <FormField
+                    control={form.control}
+                    name="is_supervised"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                                <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                                <FormLabel>
+                                    Treatment performed under supervision
+                                </FormLabel>
+                            </div>
+                        </FormItem>
+                    )}
+                />
+            </div>
+            
+            {form.watch("is_supervised") && (
+                <FormField
+                    control={form.control}
+                    name="supervisor_name"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Supervisor Name</FormLabel>
+                            <FormControl>
+                                <Input {...field} placeholder="Dr. Med. ..." />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            )}
+          </CollapsibleContent>
+        </Collapsible>
 
         </fieldset>
 

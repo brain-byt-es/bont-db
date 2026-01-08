@@ -30,10 +30,12 @@ export function SettingsTabs({
     <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
       <TabsList>
         <TabsTrigger value="profile">Profile</TabsTrigger>
+        <TabsTrigger value="qualification">Qualification</TabsTrigger>
         <TabsTrigger value="organization">Organization</TabsTrigger>
         {canManageTeam && <TabsTrigger value="team">Team Members</TabsTrigger>}
         {canManageTeam && <TabsTrigger value="integrations">Integrations</TabsTrigger>}
-        <TabsTrigger value="compliance">Compliance</TabsTrigger>        {showAudit && <TabsTrigger value="audit">Security & Logs</TabsTrigger>}
+        <TabsTrigger value="compliance">Compliance</TabsTrigger>
+        {showAudit && <TabsTrigger value="audit">Security & Logs</TabsTrigger>}
       </TabsList>
       {children}
     </Tabs>
