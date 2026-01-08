@@ -61,7 +61,7 @@ The application is **Organization-centric** and features a tiered plan model (BA
 
 ### Advanced Dose Engine
 - **Automatic Calculation:** Live conversion between Units and Volume (ml).
-- **Clinical Protocols:** Indication-specific presets (e.g., PREMPT Migraine, Spasticity).
+- **Clinical Protocols:** Indication-specific presets (e.g., PREEMPT Migraine, Spasticity).
 - **Smart Suggestions:** Automated dose hints based on specific patient history and muscle selection.
 - **Query Optimization:** Two-step history fetching (Encounters -> Injections) to avoid complex joins and ensure high performance.
 

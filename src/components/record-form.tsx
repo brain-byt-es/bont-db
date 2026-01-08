@@ -176,6 +176,7 @@ export function RecordForm({
   const [showPiiWarning, setShowPiiWarning] = useState(false)
   const [showSignDialog, setShowSignDialog] = useState(false)
   const [showReopenDialog, setShowReopenDialog] = useState(false)
+  const [showClearDialog, setShowClearDialog] = useState(false)
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const [piiDetected, setPiiDetected] = useState<string[]>([])
   const [pendingValues, setPendingValues] = useState<z.infer<typeof formSchema> | null>(null)
@@ -502,7 +503,10 @@ export function RecordForm({
   }
 
   const handleClear = () => {
-      if (!confirm("Clear all entries? This will reset the form.")) return
+      setShowClearDialog(true)
+  }
+
+  const confirmClear = () => {
       form.reset()
       setSteps([])
       setAssessments([])
@@ -512,10 +516,30 @@ export function RecordForm({
           setLastSaved(null)
       }
       toast.info("Form cleared")
+      setShowClearDialog(false)
   }
 
   return (
     <>
+    <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Clear all entries?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will reset the entire form and discard all current injection steps and assessments. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={confirmClear}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Clear All
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     <AlertDialog open={showSignDialog} onOpenChange={setShowSignDialog}>
       <AlertDialogContent>
         <AlertDialogHeader>

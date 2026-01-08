@@ -25,8 +25,8 @@ export interface Protocol {
 
 export const CLINICAL_PROTOCOLS: Protocol[] = [
   {
-    id: "prempt-migraine",
-    name: "PREMPT Migraine Protocol",
+    id: "preempt-migraine",
+    name: "PREEMPT Migraine Protocol",
     indication: "kopfschmerz",
     steps: [
       { muscleName: "M. corrugator supercilii", units: 5, side: "Left" },

@@ -60,7 +60,7 @@ InjexPro focuses on **institutional-grade clinical workflows**, **regulatory com
 ## 🧠 Advanced Clinical Intelligence
 
 - **Advanced Dose Engine:** Real-time historical analysis providing dose suggestions based on patient history.
-- **Clinical Protocols:** Support for standard schemas like PREMPT (Migraine) and Spasticity flexor syndromes.
+- **Clinical Protocols:** Support for standard schemas like PREEMPT (Migraine) and Spasticity flexor syndromes.
 - **Smart Calculations:** Automatic live conversion between Units and Volume (ml) based on vial concentration.
 
 ---
