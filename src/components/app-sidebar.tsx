@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ChevronsUpDown, Plus, Check } from "lucide-react"
 import { switchOrganizationAction } from "@/app/actions/org-switching"
+import { usePathname } from "next/navigation"
 import { checkPermission, PERMISSIONS } from "@/lib/permissions"
 import { MembershipRole } from "@/generated/client/enums"
 
@@ -109,11 +110,12 @@ export function AppSidebar({ user, organization, allTeams = [], userRole = "Memb
   const orgId = organization?.id
   const initials = orgName.substring(0, 2).toUpperCase()
   const { isMobile } = useSidebar()
+  const pathname = usePathname()
 
   const formattedRole = userRole.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase())
 
   const handleSwitch = async (teamId: string) => {
-     await switchOrganizationAction(teamId)
+     await switchOrganizationAction(teamId, pathname)
      // Action redirects, but we might want to refresh manually if needed
   }
 
