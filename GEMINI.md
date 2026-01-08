@@ -86,8 +86,16 @@ The application is **Organization-centric** and features a tiered plan model (BA
 - [x] **Compliance Audit Trail:** `LegalAcceptance` table tracks execution details (User, IP, Version, Timestamp) for GDPR accountability.
 - [x] **UX Optimization:** "Product-moment" design for DPA gate with clear "Why" messaging and minimal friction.
 
-### Phase 6: Infrastructure & Connectivity (In Progress)
-- [x] **Email System Setup:** Fully integrated Resend SDK for transactional emails (Invites, Payment Failures).
+### Phase 8: High-End Clinical Polish (In Progress)
+- [x] **Dynamic Contextual Navigation:** Implemented dynamic Breadcrumbs and a global Command Menu (`⌘K`) for rapid navigation.
+- [x] **Workflow Efficiency:** Integrated User-Defined Protocols ("My Protocols"), allowing doctors to save and reuse custom treatment templates.
+- [x] **Structured Diagnostics:** Integrated a searchable ICD-10 Diagnostic Catalogue with keyword-based matching and pre-seeded neurological codes.
+- [x] **Injection Site Generalization:** Added support for non-muscle targets (Salivary Glands, Axilla) for sialorrhea and hyperhidrosis treatments.
+- [x] **Visual Clinical History:** Implementation of a visual Patient Treatment Timeline to track progress chronologically.
+- [x] **UX Refinements:** Added purposeful Empty States, transparent reset actions, and environment-aware organization switching.
+
+### Phase 9: Infrastructure & Connectivity (In Progress)
+- [x] **Email System Setup:** Fully integrated Resend SDK for transactional emails (Invites, Payment Failures, Verification).
 - [x] **Interactive Support:** Implemented Support/FAQ hub with functional contact form powered by Resend.
 - [ ] **Infrastructure as Code:** Azure Bicep templates for push-button clinic deployments.
 - [ ] **Enterprise Connectivity:** Finalize EHR/CMS interface stubs for Sales demos.

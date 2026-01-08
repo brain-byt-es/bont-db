@@ -14,10 +14,17 @@ const regionMap: Record<string, string> = {
   "87b02b90-8234-430e-83e1-6231e57aaa45": "Head & Neck",
   "f38c9aa9-1fc9-4b15-8eec-5627a53374ab": "Upper Limb",
   "8c92c079-ef3c-4f96-a2cb-efc4d6c4be79": "Lower Limb",
-  "6fe2d7f7-3e00-49fc-a75b-468075fd86ec": "Trunk"
-}
+  "6fe2d7f7-3e00-49fc-a75b-468075fd86ec": "Trunk",
+  "autonomic-glands": "Salivary Glands"
+};
 
 const rawMuscles = [
+  // Glands & Autonomic
+  {"id":"gland-parotis","region_id":"autonomic-glands","name":"Glandula parotis","synonyms":["Ohrspeicheldrüse"],"sort_order":1000},
+  {"id":"gland-submand","region_id":"autonomic-glands","name":"Glandula submandibularis","synonyms":["Unterkieferdrüse"],"sort_order":1010},
+  {"id":"axilla-region","region_id":"6fe2d7f7-3e00-49fc-a75b-468075fd86ec","name":"Axilla (Hyperhidrosis)","synonyms":["Achselhöhle"],"sort_order":1020},
+
+  // Existing Muscles
   {"id":"019e4f2a-c59f-4c81-9bcd-7c14200b1045","region_id":"8c92c079-ef3c-4f96-a2cb-efc4d6c4be79","name":"M. adductor brevis","synonyms":["Kurzer Anzieher"],"sort_order":150},
   {"id":"02bef1a7-db15-42c0-8893-20bfd080944d","region_id":"f38c9aa9-1fc9-4b15-8eec-5627a53374ab","name":"M. flexor digiti minimi brevis","synonyms":["Kurzer Kleinfingerbeuger"],"sort_order":280},
   {"id":"03f268fa-6856-45ff-a040-8558df34bf40","region_id":"6fe2d7f7-3e00-49fc-a75b-468075fd86ec","name":"M. sphincter ani externus","synonyms":["Äußerer Afterschließmuskel"],"sort_order":260},
@@ -163,7 +170,7 @@ const rawMuscles = [
   // Manual additions for Migraine Protocol
   {"id":"manual-occipitalis","region_id":"87b02b90-8234-430e-83e1-6231e57aaa45","name":"M. occipitalis","synonyms":["Hinterhauptsmuskel"],"sort_order":410},
   {"id":"manual-paraspinalis","region_id":"87b02b90-8234-430e-83e1-6231e57aaa45","name":"M. paraspinalis (cervical)","synonyms":["Nackenmuskulatur", "Paravertebral"],"sort_order":420}
-]
+];
 
 const rawDiagnoses = [
   // Dystonia
