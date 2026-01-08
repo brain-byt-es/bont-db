@@ -507,14 +507,29 @@ export function RecordForm({
   }
 
   const confirmClear = () => {
-      form.reset()
+      // Reset form to absolute empty defaults
+      form.reset({
+          subject_id: "",
+          location: organization?.name || "Clinic",
+          category: "",
+          diagnosis_id: "",
+          product_label: "",
+          notes: "",
+          vial_size: (isPro ? organization?.preferences?.standard_vial_size : 100) || 100,
+          dilution_ml: (isPro ? organization?.preferences?.standard_dilution_ml : 2.5) || 2.5,
+          date: new Date()
+      })
+      
       setSteps([])
       setAssessments([])
       setIsSmartFilled(false)
+      setHasUnsavedChanges(false)
+      
       if (!isEditing) {
           localStorage.removeItem("bont_treatment_draft")
           setLastSaved(null)
       }
+      
       toast.info("Form cleared")
       setShowClearDialog(false)
   }
