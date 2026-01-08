@@ -15,10 +15,12 @@ export interface DashboardData {
   
   // Breakdown
   indicationBreakdownData: { name: string; value: number }[]
+  caseMix: { name: string; value: number }[]
+  productUtilization: { name: string; value: number }[]
   trendData: { date: string; count: number }[]
   topMuscles: { name: string; count: number }[]
   
-  // Insights (NEW)
+  // Insights
   outcomeTrends: { date: string; improvement: number }[]
   dosePerIndication: { name: string; avgUnits: number }[]
   
@@ -49,6 +51,7 @@ export async function getDashboardData(days: number = 90): Promise<DashboardData
     totalTreatmentsCount,
     treatmentDataRaw,
     indicationsGrouped,
+    productsGrouped,
     spastikMusclesGrouped,
     treatmentsWithFollowupCount,
     recentTreatments,
@@ -80,6 +83,16 @@ export async function getDashboardData(days: number = 90): Promise<DashboardData
       },
       _count: { indication: true },
       _avg: { totalUnits: true }
+    }),
+    prisma.encounter.groupBy({
+      by: ['productId'],
+      where: { 
+        organizationId, 
+        status: { not: "VOID" },
+        encounterLocalDate: { gte: startDate },
+        productId: { not: null }
+      },
+      _count: { id: true }
     }),
     prisma.injection.groupBy({
       by: ['muscleId'],
@@ -172,9 +185,25 @@ export async function getDashboardData(days: number = 90): Promise<DashboardData
   const followUpRateRecent = recentTreatments.length > 0 ? (recentTreatments.filter(t => t.followups.length > 0).length / recentTreatments.length) * 100 : 0
   
   const indicationBreakdownData = indicationsGrouped.map(g => ({ name: g.indication, value: g._count.indication }))
+  
+  // Case Mix: Preferred Specific Diagnosis, fallback to high-level indication
+  // For now let's just use high-level indications or top diagnoses
+  const caseMix = indicationsGrouped.map(g => ({ name: g.indication, value: g._count.indication }))
+
+  // Product Utilization
+  const productIds = productsGrouped.map(p => p.productId!)
+  const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true }
+  })
+  const productUtilization = productsGrouped.map(g => ({
+      name: products.find(p => p.id === g.productId)?.name || 'N/A',
+      value: g._count.id
+  }))
+
   const indicationsCoveredCount = indicationsGrouped.length
   const spastikDystonieCount = indicationsGrouped
-    .filter(g => ['spastik', 'dystonie'].includes(g.indication.toLowerCase()))
+    .filter(g => ['spastik', 'dystonie', 'kopfschmerz'].includes(g.indication.toLowerCase()))
     .reduce((sum, g) => sum + g._count.indication, 0)
 
   // 4. Top Muscles
@@ -212,6 +241,8 @@ export async function getDashboardData(days: number = 90): Promise<DashboardData
     recentTreatmentsCount: recentTreatments.length,
     recentFollowUpsCount: recentTreatments.filter(t => t.followups.length > 0).length,
     indicationBreakdownData,
+    caseMix,
+    productUtilization,
     trendData,
     topMuscles,
     outcomeTrends,

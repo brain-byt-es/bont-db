@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { getTreatment, getMuscles } from "@/app/(dashboard)/treatments/actions"
 import { TreatmentHeader } from "./treatment-header"
+import { CopySummaryButton } from "@/components/copy-summary-button"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -72,8 +73,13 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle>General Info</CardTitle>
+            <CopySummaryButton 
+                treatment={treatment} 
+                muscles={musclesList} 
+                patientCode={patientCode} 
+            />
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

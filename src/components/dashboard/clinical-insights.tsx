@@ -6,15 +6,18 @@ import {
   Line, 
   BarChart, 
   Bar, 
+  PieChart,
+  Pie,
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Cell
+  Cell,
+  Legend
 } from "recharts"
 import { Badge } from "@/components/ui/badge"
-import { Lock, TrendingUp, FlaskConical } from "lucide-react"
+import { Lock, TrendingUp, FlaskConical, PieChart as PieIcon, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface OutcomeTrend {
@@ -27,9 +30,16 @@ interface DoseStat {
   avgUnits: number
 }
 
+interface MixStat {
+  name: string
+  value: number
+}
+
 interface ClinicalInsightsProps {
   outcomeTrends: OutcomeTrend[]
   dosePerIndication: DoseStat[]
+  caseMix: MixStat[]
+  productUtilization: MixStat[]
   isPro: boolean
 }
 
@@ -135,7 +145,103 @@ export function DoseDistributionCard({ dosePerIndication, isPro, className }: { 
   )
 }
 
-export function ClinicalInsights({ outcomeTrends, dosePerIndication, isPro }: ClinicalInsightsProps) {
+export function CaseMixCard({ data, isPro, className }: { data: MixStat[], isPro: boolean, className?: string }) {
+  return (
+        <Card className={cn("h-full", !isPro && "relative overflow-hidden", className)}>
+          {!isPro && <LockOverlay />}
+          <CardHeader>
+            <div className="flex items-center gap-2">
+                <PieIcon className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm font-medium">Case Mix</CardTitle>
+            </div>
+            <CardDescription>Indication breakdown of signed treatments</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center">
+            <div className={cn("h-[250px] w-full", !isPro && "blur-[2px] opacity-40")}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={isPro ? data : MOCK_MIX_DATA}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {(isPro ? data : MOCK_MIX_DATA).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                        backgroundColor: "hsl(var(--popover))", 
+                        borderColor: "hsl(var(--border))", 
+                        borderRadius: "var(--radius)" 
+                    }}
+                  />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+  )
+}
+
+export function ProductUtilizationCard({ data, isPro, className }: { data: MixStat[], isPro: boolean, className?: string }) {
+  return (
+        <Card className={cn("h-full", !isPro && "relative overflow-hidden", className)}>
+          {!isPro && <LockOverlay />}
+          <CardHeader>
+            <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm font-medium">Product Mix</CardTitle>
+            </div>
+            <CardDescription>Frequency of toxins used in clinic</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className={cn("h-[250px] w-full mt-4", !isPro && "blur-[2px] opacity-40")}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart layout="vertical" data={isPro ? data : MOCK_PRODUCT_DATA} margin={{ left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--muted))" />
+                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10 }}
+                    width={80}
+                  />
+                  <Tooltip 
+                    cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
+                    contentStyle={{ 
+                        backgroundColor: "hsl(var(--popover))", 
+                        borderColor: "hsl(var(--border))", 
+                        borderRadius: "var(--radius)" 
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                    {(isPro ? data : MOCK_PRODUCT_DATA).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} opacity={0.8} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+  )
+}
+
+export function ClinicalInsights({ 
+    outcomeTrends, 
+    dosePerIndication, 
+    caseMix, 
+    productUtilization, 
+    isPro 
+}: ClinicalInsightsProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -148,6 +254,8 @@ export function ClinicalInsights({ outcomeTrends, dosePerIndication, isPro }: Cl
       <div className="grid gap-6 md:grid-cols-2">
         <OutcomeTrendsCard outcomeTrends={outcomeTrends} isPro={isPro} />
         <DoseDistributionCard dosePerIndication={dosePerIndication} isPro={isPro} />
+        <CaseMixCard data={caseMix} isPro={isPro} />
+        <ProductUtilizationCard data={productUtilization} isPro={isPro} />
       </div>
     </div>
   )
@@ -178,4 +286,18 @@ const MOCK_DOSE_DATA = [
     { name: 'Dystonie', avgUnits: 150 },
     { name: 'Headache', avgUnits: 195 },
     { name: 'Other', avgUnits: 80 },
+]
+
+const MOCK_MIX_DATA = [
+    { name: 'Spastik', value: 45 },
+    { name: 'Dystonie', value: 25 },
+    { name: 'Headache', value: 20 },
+    { name: 'Other', value: 10 },
+]
+
+const MOCK_PRODUCT_DATA = [
+    { name: 'Botox', value: 120 },
+    { name: 'Xeomin', value: 85 },
+    { name: 'Dysport', value: 40 },
+    { name: 'Myobloc', value: 12 },
 ]

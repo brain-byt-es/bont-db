@@ -39,6 +39,7 @@ import { switchOrganizationAction } from "@/app/actions/org-switching"
 import { usePathname } from "next/navigation"
 import { checkPermission, PERMISSIONS } from "@/lib/permissions"
 import { MembershipRole } from "@/generated/client/enums"
+import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
 
 // Default data if no user provided
 const defaultUser = {
@@ -94,6 +95,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   organization?: {
     id: string
     name: string
+    preferences?: OrganizationPreferences | null
   }
   allTeams?: {
     id: string
@@ -116,11 +118,8 @@ export function AppSidebar({ user, organization, allTeams = [], userRole = "Memb
 
   const handleSwitch = async (teamId: string) => {
      await switchOrganizationAction(teamId, pathname)
-     // Action redirects, but we might want to refresh manually if needed
   }
 
-  // Filter navigation items
-  // const allowedNavMain = data.navMain.filter(...) // Usually all roles see main nav
   const allowedNavSecondary = data.navSecondary.filter(item => {
       if (!item.permission) return true
       return checkPermission(userRole as MembershipRole, item.permission)
@@ -133,7 +132,7 @@ export function AppSidebar({ user, organization, allTeams = [], userRole = "Memb
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="hover:bg-transparent">
               <Link href="/dashboard">
-                <Logo />
+                <Logo logoUrl={(organization?.preferences as OrganizationPreferences | null)?.logo_url} />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

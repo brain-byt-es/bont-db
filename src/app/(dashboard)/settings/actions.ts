@@ -6,11 +6,12 @@ import prisma from "@/lib/prisma"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 import { logAuditAction } from "@/lib/audit-logger"
 
-interface OrganizationPreferences {
+export interface OrganizationPreferences {
   enable_compliance_views?: boolean;
   standard_vial_size?: number;
   standard_dilution_ml?: number;
   standard_patient_view?: 'timeline' | 'records' | 'notes';
+  logo_url?: string;
 }
 
 export async function updateComplianceSettings(enabled: boolean) {

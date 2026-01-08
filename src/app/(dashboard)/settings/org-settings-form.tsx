@@ -26,10 +26,12 @@ function SubmitButton() {
 
 export function OrgSettingsForm({ 
     initialName, 
-    initialView = "timeline" 
+    initialView = "timeline",
+    initialLogo = ""
 }: { 
     initialName: string, 
-    initialView?: string 
+    initialView?: string,
+    initialLogo?: string
 }) {
   async function action(formData: FormData) {
     const result = await updateOrganizationName(formData)
@@ -52,6 +54,22 @@ export function OrgSettingsForm({
           required 
           minLength={3}
         />
+      </div>
+
+      <div className="grid gap-2 pt-4 border-t">
+        <Label htmlFor="logo_url">Clinic Logo URL</Label>
+        <Input 
+          id="logo_url" 
+          defaultValue={initialLogo} 
+          placeholder="https://example.com/logo.png"
+          onBlur={async (e) => {
+              const res = await updateOrganizationPreferences({ logo_url: e.target.value })
+              if (res.success) toast.success("Logo updated")
+          }}
+        />
+        <p className="text-[11px] text-muted-foreground italic">
+            Provide a URL to your clinic&apos;s logo (PNG/SVG preferred).
+        </p>
       </div>
 
       <div className="grid gap-2 pt-4 border-t">

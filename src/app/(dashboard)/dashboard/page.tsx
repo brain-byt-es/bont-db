@@ -1,5 +1,4 @@
 import { QualificationStats } from "@/components/dashboard/qualification-stats"
-import { IndicationBreakdown } from "@/components/dashboard/indication-breakdown"
 import { GuidelinesChecklist } from "@/components/dashboard/guidelines-checklist"
 import { ActivityTrendCard, TopMusclesCard } from "@/components/dashboard/clinical-activity"
 import { NextActions } from "@/components/dashboard/next-actions"
@@ -17,7 +16,12 @@ import { getDashboardData } from "./actions"
 import { getOrganizationContext } from "@/lib/auth-context"
 import { checkPlan, PLAN_GATES } from "@/lib/permissions"
 import { Plan } from "@/generated/client/enums"
-import { OutcomeTrendsCard, DoseDistributionCard } from "@/components/dashboard/clinical-insights"
+import { 
+    OutcomeTrendsCard, 
+    DoseDistributionCard, 
+    CaseMixCard, 
+    ProductUtilizationCard 
+} from "@/components/dashboard/clinical-insights"
 import { DateRangeFilter } from "@/components/dashboard/date-range-filter"
 
 export default async function Page({
@@ -166,24 +170,29 @@ export default async function Page({
         </div>
       )}
 
-      {/* 3. Clinical Insights Grid (3x2) */}
+      {/* 3. Clinical Insights Grid (3x3 or 3x2) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 lg:px-6 items-stretch">
         
         {/* Row 1 */}
         <OutcomeTrendsCard outcomeTrends={data.outcomeTrends} isPro={isPro} className="h-full" />
         <DoseDistributionCard dosePerIndication={data.dosePerIndication} isPro={isPro} className="h-full" />
-        <ActivityTrendCard trendData={data.trendData} isPro={isPro} className="h-full" />
+        <CaseMixCard data={data.caseMix} isPro={isPro} className="h-full" />
 
         {/* Row 2 */}
+        <ProductUtilizationCard data={data.productUtilization} isPro={isPro} className="h-full" />
+        <ActivityTrendCard trendData={data.trendData} isPro={isPro} className="h-full" />
         <TopMusclesCard topMuscles={data.topMuscles} isPro={isPro} className="h-full" />
-        <IndicationBreakdown data={data.indicationBreakdownData} isPro={isPro} className="h-full" />
-        <DocumentationQuality 
-            followUpRateOverall={data.followUpRateOverall}
-            followUpRateRecent={data.followUpRateRecent}
-            masBaselineRate={data.masBaselineRate}
-            masPeakRate={data.masPeakRate}
-            className="h-full"
-        />
+        
+        {/* Row 3 */}
+        <div className="lg:col-span-3">
+            <DocumentationQuality 
+                followUpRateOverall={data.followUpRateOverall}
+                followUpRateRecent={data.followUpRateRecent}
+                masBaselineRate={data.masBaselineRate}
+                masPeakRate={data.masPeakRate}
+                className="h-full"
+            />
+        </div>
       </div>
 
     </div>

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { getComplianceSettings } from "./actions"
+import { getComplianceSettings, OrganizationPreferences } from "./actions"
 import { getTeamData } from "./invite-actions"
 import { getProfileData } from "./profile-actions"
 import { ComplianceToggle } from "./compliance-toggle"
@@ -98,7 +98,7 @@ export default async function SettingsPage({
 
       <SettingsTabs 
         canManageTeam={canManageTeam} 
-        enableCompliance={settings.enable_compliance_views && isPro}
+        enableCompliance={!!settings.enable_compliance_views && isPro}
       >
         <TabsContent value="profile" className="space-y-4">
             <ProfileManager initialData={profileData} />
@@ -116,6 +116,7 @@ export default async function SettingsPage({
                 <OrgSettingsForm 
                     initialName={ctx.organization.name} 
                     initialView={settings.standard_patient_view}
+                    initialLogo={(ctx.organization.preferences as OrganizationPreferences | null)?.logo_url}
                 />
                 
                 <div className="pt-4 border-t space-y-3">
