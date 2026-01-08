@@ -5,14 +5,18 @@ import prisma from "@/lib/prisma"
 export async function searchDiagnosesAction(query: string) {
   if (!query || query.length < 2) return []
 
+  const searchTerms = query.toLowerCase().split(' ').filter(t => t.length > 0)
+
   const results = await prisma.diagnosis.findMany({
     where: {
-      OR: [
-        { label: { contains: query, mode: 'insensitive' } },
-        { code: { contains: query, mode: 'insensitive' } }
-      ]
+      AND: searchTerms.map(term => ({
+        OR: [
+          { label: { contains: term, mode: 'insensitive' } },
+          { code: { contains: term, mode: 'insensitive' } }
+        ]
+      }))
     },
-    take: 20,
+    take: 30,
     orderBy: { code: 'asc' }
   })
 

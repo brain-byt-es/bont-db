@@ -166,13 +166,36 @@ const rawMuscles = [
 ]
 
 const rawDiagnoses = [
+  // Dystonia
   { code: "G24.3", label: "Spasmodic torticollis", system: "ICD-10" },
   { code: "G24.5", label: "Blepharospasm", system: "ICD-10" },
+  { code: "G24.4", label: "Idiopathic orofacial dystonia", system: "ICD-10" },
+  { code: "G24.1", label: "Idiopathic familial dystonia", system: "ICD-10" },
+  { code: "G24.8", label: "Other dystonia", system: "ICD-10" },
+  
+  // Spasticity & Cerebral Palsy
   { code: "G80.0", label: "Spastic quadriplegic cerebral palsy", system: "ICD-10" },
+  { code: "G80.1", label: "Spastic diplegic cerebral palsy", system: "ICD-10" },
+  { code: "G80.2", label: "Spastic hemiplegic cerebral palsy", system: "ICD-10" },
   { code: "G81.1", label: "Spastic hemiplegia", system: "ICD-10" },
-  { code: "G43.3", label: "Chronic migraine", system: "ICD-10" },
-  { code: "R61.9", label: "Hyperhidrosis, unspecified", system: "ICD-10" },
+  { code: "G82.1", label: "Spastic paraplegia", system: "ICD-10" },
+  { code: "G82.4", label: "Spastic tetraplegia", system: "ICD-10" },
   { code: "M62.8", label: "Other specified disorders of muscle (Spasticity)", system: "ICD-10" },
+  { code: "I69.3", label: "Sequelae of cerebral infarction (Post-stroke spasticity)", system: "ICD-10" },
+
+  // Facial Nerve / Spasm
+  { code: "G51.3", label: "Clonic hemifacial spasm", system: "ICD-10" },
+  { code: "G51.0", label: "Bell's palsy", system: "ICD-10" },
+
+  // Headache
+  { code: "G43.3", label: "Chronic migraine", system: "ICD-10" },
+  { code: "G44.2", label: "Tension-type headache", system: "ICD-10" },
+
+  // Autonomic / Other
+  { code: "R61.9", label: "Hyperhidrosis, unspecified", system: "ICD-10" },
+  { code: "R61.0", label: "Localized hyperhidrosis", system: "ICD-10" },
+  { code: "K11.7", label: "Disturbances of salivary secretion (Sialorrhea)", system: "ICD-10" },
+  { code: "N31.9", label: "Neuromuscular dysfunction of bladder, unspecified", system: "ICD-10" },
 ]
 
 async function main() {
