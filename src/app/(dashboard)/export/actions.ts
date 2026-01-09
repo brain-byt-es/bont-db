@@ -23,6 +23,11 @@ export async function getExportData() {
       },
       followups: {
         select: { followupDate: true, outcome: true }
+      },
+      injections: {
+        include: {
+          muscle: true
+        }
       }
     },
     orderBy: {
@@ -30,24 +35,39 @@ export async function getExportData() {
     }
   })
 
-  return treatments.map(t => ({
-    id: t.id,
-    treatment_date: t.encounterLocalDate.toISOString(),
-    treatment_site: t.treatmentSite,
-    indication: t.indication,
-    product: t.product?.name || 'N/A',
-    total_units: t.totalUnits.toNumber(),
-    status: t.status,
-    // Legacy mapping for UI compatibility
-    patients: {
-      patient_code: t.patient.systemLabel || 'Unknown',
-      birth_year: getBirthYear(t.patient)
-    },
-    followups: t.followups.map(f => ({
-        followup_date: f.followupDate.toISOString(),
-        outcome: f.outcome
-    }))
-  }))
+  return treatments.map(t => {
+    const muscleNames = Array.from(new Set(
+        t.injections
+            .map(i => i.muscle?.name)
+            .filter((name): name is string => !!name)
+    )).sort()
+
+    const displaySite = muscleNames.length > 0 
+        ? muscleNames.join(", ") 
+        : t.treatmentSite
+
+    return {
+        id: t.id,
+        treatment_date: t.encounterLocalDate.toISOString(),
+        treatment_site: displaySite,
+        indication: t.indication,
+        product: t.product?.name || 'N/A',
+        dilution: t.dilutionText,
+        total_units: t.totalUnits.toNumber(),
+        status: t.status,
+        is_supervised: t.isSupervised,
+        supervisor: t.supervisorName,
+        // Legacy mapping for UI compatibility
+        patients: {
+        patient_code: t.patient.systemLabel || 'Unknown',
+        birth_year: getBirthYear(t.patient)
+        },
+        followups: t.followups.map(f => ({
+            followup_date: f.followupDate.toISOString(),
+            outcome: f.outcome
+        }))
+    }
+  })
 }
 
 export interface ResearchExportRecord {

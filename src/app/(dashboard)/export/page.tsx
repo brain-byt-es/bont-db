@@ -43,8 +43,11 @@ interface ExportRecord {
   treatment_site: string
   indication: string
   product: string
+  dilution?: string
   total_units: number
   status: string
+  is_supervised?: boolean
+  supervisor?: string | null
   patients?: {
     patient_code: string
     birth_year: number
@@ -55,7 +58,7 @@ interface ExportRecord {
   }[]
 }
 
-type ExportPreset = "structured" | "compliance_minimal" | "compliance_followup" | "research_flat"
+type ExportPreset = "structured" | "compliance_minimal" | "compliance_followup" | "research_flat" | "certification"
 
 export default function ExportPage() {
   const { userPlan } = useAuthContext()
@@ -124,6 +127,20 @@ export default function ExportPage() {
   })
 
   const downloadCSV = () => {
+    if (selectedPreset === "certification") {
+        const query = new URLSearchParams()
+        if (dateFrom) query.set("from", dateFrom.toISOString())
+        if (dateTo) query.set("to", dateTo.toISOString())
+        if (indicationFilter !== "all") query.set("indication", indicationFilter)
+        
+        window.open(
+            `/reports/certification?${query.toString()}`, 
+            'CertificationReport', 
+            'toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=1000,height=900'
+        )
+        return
+    }
+
     if (selectedPreset === "research_flat" && !isPro) {
         toast.error("Research exports are available on InjexPro Docs Pro.")
         return
@@ -179,6 +196,7 @@ export default function ExportPage() {
             "Treatment Date (ISO)",
             "Site",
             "Product",
+            "Dilution",
             "Units",
             "Follow-up Date",
             "Outcome"
@@ -190,6 +208,7 @@ export default function ExportPage() {
             r.treatment_date || "",
             `"${r.treatment_site || ""}"`,
             r.product || "",
+            r.dilution || "",
             r.total_units.toString() || "",
             r.followups?.[0]?.followup_date || "",
             `"${r.followups?.[0]?.outcome || ""}"`
@@ -264,8 +283,17 @@ export default function ExportPage() {
         </div>
         {!(isProPreset && !isPro) && (
             <Button onClick={downloadCSV} disabled={loading || records.length === 0} className="w-full md:w-auto">
-            <Download className="mr-2 size-4" />
-            Download CSV
+            {selectedPreset === "certification" ? (
+                <>
+                    <Download className="mr-2 size-4" />
+                    Open Print View
+                </>
+            ) : (
+                <>
+                    <Download className="mr-2 size-4" />
+                    Download CSV
+                </>
+            )}
             </Button>
         )}
       </div>
@@ -308,6 +336,13 @@ export default function ExportPage() {
                         onClick={() => handlePresetChange("structured")}
                     >
                         <span className="truncate">Structured CSV</span>
+                    </Button>
+                    <Button 
+                        variant={selectedPreset === "certification" ? "default" : "outline"} 
+                        className="justify-start h-9 text-left group"
+                        onClick={() => handlePresetChange("certification")}
+                    >
+                        <span className="truncate">AK Botulinumtoxin Certification</span>
                     </Button>
                     <Button 
                         variant={selectedPreset === "research_flat" ? "default" : "outline"} 

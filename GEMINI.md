@@ -110,6 +110,9 @@ The core mission of InjexPro is now fully integrated with automated tracking and
     - Optional, collapsible "Certification Details" section added to treatment forms.
     - Ability to tag specific treatments as supervised by a named clinician.
 - [x] **Expanded Clinical Targets:** Added Glandula parotis, Submandibularis, and Axilla targets for autonomic certification.
+- [x] **Certification Reporting & Export:**
+    - Dedicated "Print View" export matching AK Botulinum requirements (File 2).
+    - Detailed, collapsible guidance card in Settings with submission instructions and email links.
 
 ### Phase 11: Advanced EHR Integration & Scaling (Planned)
 - [ ] **FHIR / HL7 Interface Stubs:** Finalize interface bridges for EPIC, KISIM, and other major EHR systems.
@@ -129,3 +132,9 @@ The core mission of InjexPro is now fully integrated with automated tracking and
 - [x] **Multi-tenancy Hardening:** Added duplicate organization name checks and strict status filtering in the auth context.
 - [x] **Comprehensive Audit logging:** Centralized `logAuditAction` utility tracking Treatment status changes, Admin edits, and Legal acceptances with IP/UA context.
 - [x] **Performance & Reliability:** Optimized Dose Engine queries and robust client-side pre-fetching for patient selection.
+
+## 6. Commit Standards (STRICT)
+- **Format:** Always use 2x `-m` flags for git commits.
+  - `-m "feat/fix: <Short Summary>"`
+  - `-m "- Detail 1\n- Detail 2\n- Detail 3"`
+- **Example:** `git commit -m "feat: add certification report" -m "- Added dedicated print view page\n- Updated export actions to include muscle details\n- Added collapsible info card in settings"

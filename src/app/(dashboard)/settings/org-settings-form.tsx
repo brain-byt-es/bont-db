@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useState } from "react"
+import { X } from "lucide-react"
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -28,12 +30,16 @@ function SubmitButton() {
 export function OrgSettingsForm({ 
     initialName, 
     initialView = "timeline",
-    initialLogo = ""
+    initialLogo = "",
+    organizationId
 }: { 
     initialName: string, 
     initialView?: string,
-    initialLogo?: string
+    initialLogo?: string,
+    organizationId: string
 }) {
+  const [currentLogo, setCurrentLogo] = useState(initialLogo)
+
   async function action(formData: FormData) {
     const result = await updateOrganizationName(formData)
     if (result?.error) {
@@ -43,11 +49,24 @@ export function OrgSettingsForm({
     }
   }
 
+  const handleRemoveLogo = async () => {
+    try {
+        const result = await updateOrganizationPreferences({ logo_url: "" })
+        if (result.success) {
+            setCurrentLogo("")
+            toast.success("Logo removed")
+        }
+    } catch (error) {
+        console.error(error)
+        toast.error("Failed to remove logo")
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-6 pb-4 border-b">
         <Avatar className="h-20 w-20 border-2 border-muted shadow-sm rounded-lg">
-            <AvatarImage src={initialLogo} className="object-contain p-1" />
+            <AvatarImage src={currentLogo} className="object-contain p-1" />
             <AvatarFallback className="text-xl bg-primary/5 text-primary rounded-lg">
                 {initialName.substring(0, 2).toUpperCase()}
             </AvatarFallback>
@@ -72,19 +91,24 @@ export function OrgSettingsForm({
       </div>
 
       <div className="grid gap-2 pt-4 border-t">
-        <Label htmlFor="logo_url">Clinic Logo URL</Label>
-        <Input 
-          id="logo_url" 
-          defaultValue={initialLogo} 
-          placeholder="https://example.com/logo.png"
-          onBlur={async (e) => {
-              const res = await updateOrganizationPreferences({ logo_url: e.target.value })
-              if (res.success) toast.success("Logo updated")
-          }}
-        />
-        <p className="text-[11px] text-muted-foreground italic">
-            Provide a URL to your clinic&apos;s logo (PNG/SVG preferred).
-        </p>
+        <Label>Clinic Logo</Label>
+        <div className="flex items-center gap-4">
+            {currentLogo ? (
+                <Button 
+                    type="button" 
+                    variant="ghost" 
+                    onClick={handleRemoveLogo}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                    <X className="mr-2 h-4 w-4" />
+                    Remove Logo
+                </Button>
+            ) : (
+                <p className="text-sm text-muted-foreground italic">
+                    Logo upload is currently disabled.
+                </p>
+            )}
+        </div>
       </div>
 
       <div className="grid gap-2 pt-4 border-t">
