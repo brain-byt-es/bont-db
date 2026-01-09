@@ -10,6 +10,7 @@ export async function updateQualificationProfile(data: {
   specialty: QualificationSpecialty;
   supervisionMode: SupervisionMode;
   defaultSupervisorName?: string;
+  showCertificationRoadmap: boolean;
 }) {
   const ctx = await getOrganizationContext()
   if (!ctx) return { error: "Not found" }
@@ -19,7 +20,8 @@ export async function updateQualificationProfile(data: {
     data: {
       specialty: data.specialty,
       supervisionMode: data.supervisionMode,
-      defaultSupervisorName: data.defaultSupervisorName
+      defaultSupervisorName: data.defaultSupervisorName,
+      showCertificationRoadmap: data.showCertificationRoadmap
     }
   })
 

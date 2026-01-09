@@ -97,9 +97,11 @@ export default async function Page({
       </div>
 
       {/* 2. Qualification & Certification Subsection */}
-      <div className="px-4 lg:px-6">
-        <CertificationRoadmap data={data.certification} />
-      </div>
+      {ctx?.membership?.showCertificationRoadmap && (
+        <div className="px-4 lg:px-6">
+          <CertificationRoadmap data={data.certification} />
+        </div>
+      )}
 
       <div className="px-4 lg:px-6">
         <h2 className="text-lg font-semibold tracking-tight">Clinical Insights</h2>

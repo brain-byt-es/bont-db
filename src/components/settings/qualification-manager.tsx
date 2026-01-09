@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import { 
   Select, 
   SelectContent, 
@@ -22,6 +23,7 @@ interface QualificationManagerProps {
     specialty: QualificationSpecialty
     supervisionMode: SupervisionMode
     defaultSupervisorName: string | null
+    showCertificationRoadmap: boolean
   }
 }
 
@@ -29,6 +31,7 @@ export function QualificationManager({ initialData }: QualificationManagerProps)
   const [specialty, setSpecialty] = useState<QualificationSpecialty>(initialData.specialty)
   const [supervisionMode, setSupervisionMode] = useState<SupervisionMode>(initialData.supervisionMode)
   const [supervisorName, setSupervisorName] = useState(initialData.defaultSupervisorName || "")
+  const [showRoadmap, setShowRoadmap] = useState(initialData.showCertificationRoadmap)
   const [isPending, startTransition] = useTransition()
 
   const handleSave = () => {
@@ -36,7 +39,8 @@ export function QualificationManager({ initialData }: QualificationManagerProps)
       const res = await updateQualificationProfile({
         specialty,
         supervisionMode,
-        defaultSupervisorName: supervisorName
+        defaultSupervisorName: supervisorName,
+        showCertificationRoadmap: showRoadmap
       })
       if (res.success) toast.success("Qualification profile updated")
       else toast.error("Failed to update profile")
@@ -56,6 +60,20 @@ export function QualificationManager({ initialData }: QualificationManagerProps)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+            <div className="space-y-0.5">
+              <Label>Show Certification Roadmap</Label>
+              <div className="text-[11px] text-muted-foreground">
+                Display the progress tracker on your main dashboard.
+              </div>
+            </div>
+            <Switch 
+              checked={showRoadmap}
+              onCheckedChange={setShowRoadmap}
+              disabled={isPending}
+            />
+          </div>
+
           <div className="grid gap-2">
             <Label htmlFor="specialty">Target Specialty</Label>
             <Select 

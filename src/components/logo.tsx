@@ -1,5 +1,5 @@
-/* eslint-disable @next/next/no-img-element */
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 
 export function Logo({ 
     className, 
@@ -16,10 +16,12 @@ export function Logo({
     <div className={cn("flex items-center gap-2 font-bold", className)}>
       
       {logoUrl ? (
-          <img 
+          <Image 
             src={logoUrl} 
             alt="Clinic Logo" 
-            className="h-6 w-6 rounded-md object-contain" 
+            width={24}
+            height={24}
+            className="rounded-md object-contain" 
           />
       ) : initials ? (
           <span className="font-bold text-xs">{initials}</span>

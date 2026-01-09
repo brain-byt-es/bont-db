@@ -110,7 +110,8 @@ export default async function SettingsPage({
                 initialData={{
                     specialty: ctx.membership.specialty,
                     supervisionMode: ctx.membership.supervisionMode,
-                    defaultSupervisorName: ctx.membership.defaultSupervisorName
+                    defaultSupervisorName: ctx.membership.defaultSupervisorName,
+                    showCertificationRoadmap: ctx.membership.showCertificationRoadmap
                 }} 
             />
         </TabsContent>

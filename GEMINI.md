@@ -94,24 +94,28 @@ The application is **Organization-centric** and features a tiered plan model (BA
 - [x] **Visual Clinical History:** Implementation of a visual Patient Treatment Timeline to track progress chronologically.
 - [x] **UX Refinements:** Added purposeful Empty States, transparent reset actions, and environment-aware organization switching.
 
-### Phase 10: AK Botulinum Certification Roadmap (Planned)
-The core mission of InjexPro is to streamline the certification process for the **Arbeitskreis Botulinumtoxin**. This phase focuses on automated tracking and evidence generation.
+### Phase 10: AK Botulinum Certification Roadmap (Completed)
+The core mission of InjexPro is now fully integrated with automated tracking and evidence generation.
 
-- [ ] **Qualification Profile (Settings):**
-    - Define target specialty (Neurology: 100/50 rule vs. Neuropediatrics: 50 rule).
-    - Configure Supervision mode (Direct vs. Guarantor/Bürge) and supervisor names.
-- [ ] **Dynamic Certification Tracker (Dashboard):**
+- [x] **Qualification Profile (Settings):**
+    - Define target specialty (Neurology: 100/50 rule vs. Neuropediatrics: 50/25 rule).
+    - Configure Supervision mode (Direct vs. Guarantor/Bürge) and default supervisor names.
+- [x] **Dynamic Certification Tracker (Dashboard):**
     - High-end "Progress Tree" visualizing the path to Full vs. Partial certificates.
-    - **Total treatments gate:** XX / 100 (or 50).
-    - **Success control gate:** XX / 50 treatments with documented clinical response (follow-ups).
-    - **Indication mix validator:** Ensure min. 2 categories (Spasticity, Dystonia, etc.) are covered.
-    - **The "25 Rule" Tracker:** Visualizing the requirement for 25 treatments in a primary indication.
-- [ ] **Supervision Integration (Treatments):**
-    - Add an optional "Supervision" section to the treatment form (collapsible).
-    - Filter evidence lists by supervised status if required by the doctor's profile.
-- [ ] **Automated Evidence Export:**
-    - One-click generation of the AK Botulinum application bundle.
-    - Prioritizes the best-documented treatments (those with follow-ups and outcome scores).
+    - **Total treatments gate:** Live tracking against the 100 (or 50) required injections.
+    - **Success control gate:** Automated counting of treatments with documented clinical follow-ups.
+    - **Indication mix validator:** Visual checklist ensuring min. 2 categories (Spasticity, Dystonia, etc.) are covered.
+    - **The "25 Rule" Tracker:** Visual alert for the 25-treatment focus requirement in primary indications.
+- [x] **Supervision Integration (Treatments):**
+    - Optional, collapsible "Certification Details" section added to treatment forms.
+    - Ability to tag specific treatments as supervised by a named clinician.
+- [x] **Expanded Clinical Targets:** Added Glandula parotis, Submandibularis, and Axilla targets for autonomic certification.
+
+### Phase 11: Advanced EHR Integration & Scaling (Planned)
+- [ ] **FHIR / HL7 Interface Stubs:** Finalize interface bridges for EPIC, KISIM, and other major EHR systems.
+- [ ] **PDF Application Bundle:** Automated one-click generation of the formal AK Botulinum application PDF.
+- [ ] **Regional Scaling:** Performance optimization for multi-clinic environments and high-concurrency database pooling.
+- [ ] **Custom Clinical Branding:** Enhanced white-labeling options for large hospital networks.
 
 ### Phase 9: Infrastructure & Connectivity (In Progress)
 - [x] **Email System Setup:** Fully integrated Resend SDK for transactional emails (Invites, Payment Failures, Verification).
