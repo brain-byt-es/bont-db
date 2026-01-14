@@ -36,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useAuthContext } from "@/components/auth-context-provider"
 import { checkPlan, PLAN_GATES } from "@/lib/permissions"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
+import { TreatmentEditDialog } from "@/components/treatment-edit-dialog"
 
 export interface TreatmentRecord {
   id: string
@@ -53,6 +54,7 @@ export interface TreatmentRecord {
 interface RecentRecordsTableProps {
   records: TreatmentRecord[]
   hideActions?: boolean
+  enableSelection?: boolean
 }
 
 const indicationLabels: Record<string, string> = {
@@ -71,7 +73,7 @@ const indicationColors: Record<string, string> = {
   andere: "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400",
 }
 
-export function RecentRecordsTable({ records, hideActions = false }: RecentRecordsTableProps) {
+export function RecentRecordsTable({ records, hideActions = false, enableSelection = true }: RecentRecordsTableProps) {
   const [isPending, startTransition] = useTransition()
   const { userPlan } = useAuthContext()
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
@@ -81,6 +83,8 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [reopenId, setReopenId] = useState<string | null>(null)
   const [reopenReason, setReopenReason] = useState("")
+  const [editId, setEditId] = useState<string | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const showPatientColumn = records.some(r => r.patient)
   const router = useRouter()
 
@@ -132,7 +136,8 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
               setShowUpgradeDialog(true)
           }
       } else {
-          router.push(`/treatments/${record.id}/edit`)
+          setEditId(record.id)
+          setIsEditDialogOpen(true)
       }
   }
 
@@ -142,9 +147,11 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
           try {
               await reopenTreatmentAction(reopenId, reopenReason)
               toast.success("Treatment re-opened")
-              router.push(`/treatments/${reopenId}/edit`)
+              setEditId(reopenId)
+              setIsEditDialogOpen(true)
               setReopenId(null)
               setReopenReason("")
+              router.refresh()
           } catch {
               toast.error("Failed to re-open treatment")
           }
@@ -270,7 +277,7 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
         description="Institutional documentation standards often require strictly logged corrections. Upgrade to manage clinical risk and maintain a full audit history."
     />
 
-    {isBulkSelection && (
+    {enableSelection && isBulkSelection && (
         <div className="flex items-center justify-between bg-primary text-primary-foreground p-2 px-4 rounded-md animate-in fade-in slide-in-from-top-2">
             <span className="text-sm font-medium">{selectedIds.length} selected</span>
             <div className="flex gap-2">
@@ -287,13 +294,15 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead className="w-[40px]">
-              <Checkbox 
-                checked={allSelected}
-                onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                aria-label="Select all"
-              />
-          </TableHead>
+          {enableSelection && (
+            <TableHead className="w-[40px]">
+                <Checkbox 
+                    checked={allSelected}
+                    onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                    aria-label="Select all"
+                />
+            </TableHead>
+          )}
           {showPatientColumn && (
               <TableHead>
                 <SortButton label="Patient" onClick={() => requestSort("patient")} />
@@ -323,20 +332,25 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
       <TableBody>
         {sortedRecords.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={showPatientColumn ? (hideActions ? 6 : 7) : (hideActions ? 5 : 6)} className="h-24 text-center text-muted-foreground">
+            <TableCell 
+                colSpan={6 + (enableSelection ? 1 : 0) + (showPatientColumn ? 1 : 0) + (!hideActions ? 1 : 0)} 
+                className="h-24 text-center text-muted-foreground"
+            >
               No records found.
             </TableCell>
           </TableRow>
         ) : (
           sortedRecords.map((record) => (
             <TableRow key={record.id} className="group transition-colors" data-state={selectedIds.includes(record.id) && "selected"}>
-            <TableCell>
-                <Checkbox 
-                    checked={selectedIds.includes(record.id)}
-                    onCheckedChange={(checked) => handleSelectOne(!!checked, record.id)}
-                    aria-label="Select row"
-                />
-            </TableCell>
+            {enableSelection && (
+                <TableCell>
+                    <Checkbox 
+                        checked={selectedIds.includes(record.id)}
+                        onCheckedChange={(checked) => handleSelectOne(!!checked, record.id)}
+                        aria-label="Select row"
+                    />
+                </TableCell>
+            )}
             {showPatientColumn && <TableCell className="font-medium">{record.patient?.patient_code}</TableCell>}
             <TableCell className={cn("text-muted-foreground tabular-nums", !showPatientColumn && "font-medium text-foreground")}>
                 {format(new Date(record.treatment_date), "dd.MM.yyyy")}
@@ -387,6 +401,12 @@ export function RecentRecordsTable({ records, hideActions = false }: RecentRecor
       </TableBody>
     </Table>
     </div>
+
+    <TreatmentEditDialog 
+        treatmentId={editId}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+    />
     </div>
   )
 }

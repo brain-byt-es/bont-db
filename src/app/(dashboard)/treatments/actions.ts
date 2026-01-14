@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
-import { BodySide, Timepoint, EncounterStatus, Prisma } from "@/generated/client/client"
+import { BodySide, Timepoint, EncounterStatus, Prisma, GoalCategory } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 import { getDoseSuggestions, CLINICAL_PROTOCOLS } from "@/lib/dose-engine"
 import { logAuditAction } from "@/lib/audit-logger"
@@ -25,6 +25,17 @@ interface ProcedureStep {
   mas_peak?: string;
 }
 
+interface GoalData {
+  category: GoalCategory;
+  description: string;
+}
+
+interface GoalOutcomeData {
+  goalId: string;
+  score: number;
+  notes?: string | null;
+}
+
 interface CreateTreatmentFormData {
   subject_id: string;
   date: Date;
@@ -40,6 +51,8 @@ interface CreateTreatmentFormData {
   steps?: ProcedureStep[];
   assessments?: AssessmentData[];
   status?: "DRAFT" | "SIGNED";
+  goals?: GoalData[];
+  goalOutcomes?: GoalOutcomeData[];
 }
 
 export async function createTreatment(formData: CreateTreatmentFormData) {
@@ -63,7 +76,9 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
     supervisor_name,
     steps,
     assessments,
-    status = "DRAFT"
+    status = "DRAFT",
+    goals,
+    goalOutcomes
   } = formData
 
   const unitsPerMl = vial_size / dilution_ml
@@ -183,7 +198,22 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
         create: {
             diagnosisId: diagnosis_id
         }
-      } : undefined
+      } : undefined,
+
+      // GAS
+      goals: {
+        create: (goals || []).map(g => ({
+            category: g.category,
+            description: g.description
+        }))
+      },
+      goalOutcomes: {
+        create: (goalOutcomes || []).map(o => ({
+            goalId: o.goalId,
+            score: o.score,
+            notes: o.notes
+        }))
+      }
     }
   })
 
@@ -288,7 +318,13 @@ export async function getTreatment(treatmentId: string) {
           injectionAssessments: true
         }
       },
-      assessments: true
+      assessments: true,
+      goals: true,
+      goalOutcomes: {
+        include: {
+          goal: true
+        }
+      }
     }
   })
 
@@ -328,7 +364,13 @@ export async function getLatestTreatment(patientId: string) {
           injectionAssessments: true
         }
       },
-      assessments: true
+      assessments: true,
+      goals: true,
+      goalOutcomes: {
+        include: {
+          goal: true
+        }
+      }
     },
     orderBy: {
       encounterAt: 'desc'
@@ -360,315 +402,96 @@ export async function getLatestTreatment(patientId: string) {
 }
 
 /**
-
- * Advanced Dose Engine: Get suggestions for a specific patient and muscle.
-
+ * Get goals from the LAST SIGNED encounter for a patient.
+ * Used for Goal Review in the new encounter.
  */
-
-export async function getDoseSuggestionsAction(patientId: string, muscleId: string) {
-
+export async function getPreviousGoalsAction(patientId: string) {
   const ctx = await getOrganizationContext()
-
   if (!ctx) throw new Error("No organization context")
+  const { organizationId } = ctx
 
-  
+  const lastSigned = await prisma.encounter.findFirst({
+    where: {
+      patientId,
+      organizationId,
+      status: 'SIGNED'
+    },
+    orderBy: {
+      encounterAt: 'desc'
+    },
+    include: {
+      goals: true
+    }
+  })
 
-  return await getDoseSuggestions(ctx.organizationId, patientId, muscleId)
-
+  return lastSigned ? { goals: lastSigned.goals, date: lastSigned.encounterLocalDate } : null
 }
 
-
+/**
+ * Advanced Dose Engine: Get suggestions for a specific patient and muscle.
+ */
+export async function getDoseSuggestionsAction(patientId: string, muscleId: string) {
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("No organization context")
+  
+  return await getDoseSuggestions(ctx.organizationId, patientId, muscleId)
+}
 
 /**
-
-
-
  * Save a custom treatment protocol for the organization.
-
-
-
  */
-
-
-
 export async function saveProtocolAction(name: string, indication: string, steps: ProcedureStep[]) {
-
-
-
   const ctx = await getOrganizationContext()
-
-
-
   if (!ctx) throw new Error("No organization context")
-
-
-
   
-
-
-
   requirePermission(ctx.membership.role, PERMISSIONS.MANAGE_ORGANIZATION)
 
-
-
-
-
-
-
     const protocol = await prisma.clinicalProtocol.create({
-
-
-
-
-
-
-
       data: {
-
-
-
-
-
-
-
         organizationId: ctx.organizationId,
-
-
-
-
-
-
-
         createdByUserId: ctx.membership.userId,
-
-
-
-
-
-
-
         name,
-
-
-
-
-
-
-
         indication,
-
-
-
-
-
-
-
         steps: steps.map(s => ({
-
-
-
-
-
-
-
             muscleId: s.muscle_id,
-
-
-
-
-
-
-
             units: s.numeric_value,
-
-
-
-
-
-
-
             side: s.side
-
-
-
-
-
-
-
         })) as unknown as Prisma.InputJsonValue
-
-
-
-
-
-
-
       }
-
-
-
-
-
-
-
     })
-
-
-
-
-
-
-
   
-
-
-
-
-
-
-
   await logAuditAction(ctx, "PROTOCOL_CREATED", "ClinicalProtocol", protocol.id, { name })
-
-
-
-
-
-
-
   return { success: true }
-
-
-
 }
-
-
-
-
-
-
 
 /**
-
-
-
  * Get all available protocols (Global + Custom) for an indication.
-
-
-
  */
-
-
-
 export async function getProtocolsAction(indication: string) {
-
-
-
     const ctx = await getOrganizationContext()
-
-
-
     const globalProtocols = CLINICAL_PROTOCOLS.filter(p => p.indication === indication)
-
-
-
     
-
-
-
     if (!ctx) return globalProtocols
 
-
-
-
-
-
-
     const customProtocols = await prisma.clinicalProtocol.findMany({
-
-
-
         where: {
-
-
-
             organizationId: ctx.organizationId,
-
-
-
             indication
-
-
-
         },
-
-
-
         orderBy: { name: 'asc' }
-
-
-
     })
 
-
-
-
-
-
-
     const mappedCustom = customProtocols.map(p => ({
-
-
-
         id: p.id,
-
-
-
         name: p.name,
-
-
-
         indication: p.indication,
-
-
-
         isCustom: true,
-
-
-
         steps: (p.steps as Array<{ muscleId: string, units: number, side: string }>).map(s => ({
-
-
-
             muscleId: s.muscleId,
-
-
-
             units: s.units,
-
-
-
             side: s.side
-
-
-
         }))
-
-
-
     }))
 
-
-
-
-
-
-
     return [...globalProtocols, ...mappedCustom]
-
-
-
 }
-
-
-
-

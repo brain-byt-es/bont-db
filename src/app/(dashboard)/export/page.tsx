@@ -17,12 +17,19 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { RecentRecordsTable, TreatmentRecord } from "@/components/recent-records-table"
-import { CalendarIcon, Download, Loader2 } from "lucide-react"
+import { CalendarIcon, Download, Loader2, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
@@ -41,6 +48,7 @@ interface ExportRecord {
   id: string
   treatment_date: string
   treatment_site: string
+  treated_muscles?: string
   indication: string
   product: string
   dilution?: string
@@ -59,6 +67,14 @@ interface ExportRecord {
 }
 
 type ExportPreset = "structured" | "compliance_minimal" | "compliance_followup" | "research_flat" | "certification"
+
+const indicationMap: Record<string, string> = {
+  kopfschmerz: "Headache",
+  dystonie: "Dystonia",
+  spastik: "Spasticity",
+  autonom: "Autonomous",
+  andere: "Other"
+}
 
 export default function ExportPage() {
   const { userPlan } = useAuthContext()
@@ -87,6 +103,12 @@ export default function ExportPage() {
     }
     
     setSelectedPreset(preset)
+  }
+
+  const clearFilters = () => {
+    setDateFrom(undefined)
+    setDateTo(undefined)
+    setIndicationFilter("all")
   }
 
   useEffect(() => {
@@ -195,6 +217,7 @@ export default function ExportPage() {
             "Indication",
             "Treatment Date (ISO)",
             "Site",
+            "Region/Muscles",
             "Product",
             "Dilution",
             "Units",
@@ -207,6 +230,7 @@ export default function ExportPage() {
             r.indication || "",
             r.treatment_date || "",
             `"${r.treatment_site || ""}"`,
+            `"${r.treated_muscles || ""}"`,
             r.product || "",
             r.dilution || "",
             r.total_units.toString() || "",
@@ -251,19 +275,83 @@ export default function ExportPage() {
     document.body.removeChild(link)
   }
 
-  // Map to Table format
-  const tableRecords: TreatmentRecord[] = filteredRecords.map(r => ({
-      id: r.id,
-      treatment_date: r.treatment_date,
-      treatment_site: r.treatment_site,
-      indication: r.indication,
-      product: r.product,
-      total_units: r.total_units,
-      status: r.status,
-      patient: r.patients
-  }))
-
   const isProPreset = selectedPreset === "compliance_minimal" || selectedPreset === "compliance_followup" || selectedPreset === "research_flat"
+
+  const presetInfo = {
+      structured: {
+        title: "Standard Export (Encounter-based)",
+        description: "Standard CSV export with one row per treatment session. Contains all key clinical data.",
+        columns: ["Patient Code", "Birth Year", "Indication", "Date", "Site", "Region/Muscles", "Product", "Dilution", "Units", "Follow-up", "Outcome"]
+      },
+      research_flat: {
+        title: "Research Export (Injection-based)",
+        description: "Granular data for statistical analysis. Explodes each treatment into multiple rows (one per injection site/muscle). Includes MAS scores.",
+        columns: ["User ID", "Patient Code", "Treatment ID", "Date", "Indication", "Product", "Dilution", "Injection ID", "Muscle Name", "Side", "Units", "MAS Scores"]
+      },
+      compliance_minimal: {
+        title: "Compliance Export (Minimal)",
+        description: "Simplified dataset for basic regulatory reporting. Excludes clinical notes and outcomes.",
+        columns: ["Patient Code", "Indication", "Date", "Site", "Product", "Total Units"]
+      },
+      compliance_followup: {
+        title: "Compliance Export (Follow-up Focus)",
+        description: "Focused dataset for tracking follow-up completion rates.",
+        columns: ["Patient Code", "Indication", "Date", "Units", "Follow-up Status", "Follow-up Date"]
+      },
+      certification: {
+        title: "Certification Print View",
+        description: "Generates a printable report matching the specific requirements for AK Botulinumtoxin certification (File 2).",
+        columns: ["Date / Location", "Patient ID", "Indication", "Region / Muscles", "Product", "Dose", "Dilution", "Supervision Info"]
+      }
+  }
+
+  // Calculate Preview Rows based on selected preset
+  const getPreviewRows = () => {
+      const limit = 10
+      const formatIndication = (ind: string) => indicationMap[ind.toLowerCase()] || ind
+      
+      if (selectedPreset === "research_flat") {
+          return filteredResearchRecords.slice(0, limit).map(r => [
+              r.user_id, r.patient_code, r.treatment_id, r.treatment_date, formatIndication(r.indication), r.product, r.dilution,
+              r.injection_id, r.muscle_name, r.side, r.units, `B:${r.MAS_baseline_num}/P:${r.MAS_peak_num}`
+          ])
+      }
+      
+      if (selectedPreset === "certification") {
+          return filteredRecords.slice(0, limit).map(r => [
+              `${format(new Date(r.treatment_date), 'dd.MM.yyyy')} (${r.treatment_site})`,
+              r.patients?.patient_code || '',
+              formatIndication(r.indication),
+              r.treated_muscles || '-',
+              r.product,
+              r.total_units,
+              r.dilution || '-',
+              r.is_supervised ? 'Yes' : '-'
+          ])
+      }
+
+      if (selectedPreset === "compliance_minimal") {
+          return filteredRecords.slice(0, limit).map(r => [
+              r.patients?.patient_code || '', formatIndication(r.indication), r.treatment_date, r.treatment_site, r.product, r.total_units
+          ])
+      }
+
+      if (selectedPreset === "compliance_followup") {
+          return filteredRecords.slice(0, limit).map(r => [
+              r.patients?.patient_code || '', formatIndication(r.indication), r.treatment_date, r.total_units, 
+              r.followups?.length ? 'Yes' : 'Pending', r.followups?.[0]?.followup_date || '-'
+          ])
+      }
+
+      // Default: Structured
+      return filteredRecords.slice(0, limit).map(r => [
+          r.patients?.patient_code || '', r.patients?.birth_year || '', formatIndication(r.indication), 
+          r.treatment_date, r.treatment_site, r.treated_muscles || '', r.product, r.dilution || '', r.total_units,
+          r.followups?.[0]?.followup_date || '', r.followups?.[0]?.outcome || ''
+      ])
+  }
+
+  const previewRows = getPreviewRows()
 
   return (
     <div className="flex flex-col gap-4 pt-6">
@@ -409,13 +497,26 @@ export default function ExportPage() {
             </Card>
 
             <Card className="overflow-hidden">
-                <CardHeader>
-                <CardTitle>Filters</CardTitle>
-                <CardDescription>Select range to filter preview.</CardDescription>
+                <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                    <div className="space-y-1">
+                        <CardTitle>Filters</CardTitle>
+                        <CardDescription>Select range to filter preview.</CardDescription>
+                    </div>
+                    {(dateFrom || dateTo || indicationFilter !== 'all') && (
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={clearFilters}
+                            className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                        >
+                            <X className="mr-1 h-3 w-3" />
+                            Clear
+                        </Button>
+                    )}
                 </CardHeader>
                 <CardContent>
                 <div className="grid gap-4">
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                         <label className="text-sm font-medium">Date Range</label>
                         <div className="flex flex-col gap-2">
                             <Popover>
@@ -436,7 +537,6 @@ export default function ExportPage() {
                                     mode="single"
                                     selected={dateFrom}
                                     onSelect={setDateFrom}
-                                    initialFocus
                                     />
                                 </PopoverContent>
                             </Popover>
@@ -465,7 +565,7 @@ export default function ExportPage() {
                         </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                         <label className="text-sm font-medium">Indication</label>
                         <Select value={indicationFilter} onValueChange={setIndicationFilter}>
                             <SelectTrigger>
@@ -486,23 +586,65 @@ export default function ExportPage() {
             </Card>
         </div>
 
-        <Card className="h-fit overflow-hidden">
-            <CardHeader>
-            <CardTitle>Preview</CardTitle>
-            <CardDescription>
-                {loading ? "Loading..." : `Showing ${tableRecords.length} records.`}
-            </CardDescription>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-            {loading ? (
-                <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
-            ) : (
-                <div className="min-w-0 w-full">
-                    <RecentRecordsTable records={tableRecords.slice(0, 50)} hideActions={true} />
-                </div>
-            )}
-            </CardContent>
-        </Card>
+        <div className="flex flex-col gap-6 min-w-0">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">{presetInfo[selectedPreset].title}</CardTitle>
+                    <CardDescription>{presetInfo[selectedPreset].description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Included Columns</div>
+                    <div className="flex flex-wrap gap-1">
+                        {presetInfo[selectedPreset].columns.map(c => (
+                            <Badge key={c} variant="secondary" className="text-[10px] font-normal bg-muted border-none">{c}</Badge>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card className="h-fit overflow-hidden">
+                <CardHeader>
+                    <CardTitle>Source Data Preview</CardTitle>
+                    <CardDescription>
+                        Standardized view of the {filteredRecords.length} records that will be processed.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="overflow-x-auto">
+                {loading ? (
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                ) : (
+                    <div className="min-w-0 w-full">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    {presetInfo[selectedPreset].columns.map((col, i) => (
+                                        <TableHead key={i} className="whitespace-nowrap text-xs h-8">{col}</TableHead>
+                                    ))}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {previewRows.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={presetInfo[selectedPreset].columns.length} className="h-24 text-center text-muted-foreground">
+                                            No records found matching filters.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    previewRows.map((row, i) => (
+                                        <TableRow key={i}>
+                                            {row.map((cell, j) => (
+                                                <TableCell key={j} className="whitespace-nowrap text-xs py-2">{cell}</TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                )}
+                </CardContent>
+            </Card>
+        </div>
       </div>
     </div>
   )

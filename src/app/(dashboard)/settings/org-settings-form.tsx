@@ -30,13 +30,11 @@ function SubmitButton() {
 export function OrgSettingsForm({ 
     initialName, 
     initialView = "timeline",
-    initialLogo = "",
-    organizationId
+    initialLogo = ""
 }: { 
     initialName: string, 
     initialView?: string,
-    initialLogo?: string,
-    organizationId: string
+    initialLogo?: string
 }) {
   const [currentLogo, setCurrentLogo] = useState(initialLogo)
 

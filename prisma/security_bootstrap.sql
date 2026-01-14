@@ -43,7 +43,8 @@ GRANT UPDATE (
 REVOKE UPDATE ON TABLE "public"."Encounter" FROM app_rw;
 GRANT UPDATE (
   "encounterAt","encounterLocalDate","status","treatmentSite","indication","productId",
-  "dilutionText","dilutionUnitsPerMl","totalUnits","effectNotes","adverseEventNotes","updatedAt"
+  "dilutionText","dilutionUnitsPerMl","totalUnits","effectNotes","adverseEventNotes","updatedAt",
+  "isSupervised","supervisorName"
 ) ON TABLE "public"."Encounter" TO app_rw;
 
 -- 6.3 Patient: Immutable organizationId

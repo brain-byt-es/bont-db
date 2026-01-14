@@ -1,29 +1,65 @@
 -- CreateEnum
-CREATE TYPE "Region" AS ENUM ('EU', 'US');
+DO $$ BEGIN
+    CREATE TYPE "Region" AS ENUM ('EU', 'US');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "OrganizationStatus" AS ENUM ('ACTIVE', 'SUSPENDED', 'CLOSED');
+DO $$ BEGIN
+    CREATE TYPE "OrganizationStatus" AS ENUM ('ACTIVE', 'SUSPENDED', 'CLOSED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "MembershipRole" AS ENUM ('OWNER', 'CLINIC_ADMIN', 'PROVIDER', 'ASSISTANT', 'READONLY');
+DO $$ BEGIN
+    CREATE TYPE "MembershipRole" AS ENUM ('OWNER', 'CLINIC_ADMIN', 'PROVIDER', 'ASSISTANT', 'READONLY');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "MembershipStatus" AS ENUM ('ACTIVE', 'INVITED', 'DISABLED');
+DO $$ BEGIN
+    CREATE TYPE "MembershipStatus" AS ENUM ('ACTIVE', 'INVITED', 'DISABLED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "PatientStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'ARCHIVED');
+DO $$ BEGIN
+    CREATE TYPE "PatientStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'ARCHIVED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "BodySide" AS ENUM ('L', 'R', 'B');
+DO $$ BEGIN
+    CREATE TYPE "BodySide" AS ENUM ('L', 'R', 'B');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "EncounterStatus" AS ENUM ('DRAFT', 'SIGNED', 'VOID');
+DO $$ BEGIN
+    CREATE TYPE "EncounterStatus" AS ENUM ('DRAFT', 'SIGNED', 'VOID');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "Timepoint" AS ENUM ('baseline', 'peak_effect', 'reinjection', 'followup', 'other');
+DO $$ BEGIN
+    CREATE TYPE "Timepoint" AS ENUM ('baseline', 'peak_effect', 'reinjection', 'followup', 'other');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "AuthProvider" AS ENUM ('azure_ad', 'google', 'linkedin');
+DO $$ BEGIN
+    CREATE TYPE "AuthProvider" AS ENUM ('azure_ad', 'google', 'linkedin');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateTable
 CREATE TABLE "User" (

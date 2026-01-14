@@ -125,6 +125,13 @@ enum SupervisionMode {
   @@schema("public")
 }
 
+enum GoalCategory {
+  SYMPTOM
+  FUNCTION
+  PARTICIPATION
+  @@schema("public")
+}
+
 /* =========================
    Global Users (Entra)
    ========================= */
@@ -384,6 +391,10 @@ model Encounter {
   followups             Followup[]
   diagnoses             EncounterDiagnosis[]
   regions               EncounterRegion[]
+  
+  // GAS - Goal Attainment Scaling
+  goals                 TreatmentGoal[] // Goals DEFINED in this encounter
+  goalOutcomes          GoalOutcome[]   // Outcomes of PREVIOUS goals recorded in this encounter
 
   @@unique([organizationId, id]) // technical: enables composite FK targets
   @@index([organizationId, encounterLocalDate])
@@ -394,6 +405,49 @@ model Encounter {
   @@index([organizationId, createdByMembershipId, encounterAt]) // recommended
   @@schema("public")
 }
+
+/* =========================
+   GAS: Goal Attainment Scaling
+   ========================= */
+
+model TreatmentGoal {
+  id            String @id @default(uuid()) @db.Uuid
+  encounterId   String @db.Uuid
+  encounter     Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  category      GoalCategory
+  description   String
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  outcomes      GoalOutcome[]
+
+  @@index([encounterId])
+  @@schema("public")
+}
+
+model GoalOutcome {
+  id              String @id @default(uuid()) @db.Uuid
+  
+  goalId          String @db.Uuid
+  goal            TreatmentGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  
+  // The encounter where the review is HAPPENING (e.g. the follow-up visit)
+  assessmentEncounterId String @db.Uuid
+  assessmentEncounter   Encounter @relation(fields: [assessmentEncounterId], references: [id], onDelete: Cascade)
+  
+  score           Int // -2 to +2
+  notes           String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([goalId, assessmentEncounterId]) // One outcome per goal per review session
+  @@index([assessmentEncounterId])
+  @@schema("public")
+}
+
 
 /* =========================
    Derived: Injections (denormalized orgId)

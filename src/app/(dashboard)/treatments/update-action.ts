@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
-import { BodySide, Timepoint, EncounterStatus } from "@/generated/client/client"
+import { BodySide, Timepoint, EncounterStatus, GoalCategory } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 
 interface AssessmentData {
@@ -23,6 +23,17 @@ interface ProcedureStep {
   mas_peak?: string;
 }
 
+interface GoalData {
+  category: GoalCategory;
+  description: string;
+}
+
+interface GoalOutcomeData {
+  goalId: string;
+  score: number;
+  notes?: string | null;
+}
+
 interface UpdateTreatmentFormData {
   subject_id: string;
   date: Date;
@@ -37,6 +48,8 @@ interface UpdateTreatmentFormData {
   steps?: ProcedureStep[];
   assessments?: AssessmentData[];
   status?: "DRAFT" | "SIGNED";
+  goals?: GoalData[];
+  goalOutcomes?: GoalOutcomeData[];
 }
 
 export async function updateTreatment(treatmentId: string, formData: UpdateTreatmentFormData) {
@@ -59,7 +72,9 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     supervisor_name,
     steps,
     assessments,
-    status
+    status,
+    goals,
+    goalOutcomes
   } = formData
 
   const unitsPerMl = vial_size / dilution_ml
@@ -190,6 +205,40 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
         }))
       })
     }
+
+    // 4. Replace GAS Goals
+    // Deleting goals will cascade delete outcomes in future encounters if they exist.
+    // Since we are editing the current encounter, this is acceptable behavior for "resetting" goals.
+    await tx.treatmentGoal.deleteMany({
+        where: { encounterId: treatmentId }
+    })
+
+    if (goals && goals.length > 0) {
+        await tx.treatmentGoal.createMany({
+            data: goals.map(g => ({
+                encounterId: treatmentId,
+                category: g.category,
+                description: g.description
+            }))
+        })
+    }
+
+    // 5. Replace GAS Outcomes
+    await tx.goalOutcome.deleteMany({
+        where: { assessmentEncounterId: treatmentId }
+    })
+
+    if (goalOutcomes && goalOutcomes.length > 0) {
+        await tx.goalOutcome.createMany({
+            data: goalOutcomes.map(o => ({
+                assessmentEncounterId: treatmentId,
+                goalId: o.goalId,
+                score: o.score,
+                notes: o.notes
+            }))
+        })
+    }
+
   })
 
   revalidatePath(`/treatments/${treatmentId}`)

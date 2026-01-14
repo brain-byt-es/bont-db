@@ -42,14 +42,11 @@ export async function getExportData() {
             .filter((name): name is string => !!name)
     )).sort()
 
-    const displaySite = muscleNames.length > 0 
-        ? muscleNames.join(", ") 
-        : t.treatmentSite
-
     return {
         id: t.id,
         treatment_date: t.encounterLocalDate.toISOString(),
-        treatment_site: displaySite,
+        treatment_site: t.treatmentSite,
+        treated_muscles: muscleNames.length > 0 ? muscleNames.join(", ") : undefined,
         indication: t.indication,
         product: t.product?.name || 'N/A',
         dilution: t.dilutionText,

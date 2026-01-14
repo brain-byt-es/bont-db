@@ -148,7 +148,7 @@ export function QualificationManager({ initialData }: QualificationManagerProps)
         <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0 cursor-pointer" onClick={() => setIsInfoExpanded(!isInfoExpanded)}>
             <div className="flex items-center gap-2">
                 <Info className="h-5 w-5 text-primary" />
-                <CardTitle className="text-base">AK Botulinumtoxin: Certificate "Qualifizierte Botulinumtoxintherapie"</CardTitle>
+                <CardTitle className="text-base">AK Botulinumtoxin: Certificate &quot;Qualifizierte Botulinumtoxintherapie&quot;</CardTitle>
                 {isInfoExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground ml-2" /> : <ChevronDown className="h-4 w-4 text-muted-foreground ml-2" />}
             </div>
             <Button 
@@ -239,12 +239,11 @@ export function QualificationManager({ initialData }: QualificationManagerProps)
                                     <li>Chronological Order</li>
                                     <li>Breakdown / Assignment of Diagnosis Groups</li>
                                 </ul>
-                                <div className="pt-2">
-                                    <p className="text-[11px] italic text-muted-foreground bg-muted p-2 rounded">
-                                        Tip: Use the <strong>"AK Botulinumtoxin Certification"</strong> export in the Export tab to generate this file automatically.
-                                    </p>
-                                </div>
-                            </div>
+                                                            <div className="pt-2">
+                                                                <p className="text-[11px] italic text-muted-foreground bg-muted p-2 rounded">
+                                                                    Tip: Use the <strong>&quot;AK Botulinumtoxin Certification&quot;</strong> export in the Export tab to generate this file automatically.
+                                                                </p>
+                                                            </div>                            </div>
                         </div>
                     </div>
                 </div>

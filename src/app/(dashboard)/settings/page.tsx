@@ -129,7 +129,6 @@ export default async function SettingsPage({
                     initialName={ctx.organization.name} 
                     initialView={settings.standard_patient_view}
                     initialLogo={(ctx.organization.preferences as OrganizationPreferences | null)?.logo_url}
-                    organizationId={ctx.organization.id}
                 />
                 
                 <div className="pt-4 border-t space-y-3">

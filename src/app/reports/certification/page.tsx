@@ -43,11 +43,11 @@ export default async function CertificationReportPage({
   // Summary Stats
   const stats = {
     total: filteredData.length,
-    spasticity: filteredData.filter(r => r.indication === 'spastik').length,
-    dystonia: filteredData.filter(r => r.indication === 'dystonie').length,
-    headache: filteredData.filter(r => r.indication === 'kopfschmerz').length,
-    autonomic: filteredData.filter(r => r.indication === 'autonom').length,
-    other: filteredData.filter(r => !['spastik', 'dystonie', 'kopfschmerz', 'autonom'].includes(r.indication)).length
+    spasticity: filteredData.filter(r => r.indication.toLowerCase() === 'spastik').length,
+    dystonia: filteredData.filter(r => r.indication.toLowerCase() === 'dystonie').length,
+    headache: filteredData.filter(r => r.indication.toLowerCase() === 'kopfschmerz').length,
+    autonomic: filteredData.filter(r => r.indication.toLowerCase() === 'autonom').length,
+    other: filteredData.filter(r => !['spastik', 'dystonie', 'kopfschmerz', 'autonom'].includes(r.indication.toLowerCase())).length
   }
 
   const doctorName = ctx.membership.user.displayName || "Unknown Provider"
@@ -60,7 +60,7 @@ export default async function CertificationReportPage({
         <div className="flex justify-between items-start">
             <div>
                 <h1 className="text-2xl font-bold mb-2">Behandlungsdokumentation</h1>
-                <p className="text-sm text-gray-600 uppercase tracking-wider">AK Botulinumtoxin Zertifizierung " Qualifizierte Botulinumtoxintherapie"</p>
+                <p className="text-sm text-gray-600 uppercase tracking-wider">AK Botulinumtoxin Zertifizierung &quot;Qualifizierte Botulinumtoxintherapie&quot;</p>
             </div>
             <div className="text-right text-sm">
                 <p className="font-bold">{doctorName}</p>
@@ -73,7 +73,7 @@ export default async function CertificationReportPage({
       {/* Summary Section */}
       <div className="mb-8 bg-gray-50 p-6 rounded-lg border print:border-gray-200 print:bg-white">
         <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500 mb-4">Zusammenfassung der Diagnosegruppen</h3>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="p-3 bg-white rounded border print:border-gray-200">
                 <span className="block text-2xl font-bold">{stats.total}</span>
                 <span className="text-xs text-gray-500">Gesamt</span>
@@ -94,9 +94,13 @@ export default async function CertificationReportPage({
                 <span className="block text-xl font-semibold">{stats.autonomic}</span>
                 <span className="text-xs text-gray-500">Autonom</span>
             </div>
+            <div className="p-3 bg-white rounded border print:border-gray-200">
+                <span className="block text-xl font-semibold">{stats.other}</span>
+                <span className="text-xs text-gray-500">Andere</span>
+            </div>
         </div>
         <p className="text-[10px] text-gray-400 mt-2 italic">
-            * Diese Zusammenfassung dient der Übersicht "Aufteilung / Zuordnung der Diagnosegruppen".
+            * Diese Zusammenfassung dient der Übersicht &quot;Aufteilung / Zuordnung der Diagnosegruppen&quot;.
         </p>
       </div>
 
@@ -105,7 +109,7 @@ export default async function CertificationReportPage({
         <table className="w-full text-sm text-left border-collapse">
             <thead className="bg-gray-100 text-gray-600 font-semibold print:bg-gray-50">
                 <tr>
-                    <th className="p-3 border-b">Datum</th>
+                    <th className="p-3 border-b">Datum / Ort</th>
                     <th className="p-3 border-b">Patient ID</th>
                     <th className="p-3 border-b">Indikation</th>
                     <th className="p-3 border-b">Region / Muskeln</th>
@@ -120,6 +124,9 @@ export default async function CertificationReportPage({
                     <tr key={row.id} className="break-inside-avoid hover:bg-gray-50">
                         <td className="p-3 whitespace-nowrap align-top">
                             {format(new Date(row.treatment_date), 'dd.MM.yyyy')}
+                            <div className="text-[10px] text-gray-500 truncate max-w-[120px]" title={row.treatment_site}>
+                                {row.treatment_site}
+                            </div>
                         </td>
                         <td className="p-3 font-mono text-xs align-top">
                             {row.patients?.patient_code || 'N/A'}
@@ -131,7 +138,7 @@ export default async function CertificationReportPage({
                             </span>
                         </td>
                         <td className="p-3 max-w-[200px] text-xs align-top">
-                            {row.treatment_site}
+                            {row.treated_muscles || '-'}
                         </td>
                         <td className="p-3 align-top">
                             {row.product}
