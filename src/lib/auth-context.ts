@@ -29,7 +29,7 @@ export async function getOrganizationContext() {
         userId: userId,
         status: "ACTIVE",
         organization: {
-            status: "ACTIVE"
+            status: { in: ["ACTIVE", "DEMO"] }
         }
       },
       include: {
@@ -46,7 +46,7 @@ export async function getOrganizationContext() {
         userId: userId,
         status: "ACTIVE",
         organization: {
-            status: "ACTIVE"
+            status: { in: ["ACTIVE", "DEMO"] }
         }
       },
       include: {
@@ -54,7 +54,7 @@ export async function getOrganizationContext() {
         user: true
       },
       orderBy: {
-        createdAt: 'asc' // Deterministic fallback
+        createdAt: 'desc' // Deterministic fallback
       }
     })
   }

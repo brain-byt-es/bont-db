@@ -5,13 +5,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { createOrganizationAction } from "./actions"
+import { seedDemoOrganizationAction } from "@/app/actions/demo-seed"
 import { useFormStatus } from "react-dom"
 import { toast } from "sonner"
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { COUNTRIES } from "@/lib/countries"
-import { MapPin, ShieldCheck } from "lucide-react"
+import { MapPin, ShieldCheck, Sparkles } from "lucide-react"
 import { CountryDropdown } from "@/components/ui/country-dropdown"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -25,6 +27,8 @@ function SubmitButton() {
 export function OnboardingForm({ defaultName }: { defaultName: string }) {
   const [error, setError] = useState<string | null>(null)
   const [country, setCountry] = useState("DE")
+  const [isDemoPending, startDemoTransition] = useTransition()
+  const router = useRouter()
 
   const isEU = COUNTRIES.find(c => c.code === country)?.region === 'EU'
 
@@ -37,8 +41,25 @@ export function OnboardingForm({ defaultName }: { defaultName: string }) {
     }
   }
 
+  const handleLaunchDemo = () => {
+      startDemoTransition(async () => {
+          try {
+              toast.info("Generating your high-fidelity demo environment...")
+              const result = await seedDemoOrganizationAction()
+              if (result.success) {
+                  toast.success("Demo Center launched! Redirecting...")
+                  router.push("/dashboard")
+              }
+          } catch {
+              toast.error("Failed to launch demo center. Please try again.")
+          }
+      })
+  }
+
   return (
+    <div className="space-y-10">
     <form action={handleSubmit} className="space-y-8">
+      {/* ... existing fields ... */}
       <div className="space-y-3">
         <Label htmlFor="orgName" className="text-sm font-semibold text-foreground">
           Clinic or Organization Name
@@ -137,5 +158,30 @@ export function OnboardingForm({ defaultName }: { defaultName: string }) {
         <SubmitButton />
       </div>
     </form>
+
+    <div className="relative pt-4">
+        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="w-full border-t border-muted"></div>
+        </div>
+        <div className="relative flex justify-center text-sm font-medium leading-6">
+            <span className="bg-white px-4 text-muted-foreground uppercase tracking-widest text-[10px]">Or explore first</span>
+        </div>
+    </div>
+
+    <div className="space-y-4">
+        <Button 
+            variant="outline" 
+            className="w-full h-12 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary group transition-all"
+            onClick={handleLaunchDemo}
+            disabled={isDemoPending}
+        >
+            <Sparkles className="mr-2 h-4 w-4 animate-pulse group-hover:scale-110 transition-transform" />
+            Launch Demo Center
+        </Button>
+        <p className="text-[11px] text-muted-foreground text-center italic px-4">
+            Try InjexPro with 12 months of pre-seeded clinical data. No setup required.
+        </p>
+    </div>
+    </div>
   )
 }

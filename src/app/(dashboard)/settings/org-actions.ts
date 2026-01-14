@@ -29,7 +29,7 @@ export async function deleteOrganizationAction() {
       userId: userId,
       status: "ACTIVE",
       organization: {
-        status: OrganizationStatus.ACTIVE
+        status: { in: [OrganizationStatus.ACTIVE, OrganizationStatus.DEMO] }
       }
     }
   })

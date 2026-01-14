@@ -13,6 +13,7 @@ export interface OrganizationPreferences {
   standard_patient_view?: 'timeline' | 'records' | 'notes';
   logo_url?: string;
   default_supervisor_name?: string;
+  is_demo?: boolean;
 }
 
 export async function updateComplianceSettings(enabled: boolean) {

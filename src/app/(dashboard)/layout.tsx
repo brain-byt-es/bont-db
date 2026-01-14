@@ -16,6 +16,7 @@ import { DPAAcceptanceGate } from "@/components/legal/dpa-acceptance-gate"
 import { checkDPANeeded } from "@/app/actions/legal"
 import { CommandMenu } from "@/components/command-menu"
 import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
+import { DemoBanner } from "@/components/dashboard/demo-banner"
 
 export default async function DashboardLayout({
   children,
@@ -34,13 +35,15 @@ export default async function DashboardLayout({
     redirect("/onboarding")
   }
 
+  const isDemo = orgContext.organization.status === "DEMO"
+
   // Fetch all active memberships for switcher
   const memberships = await prisma.organizationMembership.findMany({
     where: { 
         userId: session.user.id, 
         status: "ACTIVE",
         organization: {
-            status: "ACTIVE"
+            status: { in: ["ACTIVE", "DEMO"] }
         }
     },
     select: {
@@ -86,6 +89,7 @@ export default async function DashboardLayout({
           userRole={orgContext.membership.role}
         />
         <SidebarInset>
+          {isDemo && <DemoBanner organizationName={orgContext.organization.name} />}
           <SiteHeader />
           <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
             {children}
