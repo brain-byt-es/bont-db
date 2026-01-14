@@ -26,6 +26,7 @@ The database is strictly partitioned for PHI (Protected Health Information) comp
 We use **Composite Foreign Keys** to prevent "Organization Drift".
 - `Encounter(orgId, patientId)` -> `Patient(orgId, id)`
 - **Immutability:** Updates to `patientId` on existing encounters are blocked by DB security policy.
+- **GAS Hardening:** `TreatmentGoal(encounterId)` and `GoalOutcome(goalId, assessmentEncounterId)` are immutable to ensure data integrity across treatment cycles.
 
 ## 3. Multi-Tenancy & Monetization
 The application is **Organization-centric** and features a tiered plan model (BASIC, PRO, ENTERPRISE).
@@ -59,6 +60,12 @@ The application is **Organization-centric** and features a tiered plan model (BA
 3.  **Re-open:** Requires **PRO Plan** and Audit Log entry.
 4.  **Void:** Soft-delete state (Audit trail preserved).
 
+### Goal Attainment Scaling (GAS-Lite)
+InjexPro uses a qualitative, GAS-inspired framework to connect treatment intent to outcomes.
+- **Goal Definition:** 1-3 SMART goals defined during encounter (Symptom, Function, Participation).
+- **Outcome Reflection:** Automated review of previous goals during follow-up using a simplified scale (-2 to +2).
+- **Audit Defensibility:** Linking intent (Goal) to result (Outcome) demonstrates PDSA (Plan-Do-Study-Act) cycles.
+
 ### Advanced Dose Engine
 - **Automatic Calculation:** Live conversion between Units and Volume (ml).
 - **Clinical Protocols:** Indication-specific presets (e.g., PREEMPT Migraine, Spasticity).
@@ -86,9 +93,11 @@ The application is **Organization-centric** and features a tiered plan model (BA
 - [x] **Compliance Audit Trail:** `LegalAcceptance` table tracks execution details (User, IP, Version, Timestamp) for GDPR accountability.
 - [x] **UX Optimization:** "Product-moment" design for DPA gate with clear "Why" messaging and minimal friction.
 
-### Phase 8: High-End Clinical Polish (In Progress)
+### Phase 8: High-End Clinical Polish (Completed)
 - [x] **Dynamic Contextual Navigation:** Implemented dynamic Breadcrumbs and a global Command Menu (`⌘K`) for rapid navigation.
 - [x] **Workflow Efficiency:** Integrated User-Defined Protocols ("My Protocols"), allowing doctors to save and reuse custom treatment templates.
+- [x] **Single-Page UX:** Refactored all clinical editing (Patients, Treatments) to use high-performance **Modals** instead of separate page routes.
+- [x] **Goal & Outcome Tracking (GAS-Lite):** Implemented structured goal setting and follow-up reflection to track clinical efficacy chronologically.
 - [x] **Structured Diagnostics:** Integrated a searchable ICD-10 Diagnostic Catalogue with keyword-based matching and pre-seeded neurological codes.
 - [x] **Injection Site Generalization:** Added support for non-muscle targets (Salivary Glands, Axilla) for sialorrhea and hyperhidrosis treatments.
 - [x] **Visual Clinical History:** Implementation of a visual Patient Treatment Timeline to track progress chronologically.
