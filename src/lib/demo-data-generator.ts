@@ -41,6 +41,7 @@ interface PatientData {
     birthYear: number
     notes: string | null
     status: string
+    primaryIndication: typeof INDICATIONS[number]
 }
 
 interface InjectionData {
@@ -92,12 +93,16 @@ export function generateDemoData(muscles: { id: string, name: string }[]) {
     
     // 1. Generate 60 Patients (Reduced from 120)
     for (let i = 1; i <= 60; i++) {
+        // Assign a consistent primary indication for the patient's lifecycle
+        const primaryIndication = INDICATIONS[Math.floor(Math.random() * INDICATIONS.length)]
+        
         patients.push({
             id: crypto.randomUUID(),
             systemLabel: `PAT-${1000 + i}`,
             birthYear: 1955 + Math.floor(Math.random() * 35),
             notes: i % 15 === 0 ? "Complex case history with multiple comorbidities." : null,
-            status: "ACTIVE"
+            status: "ACTIVE",
+            primaryIndication
         })
     }
 
@@ -129,7 +134,8 @@ export function generateDemoData(muscles: { id: string, name: string }[]) {
             if (Math.random() > provider.activity) continue
 
             const patient = patients[Math.floor(Math.random() * patients.length)]
-            const indication = INDICATIONS[Math.floor(Math.random() * INDICATIONS.length)]
+            // STRICT: Always use patient's primary indication
+            const indication = patient.primaryIndication
             
             // Generate Encounter
             const status = Math.random() > 0.95 ? EncounterStatus.DRAFT : EncounterStatus.SIGNED
@@ -184,9 +190,21 @@ export function generateDemoData(muscles: { id: string, name: string }[]) {
                 // Generate MAS scores for Spasticity
                 let masBaseline: number | undefined = undefined
                 let masPeak: number | undefined = undefined
+                
                 if (indication.label === 'spastik') {
-                    masBaseline = 2 + Math.floor(Math.random() * 2) // 2 or 3
-                    masPeak = masBaseline - (Math.random() > 0.2 ? 1 : 0) // Improvement or same
+                    // ALWAYS generate MAS for spasticity
+                    masBaseline = 1 + Math.floor(Math.random() * 3) // 1, 2, 3
+                    // Peak effect usually lower (better) or same
+                    masPeak = Math.max(0, masBaseline - (Math.random() > 0.3 ? 1 : 0)) 
+                }
+
+                // Determine Side - Avoid "Bilateral" for extremities to force split data
+                let side: BodySide = BodySide.R
+                if (indication.muscleGroup === 'Head' || indication.muscleGroup === 'Neck') {
+                    side = Math.random() > 0.5 ? BodySide.B : BodySide.L
+                } else {
+                    // Extremities: strictly L or R
+                    side = Math.random() > 0.5 ? BodySide.L : BodySide.R
                 }
 
                 encounter.injections.push({
@@ -194,7 +212,7 @@ export function generateDemoData(muscles: { id: string, name: string }[]) {
                     muscleId: mId,
                     muscleName: mName,
                     units: dose,
-                    side: Math.random() > 0.3 ? BodySide.B : (Math.random() > 0.5 ? BodySide.L : BodySide.R),
+                    side: side,
                     masBaseline,
                     masPeak
                 })
@@ -202,21 +220,32 @@ export function generateDemoData(muscles: { id: string, name: string }[]) {
             encounter.totalUnits = units
 
             // Generate GAS Goals (1-2)
+            // Ensure goals match the patient's indication category roughly
             const categories = [GoalCategory.SYMPTOM, GoalCategory.FUNCTION, GoalCategory.PARTICIPATION]
-            const numGoals = 1 + (Math.random() > 0.7 ? 1 : 0)
-            for (let g = 0; g < numGoals; g++) {
-                const cat = categories[Math.floor(Math.random() * categories.length)]
-                const templates = GOAL_TEMPLATES[cat]
-                encounter.goals.push({
-                    id: crypto.randomUUID(),
-                    category: cat,
-                    description: templates[Math.floor(Math.random() * templates.length)]
-                })
+            
+            // Create goals only for the first encounter or rarely add new ones
+            const shouldAddGoal = !prevEncounter || Math.random() > 0.8
+            if (shouldAddGoal) {
+                const numGoals = 1 + (Math.random() > 0.7 ? 1 : 0)
+                for (let g = 0; g < numGoals; g++) {
+                    const cat = categories[Math.floor(Math.random() * categories.length)]
+                    const templates = GOAL_TEMPLATES[cat]
+                    encounter.goals.push({
+                        id: crypto.randomUUID(),
+                        category: cat,
+                        description: templates[Math.floor(Math.random() * templates.length)]
+                    })
+                }
             }
 
             // Generate GAS Outcomes (If patient had goals last time)
-            if (prevEncounter && prevEncounter.goals.length > 0) {
-                prevEncounter.goals.forEach((goal) => {
+            if (prevEncounter) {
+                // Collect all active goals from history (simplified: just look at previous encounter's goals + outcomes)
+                // In a real scenario, we'd track active goals per patient. 
+                // Here we just "carry forward" goals for simulation if they exist.
+                const goalsToScore = [...prevEncounter.goals] // simplistic inheritance for demo
+                
+                goalsToScore.forEach((goal) => {
                     // Clinical story: most improve (+1, 0), some stay same (-1), rare worse (-2)
                     const rand = Math.random()
                     let score = 0

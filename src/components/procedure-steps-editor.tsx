@@ -32,6 +32,7 @@ import { DoseReference } from "@/lib/dose-reference"
 import { useEffect, useState } from "react"
 import { SAFETY_COPY, SAFETY_TOOLTIPS } from "@/lib/safety-copy"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 export interface ProcedureStep {
   id: string
@@ -139,6 +140,38 @@ export function ProcedureStepsEditor({
       })
       onChange(newSteps)
     }
+
+    const handleSideChange = (id: string, newSide: ProcedureStep["side"]) => {
+        if (newSide === "Bilateral") {
+            const index = steps.findIndex(s => s.id === id)
+            if (index === -1) return
+
+            const currentStep = steps[index]
+            
+            // Create Left version (mutate current to Left)
+            const leftStep = { 
+                ...currentStep, 
+                side: "Left" as const 
+            }
+            
+            // Create Right version (new step)
+            const rightStep = { 
+                ...currentStep, 
+                id: Math.random().toString(36).substr(2, 9),
+                side: "Right" as const 
+            }
+            
+            const newSteps = [...steps]
+            newSteps[index] = leftStep
+            newSteps.splice(index + 1, 0, rightStep)
+            
+            onChange(newSteps)
+            toast.info("Split into separate Left/Right entries for independent MAS tracking")
+        } else {
+            updateStep(id, "side", newSide)
+        }
+    }
+
     const removeStep = (id: string) => {
     onChange(steps.filter((step) => step.id !== id))
   }
@@ -183,7 +216,7 @@ export function ProcedureStepsEditor({
                     <label className="text-xs font-medium text-muted-foreground">Side</label>
                     <Select
                       value={step.side}
-                      onValueChange={(value) => updateStep(step.id, "side", value as ProcedureStep["side"])}
+                      onValueChange={(value) => handleSideChange(step.id, value as ProcedureStep["side"])}
                       disabled={disabled}
                     >
                       <SelectTrigger>
@@ -192,7 +225,7 @@ export function ProcedureStepsEditor({
                       <SelectContent>
                         <SelectItem value="Left">Left</SelectItem>
                         <SelectItem value="Right">Right</SelectItem>
-                        <SelectItem value="Bilateral">Bilateral</SelectItem>
+                        <SelectItem value="Bilateral">Bilateral (Split)</SelectItem>
                         <SelectItem value="Midline">Midline</SelectItem>
                       </SelectContent>
                     </Select>
@@ -300,7 +333,7 @@ export function ProcedureStepsEditor({
                     <TableCell>
                       <Select
                         value={step.side}
-                        onValueChange={(value) => updateStep(step.id, "side", value as ProcedureStep["side"])}
+                        onValueChange={(value) => handleSideChange(step.id, value as ProcedureStep["side"])}
                         disabled={disabled}
                       >
                         <SelectTrigger>
@@ -309,7 +342,7 @@ export function ProcedureStepsEditor({
                         <SelectContent>
                           <SelectItem value="Left">Left</SelectItem>
                           <SelectItem value="Right">Right</SelectItem>
-                          <SelectItem value="Bilateral">Bilateral</SelectItem>
+                          <SelectItem value="Bilateral">Bilateral (Split)</SelectItem>
                           <SelectItem value="Midline">Midline</SelectItem>
                         </SelectContent>
                       </Select>
