@@ -85,17 +85,15 @@ interface EncounterData {
 
 export function generateDemoData(muscles: { id: string, name: string }[]) {
     const now = new Date()
-    const startDate = subDays(now, 365) // Reduced from 450
+    const startDate = subDays(now, 365)
     const patients: PatientData[] = []
     const encounters: EncounterData[] = []
 
     if (muscles.length === 0) throw new Error("No muscles found in database to generate demo data.")
     
-    // 1. Generate 60 Patients (Reduced from 120)
+    // 1. Generate 60 Patients
     for (let i = 1; i <= 60; i++) {
-        // Assign a consistent primary indication for the patient's lifecycle
         const primaryIndication = INDICATIONS[Math.floor(Math.random() * INDICATIONS.length)]
-        
         patients.push({
             id: crypto.randomUUID(),
             systemLabel: `PAT-${1000 + i}`,
@@ -106,45 +104,32 @@ export function generateDemoData(muscles: { id: string, name: string }[]) {
         })
     }
 
-    // 2. Define Providers (Membership Role simulation)
+    // 2. Define Providers
     const providers = [
         { name: "Dr. Sarah Miller", role: MembershipRole.OWNER, activity: 1.0 },
-        { name: "Dr. James Chen", role: MembershipRole.PROVIDER, activity: 0.6 } // Slightly lower
+        { name: "Dr. James Chen", role: MembershipRole.PROVIDER, activity: 0.6 }
     ]
 
-    // 3. Time Series Generation
-    let currentDay = startDate
-    while (currentDay < now) {
-        // Skip weekends more aggressively
-        if (isWeekend(currentDay)) {
-            if (Math.random() > 0.05) { 
-                currentDay = addDays(currentDay, 1)
-                continue
+    // 3. Generate Patient Timelines (Realistic intervals: 2.5 - 4 months)
+    patients.forEach(patient => {
+        // Start each patient at a random point in the first 120 days of the start date
+        let currentEncounterDate = addDays(startDate, Math.floor(Math.random() * 90))
+        let prevEncounter: EncounterData | null = null
+
+        while (currentEncounterDate < now) {
+            // Avoid weekends for treatment
+            if (isWeekend(currentEncounterDate)) {
+                currentEncounterDate = addDays(currentEncounterDate, (7 - currentEncounterDate.getDay()) % 7 + 1)
             }
-        }
 
-        // Calculate volume based on ramp-up
-        const daysSinceStart = Math.floor((currentDay.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-        const rampUpFactor = Math.min(1, daysSinceStart / 45) // Faster ramp-up
-        const baseVolume = 2 + Math.floor(Math.random() * 3) // Lowered from 3-8
-        const dailyVolume = Math.floor(baseVolume * rampUpFactor)
+            if (currentEncounterDate >= now) break
 
-        for (let v = 0; v < dailyVolume; v++) {
             const provider = providers[Math.floor(Math.random() * providers.length)]
-            if (Math.random() > provider.activity) continue
-
-            const patient = patients[Math.floor(Math.random() * patients.length)]
-            // STRICT: Always use patient's primary indication
             const indication = patient.primaryIndication
-            
-            // Generate Encounter
             const status = Math.random() > 0.95 ? EncounterStatus.DRAFT : EncounterStatus.SIGNED
-            const encounterDate = setMinutes(setHours(currentDay, 9 + Math.floor(Math.random() * 8)), Math.floor(Math.random() * 60))
+            const encounterDate = setMinutes(setHours(currentEncounterDate, 9 + Math.floor(Math.random() * 8)), Math.floor(Math.random() * 60))
             
             const encounterId = crypto.randomUUID()
-            
-            // Find patient's last treatment for GAS outcomes
-            const prevEncounter = encounters.filter(e => e.patientId === patient.id).sort((a, b) => b.date.getTime() - a.date.getTime())[0]
             
             const encounter: EncounterData = {
                 id: encounterId,
@@ -157,18 +142,10 @@ export function generateDemoData(muscles: { id: string, name: string }[]) {
                 product: Math.random() > 0.5 ? "Botox" : "Xeomin",
                 vialSize: 100,
                 dilution: 2.5,
-                totalUnits: 0, // calculated below
+                totalUnits: 0,
                 injections: [],
                 goals: [],
                 goalOutcomes: []
-            }
-
-            // Generate Follow-up for signed records (85% completion rate)
-            if (status === EncounterStatus.SIGNED && Math.random() > 0.15) {
-                encounter.followup = {
-                    date: addDays(encounterDate, 84 + Math.floor(Math.random() * 21)), // 12-15 weeks later
-                    outcome: "Positive response, goal attainment targets achieved."
-                }
             }
 
             // Generate Injections
@@ -177,33 +154,23 @@ export function generateDemoData(muscles: { id: string, name: string }[]) {
             let units = 0
             for (let s = 0; s < numSites; s++) {
                 const mName = muscleGroup[s % muscleGroup.length]
-                let mId = muscles.find(m => m.name === mName)?.id
-                
-                // Fallback: If exact name not found, pick a random muscle from the DB
-                if (!mId) {
-                    mId = muscles[Math.floor(Math.random() * muscles.length)].id
-                }
+                const mId = muscles.find(m => m.name === mName)?.id || muscles[0].id
 
                 const dose = 10 + Math.floor(Math.random() * 40)
                 units += dose
 
-                // Generate MAS scores for Spasticity
                 let masBaseline: number | undefined = undefined
                 let masPeak: number | undefined = undefined
                 
                 if (indication.label === 'spastik') {
-                    // ALWAYS generate MAS for spasticity
-                    masBaseline = 1 + Math.floor(Math.random() * 3) // 1, 2, 3
-                    // Peak effect usually lower (better) or same
+                    masBaseline = 1 + Math.floor(Math.random() * 3)
                     masPeak = Math.max(0, masBaseline - (Math.random() > 0.3 ? 1 : 0)) 
                 }
 
-                // Determine Side - Avoid "Bilateral" for extremities to force split data
                 let side: BodySide = BodySide.R
                 if (indication.muscleGroup === 'Head' || indication.muscleGroup === 'Neck') {
                     side = Math.random() > 0.5 ? BodySide.B : BodySide.L
                 } else {
-                    // Extremities: strictly L or R
                     side = Math.random() > 0.5 ? BodySide.L : BodySide.R
                 }
 
@@ -219,55 +186,53 @@ export function generateDemoData(muscles: { id: string, name: string }[]) {
             }
             encounter.totalUnits = units
 
-            // Generate GAS Goals (1-2)
-            // Ensure goals match the patient's indication category roughly
-            const categories = [GoalCategory.SYMPTOM, GoalCategory.FUNCTION, GoalCategory.PARTICIPATION]
-            
-            // Create goals only for the first encounter or rarely add new ones
-            const shouldAddGoal = !prevEncounter || Math.random() > 0.8
-            if (shouldAddGoal) {
+            // GAS Goals (Inherit or Create)
+            if (!prevEncounter) {
+                const categories = [GoalCategory.SYMPTOM, GoalCategory.FUNCTION, GoalCategory.PARTICIPATION]
                 const numGoals = 1 + (Math.random() > 0.7 ? 1 : 0)
                 for (let g = 0; g < numGoals; g++) {
                     const cat = categories[Math.floor(Math.random() * categories.length)]
-                    const templates = GOAL_TEMPLATES[cat]
                     encounter.goals.push({
                         id: crypto.randomUUID(),
                         category: cat,
-                        description: templates[Math.floor(Math.random() * templates.length)]
+                        description: GOAL_TEMPLATES[cat][Math.floor(Math.random() * GOAL_TEMPLATES[cat].length)]
                     })
                 }
-            }
-
-            // Generate GAS Outcomes (If patient had goals last time)
-            if (prevEncounter) {
-                // Collect all active goals from history (simplified: just look at previous encounter's goals + outcomes)
-                // In a real scenario, we'd track active goals per patient. 
-                // Here we just "carry forward" goals for simulation if they exist.
-                const goalsToScore = [...prevEncounter.goals] // simplistic inheritance for demo
-                
-                goalsToScore.forEach((goal) => {
-                    // Clinical story: most improve (+1, 0), some stay same (-1), rare worse (-2)
+            } else {
+                encounter.goals = [...prevEncounter.goals]
+                // Evaluate outcomes for previous goals
+                encounter.goals.forEach((goal) => {
                     const rand = Math.random()
                     let score = 0
-                    if (rand > 0.95) score = 2 // Amazing
-                    else if (rand > 0.7) score = 1 // Better
-                    else if (rand > 0.3) score = 0 // Target met
-                    else if (rand > 0.1) score = -1 // Partial
-                    else score = -2 // Worse
+                    if (rand > 0.9) score = 1
+                    else if (rand > 0.4) score = 0
+                    else score = -1
                     
                     encounter.goalOutcomes.push({
                         goalId: goal.id,
                         score: score,
-                        notes: score < 0 ? "Plateau observed, consider dose adjustment." : null
+                        notes: score < 0 ? "Therapeutic plateau." : null
                     })
                 })
             }
 
-            encounters.push(encounter)
-        }
+            if (status === EncounterStatus.SIGNED && Math.random() > 0.2) {
+                encounter.followup = {
+                    date: addDays(encounterDate, 84 + Math.floor(Math.random() * 14)),
+                    outcome: "Standard clinical response."
+                }
+            }
 
-        currentDay = addDays(currentDay, 1)
-    }
+            encounters.push(encounter)
+            prevEncounter = encounter
+
+            // Increment by 80 - 120 days (approx 2.5 - 4 months)
+            currentEncounterDate = addDays(currentEncounterDate, 80 + Math.floor(Math.random() * 40))
+        }
+    })
+
+    // Sort all encounters chronologically for the final dump
+    encounters.sort((a, b) => a.date.getTime() - b.date.getTime())
 
     return { patients, encounters }
 }
