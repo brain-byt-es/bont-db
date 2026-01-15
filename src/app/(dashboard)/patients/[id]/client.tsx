@@ -10,6 +10,8 @@ import { TreatmentDialog } from "@/components/treatment-create-dialog"
 import { PatientHeader } from "./patient-header"
 import { PatientTimeline } from "@/components/patient-timeline"
 import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
+import { PatientGoalsHub, Goal } from "@/components/patient-goals-hub"
+import { GoalTrendChart } from "@/components/goal-trend-chart"
 
 interface Patient {
   id: string;
@@ -33,15 +35,14 @@ interface Treatment {
 interface PatientPageProps {
   patient: Patient
   treatments: Treatment[]
+  goals: Goal[]
   organization?: {
     name?: string
     preferences?: OrganizationPreferences | null
   }
 }
 
-
-
-export default function PatientPage({ patient, treatments, organization }: PatientPageProps) {
+export default function PatientPage({ patient, treatments, goals, organization }: PatientPageProps) {
   const [treatmentDialogOpen, setTreatmentDialogOpen] = useState(false)
 
   // Map treatments to replace "Main Clinic" with organization name for better branding
@@ -73,11 +74,16 @@ export default function PatientPage({ patient, treatments, organization }: Patie
       <Tabs defaultValue={organization?.preferences?.standard_patient_view || "timeline"} className="w-full">
         <TabsList>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="goals">Goals & GAS</TabsTrigger>
           <TabsTrigger value="records">Records</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
         <TabsContent value="timeline" className="pt-4">
             <PatientTimeline treatments={displayTreatments} />
+        </TabsContent>
+        <TabsContent value="goals" className="pt-4 space-y-6">
+            <GoalTrendChart goals={goals} />
+            <PatientGoalsHub patientId={patient.id} initialGoals={goals} />
         </TabsContent>
         <TabsContent value="records">
           <Card>

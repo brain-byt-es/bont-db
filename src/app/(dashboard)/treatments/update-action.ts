@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
-import { BodySide, Timepoint, EncounterStatus, GoalCategory } from "@/generated/client/client"
+import { BodySide, Timepoint, EncounterStatus } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 
 interface AssessmentData {
@@ -23,12 +23,7 @@ interface ProcedureStep {
   mas_peak?: string;
 }
 
-interface GoalData {
-  category: GoalCategory;
-  description: string;
-}
-
-interface GoalOutcomeData {
+interface GoalAssessmentData {
   goalId: string;
   score: number;
   notes?: string | null;
@@ -48,8 +43,10 @@ interface UpdateTreatmentFormData {
   steps?: ProcedureStep[];
   assessments?: AssessmentData[];
   status?: "DRAFT" | "SIGNED";
-  goals?: GoalData[];
-  goalOutcomes?: GoalOutcomeData[];
+  
+  // Longitudinal Goals
+  targetedGoalIds?: string[];
+  goalAssessments?: GoalAssessmentData[];
 }
 
 export async function updateTreatment(treatmentId: string, formData: UpdateTreatmentFormData) {
@@ -73,8 +70,8 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     steps,
     assessments,
     status,
-    goals,
-    goalOutcomes
+    targetedGoalIds,
+    goalAssessments
   } = formData
 
   const unitsPerMl = vial_size / dilution_ml
@@ -119,7 +116,6 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     await tx.encounter.update({
       where: { id: treatmentId },
       data: {
-        // patientId: subject_id, // IMMUTABLE field
         encounterAt: date,
         encounterLocalDate: date,
         treatmentSite: location || "N/A",
@@ -135,7 +131,12 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
         dilutionUnitsPerMl: unitsPerMl,
         totalUnits: total_units,
         effectNotes: notes,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+
+        // Targeted Goals - Set (Overwrite)
+        targetedGoals: targetedGoalIds ? {
+            set: targetedGoalIds.map(id => ({ id }))
+        } : undefined
       }
     })
 
@@ -206,35 +207,19 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
       })
     }
 
-    // 4. Replace GAS Goals
-    // Deleting goals will cascade delete outcomes in future encounters if they exist.
-    // Since we are editing the current encounter, this is acceptable behavior for "resetting" goals.
-    await tx.treatmentGoal.deleteMany({
+    // 4. Replace Goal Assessments
+    await tx.goalAssessment.deleteMany({
         where: { encounterId: treatmentId }
     })
 
-    if (goals && goals.length > 0) {
-        await tx.treatmentGoal.createMany({
-            data: goals.map(g => ({
+    if (goalAssessments && goalAssessments.length > 0) {
+        await tx.goalAssessment.createMany({
+            data: goalAssessments.map(ga => ({
                 encounterId: treatmentId,
-                category: g.category,
-                description: g.description
-            }))
-        })
-    }
-
-    // 5. Replace GAS Outcomes
-    await tx.goalOutcome.deleteMany({
-        where: { assessmentEncounterId: treatmentId }
-    })
-
-    if (goalOutcomes && goalOutcomes.length > 0) {
-        await tx.goalOutcome.createMany({
-            data: goalOutcomes.map(o => ({
-                assessmentEncounterId: treatmentId,
-                goalId: o.goalId,
-                score: o.score,
-                notes: o.notes
+                goalId: ga.goalId,
+                score: ga.score,
+                notes: ga.notes,
+                assessedByMembershipId: ctx.membership.id
             }))
         })
     }

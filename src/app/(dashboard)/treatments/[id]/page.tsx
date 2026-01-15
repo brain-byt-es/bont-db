@@ -26,8 +26,9 @@ interface Goal {
   description: string
 }
 
-interface GoalOutcome {
+interface GoalAssessment {
   id: string
+  goalId: string
   score: number
   notes: string | null
   goal: Goal
@@ -75,8 +76,12 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
       mas_baseline: getMasScore(inj.injectionAssessments, 'baseline'),
       mas_peak: getMasScore(inj.injectionAssessments, 'peak_effect')
     })),
-    goals: treatment.goals as Goal[],
-    goalOutcomes: treatment.goalOutcomes as unknown as GoalOutcome[]
+    targetedGoalIds: treatment.targetedGoals?.map((g: Goal) => g.id) || [],
+    goalAssessments: treatment.goalAssessments?.map((ga: GoalAssessment) => ({
+        goalId: ga.goalId,
+        score: ga.score,
+        notes: ga.notes
+    })) || []
   }
 
   const patientCode = treatment.patient.systemLabel || 'Unknown'
@@ -105,40 +110,40 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
 
       {/* GAS Section */}
       <div className="grid gap-6 md:grid-cols-2">
-        {treatment.goalOutcomes && treatment.goalOutcomes.length > 0 && (
+        {treatment.goalAssessments && treatment.goalAssessments.length > 0 && (
             <Card className="border-l-4 border-l-blue-500">
                 <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                         <CheckCircle2 className="h-5 w-5 text-blue-600" />
-                        Outcome Review
+                        Outcome Assessments
                     </CardTitle>
-                    <CardDescription>Results for goals set in previous visit</CardDescription>
+                    <CardDescription>Results recorded during this session</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {(treatment.goalOutcomes as unknown as GoalOutcome[]).map((outcome) => {
-                        const config = GAS_CONFIG[outcome.score]
+                    {(treatment.goalAssessments as unknown as GoalAssessment[]).map((assessment) => {
+                        const config = GAS_CONFIG[assessment.score]
                         const Icon = config.icon
-                        const CatIcon = CATEGORY_ICONS[outcome.goal.category]
+                        const CatIcon = CATEGORY_ICONS[assessment.goal.category]
                         return (
-                            <div key={outcome.id} className="p-3 border rounded-lg space-y-2">
+                            <div key={assessment.id} className="p-3 border rounded-lg space-y-2">
                                 <div className="flex justify-between items-start">
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
                                             {CatIcon && <CatIcon className="h-3 w-3 text-muted-foreground" />}
                                             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                                {outcome.goal.category}
+                                                {assessment.goal.category}
                                             </span>
                                         </div>
-                                        <p className="text-sm font-medium">{outcome.goal.description}</p>
+                                        <p className="text-sm font-medium">{assessment.goal.description}</p>
                                     </div>
                                     <Badge className={cn("flex items-center gap-1 font-semibold", config.color)}>
                                         <Icon className="h-3 w-3" />
-                                        {config.label} ({outcome.score})
+                                        {config.label} ({assessment.score})
                                     </Badge>
                                 </div>
-                                {outcome.notes && (
+                                {assessment.notes && (
                                     <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded italic">
-                                        &ldquo;{outcome.notes}&rdquo;
+                                        &ldquo;{assessment.notes}&rdquo;
                                     </p>
                                 )}
                             </div>
@@ -148,17 +153,17 @@ export default async function ViewTreatmentPage({ params }: PageProps) {
             </Card>
         )}
 
-        {treatment.goals && treatment.goals.length > 0 && (
+        {treatment.targetedGoals && treatment.targetedGoals.length > 0 && (
             <Card className="border-l-4 border-l-emerald-500">
                 <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                         <Target className="h-5 w-5 text-emerald-600" />
-                        New Goals
+                        Treatment Focus
                     </CardTitle>
-                    <CardDescription>Treatment intent for current cycle</CardDescription>
+                    <CardDescription>Goals targeted by today&apos;s injections</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {(treatment.goals as unknown as Goal[]).map((goal) => {
+                    {(treatment.targetedGoals as unknown as Goal[]).map((goal) => {
                          const CatIcon = CATEGORY_ICONS[goal.category]
                          return (
                             <div key={goal.id} className="flex items-center gap-3 p-3 border rounded-lg">

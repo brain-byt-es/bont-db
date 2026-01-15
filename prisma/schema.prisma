@@ -133,6 +133,13 @@ enum GoalCategory {
   @@schema("public")
 }
 
+enum GoalStatus {
+  ACTIVE
+  ACHIEVED
+  RETIRED
+  @@schema("public")
+}
+
 /* =========================
    Global Users (Entra)
    ========================= */
@@ -223,6 +230,7 @@ model Organization {
   musclePreferences OrganizationMusclePreference[]
   legalAcceptances LegalAcceptance[]
   protocols   ClinicalProtocol[]
+  treatmentGoals TreatmentGoal[]
 
   @@index([region])
   @@index([status])
@@ -257,6 +265,7 @@ model OrganizationMembership {
   providerEncounters Encounter[] @relation("EncounterProviderMembership")
   createdInvites     OrganizationInvite[] @relation("InviteCreatedByMembership")
   auditLogs          AuditLog[]
+  goalAssessments    GoalAssessment[]
 
   @@unique([organizationId, userId])
   @@unique([organizationId, id]) // technical: enables composite FK targets
@@ -315,6 +324,7 @@ model Patient {
 
   identifiers    PatientIdentifier?
   encounters     Encounter[]
+  goals          TreatmentGoal[]
 
   @@unique([organizationId, systemLabel]) // multiple NULLs ok
   @@unique([organizationId, id])          // technical: enables composite FK targets
@@ -394,8 +404,8 @@ model Encounter {
   regions               EncounterRegion[]
   
   // GAS - Goal Attainment Scaling
-  goals                 TreatmentGoal[] // Goals DEFINED in this encounter
-  goalOutcomes          GoalOutcome[]   // Outcomes of PREVIOUS goals recorded in this encounter
+  targetedGoals         TreatmentGoal[]  @relation("EncounterTargetedGoals")
+  goalAssessments       GoalAssessment[] // Assessments performed DURING this encounter
 
   @@unique([organizationId, id]) // technical: enables composite FK targets
   @@index([organizationId, encounterLocalDate])
@@ -408,44 +418,57 @@ model Encounter {
 }
 
 /* =========================
-   GAS: Goal Attainment Scaling
+   GAS: Goal Attainment Scaling (Longitudinal)
    ========================= */
 
 model TreatmentGoal {
-  id            String @id @default(uuid()) @db.Uuid
-  encounterId   String @db.Uuid
-  encounter     Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
-
-  category      GoalCategory
-  description   String
+  id                String           @id @default(uuid()) @db.Uuid
+  patientId         String           @db.Uuid
+  patient           Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
   
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  organizationId    String           @db.Uuid
+  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
-  outcomes      GoalOutcome[]
+  category          GoalCategory
+  description       String
+  indication        String?          // e.g. "spastik"
+  targetRegion      String?          // e.g. "Lower Limb"
+  
+  status            GoalStatus       @default(ACTIVE)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
-  @@index([encounterId])
+  assessments       GoalAssessment[]
+  targetedBy        Encounter[]      @relation("EncounterTargetedGoals")
+
+  @@index([patientId])
+  @@index([organizationId])
   @@schema("public")
 }
 
-model GoalOutcome {
-  id              String @id @default(uuid()) @db.Uuid
+model GoalAssessment {
+  id                String           @id @default(uuid()) @db.Uuid
   
-  goalId          String @db.Uuid
-  goal            TreatmentGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  goalId            String           @db.Uuid
+  goal              TreatmentGoal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
   
-  // The encounter where the review is HAPPENING (e.g. the follow-up visit)
-  assessmentEncounterId String @db.Uuid
-  assessmentEncounter   Encounter @relation(fields: [assessmentEncounterId], references: [id], onDelete: Cascade)
+  // The encounter where the review is HAPPENING (optional for inter-session reviews)
+  encounterId       String?          @db.Uuid
+  encounter         Encounter?       @relation(fields: [encounterId], references: [id], onDelete: SetNull)
   
-  score           Int // -2 to +2
-  notes           String?
+  score             Int              // Range: -2 to +2
+  isBaseline        Boolean          @default(false)
+  notes             String?
   
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  assessedByMembershipId String      @db.Uuid
+  assessedByMembership   OrganizationMembership @relation(fields: [assessedByMembershipId], references: [id], onDelete: Restrict)
+  
+  assessedAt        DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
-  @@unique([goalId, assessmentEncounterId]) // One outcome per goal per review session
-  @@index([assessmentEncounterId])
+  @@index([goalId])
+  @@index([encounterId])
+  @@index([assessedByMembershipId])
   @@schema("public")
 }
 

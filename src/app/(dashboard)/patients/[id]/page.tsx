@@ -4,6 +4,8 @@ import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { PatientPhiInclude, getBirthYear } from "@/phi/patient-phi"
 import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
+import { getPatientGoalsAction } from "../goal-actions"
+import { Goal } from "@/components/patient-goals-hub"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -15,16 +17,14 @@ export default async function Page({ params }: PageProps) {
   if (!ctx) redirect('/onboarding')
   const { organizationId } = ctx
 
-  // Fetch patient
-  const patient = await prisma.patient.findUnique({
-    where: {
-      id: id,
-      organizationId: organizationId
-    },
-    include: {
-      ...PatientPhiInclude // PHI schema join via isolated fragment
-    }
-  })
+  // Fetch patient and goals in parallel
+  const [patient, goals] = await Promise.all([
+    prisma.patient.findUnique({
+        where: { id: id, organizationId: organizationId },
+        include: { ...PatientPhiInclude }
+    }),
+    getPatientGoalsAction(id)
+  ])
 
   if (!patient) {
     notFound()
@@ -69,6 +69,7 @@ export default async function Page({ params }: PageProps) {
     <PatientPage
       patient={mappedPatient}
       treatments={mappedTreatments}
+      goals={goals as Goal[]}
       organization={{
         name: ctx.organization.name,
         preferences: {

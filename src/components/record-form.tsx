@@ -63,8 +63,7 @@ import {
 import { cn } from "@/lib/utils"
 import { ProcedureStepsEditor, ProcedureStep } from "@/components/procedure-steps-editor"
 import { AssessmentManager, Assessment } from "@/components/assessment-manager"
-import { GoalManager, TreatmentGoal } from "@/components/goal-manager"
-import { GoalOutcomeReview, GoalOutcome } from "@/components/goal-outcome-review"
+import { TreatmentGoalManager } from "@/components/treatment-goal-manager"
 import { createTreatment, getMuscles, getMuscleRegions, getLatestTreatment, getProtocolsAction, saveProtocolAction, getPreviousGoalsAction } from "@/app/(dashboard)/treatments/actions"
 import { updateTreatment } from "@/app/(dashboard)/treatments/update-action"
 import { reopenTreatmentAction } from "@/app/(dashboard)/treatments/status-actions"
@@ -73,7 +72,7 @@ import { Muscle, MuscleRegion } from "@/components/muscle-selector"
 import { PiiWarningDialog } from "@/components/pii-warning-dialog"
 import { validatePII } from "@/lib/pii-validation"
 import { checkPermission, PERMISSIONS, checkPlan } from "@/lib/permissions"
-import { MembershipRole, Plan } from "@/generated/client/enums"
+import { MembershipRole, Plan, GoalCategory, GoalStatus } from "@/generated/client/enums"
 import { useAuthContext } from "@/components/auth-context-provider"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
 import { Protocol } from "@/lib/dose-engine"
@@ -102,7 +101,7 @@ const formSchema = z.object({
   supervisor_name: z.string().optional(),
 })
 
-interface InitialFormData {
+export interface InitialFormData {
   location?: string;
   subject_id?: string;
   date?: string | Date;
@@ -113,8 +112,8 @@ interface InitialFormData {
   notes?: string;
   steps?: ProcedureStep[];
   assessments?: Assessment[];
-  goals?: TreatmentGoal[];
-  goalOutcomes?: GoalOutcome[];
+  targetedGoalIds?: string[];
+  goalAssessments?: { goalId: string; score: number; notes?: string | null }[];
 }
 
 interface InjectionAssessment {
@@ -148,6 +147,13 @@ interface RecordFormProps {
   }
 }
 
+interface Goal {
+    id: string
+    description: string
+    category: GoalCategory
+    status: GoalStatus
+}
+
 export function RecordForm({
   patients,
   defaultSubjectId,
@@ -169,10 +175,12 @@ export function RecordForm({
 
   const [steps, setSteps] = useState<ProcedureStep[]>(initialData?.steps || [])
   const [assessments, setAssessments] = useState<Assessment[]>(initialData?.assessments || [])
-  const [goals, setGoals] = useState<TreatmentGoal[]>(initialData?.goals || [])
-  const [goalOutcomes, setGoalOutcomes] = useState<GoalOutcome[]>(initialData?.goalOutcomes || [])
-  const [previousGoals, setPreviousGoals] = useState<TreatmentGoal[]>([])
-  const [previousGoalsDate, setPreviousGoalsDate] = useState<Date | undefined>()
+  
+  // Longitudinal Goals
+  const [targetedGoalIds, setTargetedGoalIds] = useState<string[]>(initialData?.targetedGoalIds || [])
+  const [goalAssessments, setGoalAssessments] = useState<{ goalId: string; score: number; notes?: string | null }[]>(initialData?.goalAssessments || [])
+  const [previousTargetedGoals, setPreviousTargetedGoals] = useState<Goal[]>([])
+
   const [muscles, setMuscles] = useState<Muscle[]>([])
   const [regions, setRegions] = useState<MuscleRegion[]>([])
   const [isPending, startTransition] = useTransition()
@@ -241,11 +249,13 @@ export function RecordForm({
         ])
 
         if (prevGoalsData) {
-            setPreviousGoals(prevGoalsData.goals as unknown as TreatmentGoal[])
-            setPreviousGoalsDate(prevGoalsData.date)
+            setPreviousTargetedGoals(prevGoalsData.goals as Goal[])
+            // Pre-fill goal assessments for review if they exist
+            if (prevGoalsData.goals.length > 0) {
+                setGoalAssessments(prevGoalsData.goals.map((g: Goal) => ({ goalId: g.id, score: 0, notes: "" })))
+            }
         } else {
-            setPreviousGoals([])
-            setPreviousGoalsDate(undefined)
+            setPreviousTargetedGoals([])
         }
 
         if (latest) {
@@ -362,7 +372,7 @@ export function RecordForm({
             const draft = JSON.parse(savedDraft)
             // 1. Check validity (24h)
             if (new Date().getTime() - new Date(draft.timestamp).getTime() < 24 * 60 * 60 * 1000) {
-                const { values, steps: draftSteps, assessments: draftAssessments, goals: draftGoals, goalOutcomes: draftGoalOutcomes } = draft
+                const { values, steps: draftSteps, assessments: draftAssessments, targetedGoalIds: draftGoalIds, goalAssessments: draftGoalAssessments } = draft
                 
                 // 2. Context Safety: If we are in a specific patient context, ONLY restore matching drafts
                 if (defaultSubjectId && values.subject_id !== defaultSubjectId) {
@@ -370,7 +380,7 @@ export function RecordForm({
                 }
 
                 // 3. Meaningful Content Check
-                const hasContent = !!(values.notes?.trim()) || (draftSteps && draftSteps.length > 0) || (draftGoals && draftGoals.length > 0)
+                const hasContent = !!(values.notes?.trim()) || (draftSteps && draftSteps.length > 0) || (draftGoalIds && draftGoalIds.length > 0)
 
                 if (hasContent) {
                     if (!form.getValues("subject_id")) {
@@ -378,8 +388,8 @@ export function RecordForm({
                     }
                     if (draftSteps) setSteps(draftSteps)
                     if (draftAssessments) setAssessments(draftAssessments.map((a: Assessment & { assessed_at: string }) => ({ ...a, assessed_at: new Date(a.assessed_at) })))
-                    if (draftGoals) setGoals(draftGoals)
-                    if (draftGoalOutcomes) setGoalOutcomes(draftGoalOutcomes)
+                    if (draftGoalIds) setTargetedGoalIds(draftGoalIds)
+                    if (draftGoalAssessments) setGoalAssessments(draftGoalAssessments)
                     
                     hasRestoredDraft.current = true
                     toast.info("Unsaved draft restored")
@@ -393,18 +403,18 @@ export function RecordForm({
 
   // Autosave & Change Detection
   useEffect(() => {
-    if (watchedValues || steps.length > 0 || assessments.length > 0 || goals.length > 0 || goalOutcomes.length > 0) {
+    if (watchedValues || steps.length > 0 || assessments.length > 0 || targetedGoalIds.length > 0 || goalAssessments.length > 0) {
         // Mark as dirty
         setHasUnsavedChanges(true)
 
         // Local Storage Autosave (Only for new drafts)
         if (!isEditing && watchedValues) {
-            const draft = { values: watchedValues, steps, assessments, goals, goalOutcomes, timestamp: new Date() }
+            const draft = { values: watchedValues, steps, assessments, targetedGoalIds, goalAssessments, timestamp: new Date() }
             localStorage.setItem("bont_treatment_draft", JSON.stringify(draft))
             setLastSaved(new Date())
         }
     }
-  }, [watchedValues, steps, assessments, goals, goalOutcomes, isEditing])
+  }, [watchedValues, steps, assessments, targetedGoalIds, goalAssessments, isEditing])
 
   const handleCopyLastVisit = () => {
       if (isPro) {
@@ -458,7 +468,14 @@ export function RecordForm({
   const processSubmission = (values: z.infer<typeof formSchema>, targetStatus: "DRAFT" | "SIGNED" = "DRAFT") => {
     startTransition(async () => {
       try {
-        const payload = { ...values, steps, assessments, goals, goalOutcomes, status: targetStatus }
+        const payload = { 
+            ...values, 
+            steps, 
+            assessments, 
+            targetedGoalIds,
+            goalAssessments,
+            status: targetStatus 
+        }
         const result = isEditing && treatmentId 
           ? await updateTreatment(treatmentId, payload)
           : await createTreatment(payload);
@@ -546,8 +563,9 @@ export function RecordForm({
       
       setSteps([])
       setAssessments([])
-      setGoals([])
-      setGoalOutcomes([])
+      setTargetedGoalIds([])
+      setGoalAssessments([])
+      setPreviousTargetedGoals([])
       setIsSmartFilled(false)
       setHasUnsavedChanges(false)
       
@@ -815,23 +833,19 @@ export function RecordForm({
              <div className="flex justify-end font-bold text-xl">Total: {totalUnits} Units</div>
         </div>
 
-        {previousGoals.length > 0 && (
+        {form.watch("subject_id") && (
             <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-                <GoalOutcomeReview 
-                    previousGoals={previousGoals} 
-                    outcomes={goalOutcomes} 
-                    onChange={setGoalOutcomes} 
-                    disabled={isSigned} 
-                    previousDate={previousGoalsDate}
+                <TreatmentGoalManager 
+                    patientId={form.watch("subject_id")}
+                    targetedGoalIds={targetedGoalIds}
+                    onTargetedGoalsChange={setTargetedGoalIds}
+                    goalAssessments={goalAssessments}
+                    onGoalAssessmentsChange={setGoalAssessments}
+                    disabled={isSigned}
+                    previousTargetedGoals={previousTargetedGoals}
                 />
             </div>
         )}
-
-        <GoalManager 
-            goals={goals} 
-            onChange={setGoals} 
-            disabled={isSigned} 
-        />
 
         <Collapsible>
           <div className="flex items-center space-x-2">

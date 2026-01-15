@@ -8,7 +8,8 @@ import {
     MembershipRole, 
     MembershipStatus, 
     Region, 
-    Plan
+    Plan,
+    GoalCategory
 } from "@/generated/client/enums"
 import { revalidatePath } from "next/cache"
 import { getServerSession } from "next-auth"
@@ -40,11 +41,23 @@ export async function seedDemoOrganizationAction() {
         }
     })
 
+    // Ensure User exists (handling DB resets)
+    const user = await prisma.user.upsert({
+        where: { id: session.user.id },
+        update: {},
+        create: {
+            id: session.user.id,
+            email: session.user.email || `demo-user-${session.user.id.slice(0,5)}@example.com`,
+            displayName: session.user.name || "Demo User",
+            emailVerified: new Date()
+        }
+    })
+
     // 2. Create Memberships & ghost users
     const ownerMembership = await prisma.organizationMembership.create({
         data: {
             organizationId: demoOrg.id,
-            userId: session.user.id,
+            userId: user.id,
             role: MembershipRole.OWNER,
             status: MembershipStatus.ACTIVE,
             specialty: "NEUROLOGY"
@@ -108,15 +121,28 @@ export async function seedDemoOrganizationAction() {
         }))
     })
 
-    // 6. Flatten & Prepare Encounters, Injections, Goals, Outcomes, Assessments
+    // 6. Flatten & Prepare Encounters, Injections, Goals, Assessments
     const membershipIds = [ownerMembership.id, providerMembership.id]
     
     const encounterPayload: Prisma.EncounterCreateManyInput[] = []
     const injectionPayload: Prisma.InjectionCreateManyInput[] = []
     const goalPayload: Prisma.TreatmentGoalCreateManyInput[] = []
-    const outcomePayload: Prisma.GoalOutcomeCreateManyInput[] = []
+    const goalAssessmentPayload: Prisma.GoalAssessmentCreateManyInput[] = []
     const injectionAssessmentPayload: Prisma.InjectionAssessmentCreateManyInput[] = []
     const followupPayload: Prisma.FollowupCreateManyInput[] = []
+    const targetedGoalsLinks: { A: string, B: string }[] = []
+
+    interface DemoGoal {
+        id: string
+        category: GoalCategory
+        description: string
+    }
+
+    interface DemoOutcome {
+        goalId: string
+        score: number
+        notes: string | null
+    }
 
     for (const e of encounters) {
         const mId = membershipIds[Math.floor(Math.random() * membershipIds.length)]
@@ -185,22 +211,27 @@ export async function seedDemoOrganizationAction() {
             }
         })
 
-        e.goals.forEach((g) => {
+        e.goals.forEach((g: DemoGoal) => {
             goalPayload.push({
                 id: g.id,
-                encounterId: e.id,
+                patientId: e.patientId,
+                organizationId: demoOrg.id,
                 category: g.category,
-                description: g.description
+                description: g.description,
+                indication: e.indication
             })
+            // Link to encounter
+            targetedGoalsLinks.push({ A: e.id, B: g.id })
         })
 
-        e.goalOutcomes.forEach((o) => {
-            outcomePayload.push({
+        e.goalOutcomes.forEach((o: DemoOutcome) => {
+            goalAssessmentPayload.push({
                 id: crypto.randomUUID(),
-                assessmentEncounterId: e.id,
+                encounterId: e.id,
                 goalId: o.goalId,
                 score: o.score,
-                notes: o.notes
+                notes: o.notes,
+                assessedByMembershipId: mId
             })
         })
     }
@@ -220,11 +251,20 @@ export async function seedDemoOrganizationAction() {
     for (let i = 0; i < goalPayload.length; i += CHUNK_SIZE) {
         await prisma.treatmentGoal.createMany({ data: goalPayload.slice(i, i + CHUNK_SIZE) })
     }
-    for (let i = 0; i < outcomePayload.length; i += CHUNK_SIZE) {
-        await prisma.goalOutcome.createMany({ data: outcomePayload.slice(i, i + CHUNK_SIZE) })
+    for (let i = 0; i < goalAssessmentPayload.length; i += CHUNK_SIZE) {
+        await prisma.goalAssessment.createMany({ data: goalAssessmentPayload.slice(i, i + CHUNK_SIZE) })
     }
     for (let i = 0; i < followupPayload.length; i += CHUNK_SIZE) {
         await prisma.followup.createMany({ data: followupPayload.slice(i, i + CHUNK_SIZE) })
+    }
+
+    // 8. Populate Many-to-Many Join Table (Raw SQL for implicit compatibility)
+    if (targetedGoalsLinks.length > 0) {
+        for (let i = 0; i < targetedGoalsLinks.length; i += CHUNK_SIZE) {
+            const chunk = targetedGoalsLinks.slice(i, i + CHUNK_SIZE)
+            const values = chunk.map(link => `('${link.A}', '${link.B}')`).join(",")
+            await prisma.$executeRawUnsafe(`INSERT INTO "_EncounterTargetedGoals" ("A", "B") VALUES ${values} ON CONFLICT DO NOTHING`)
+        }
     }
 
     // Set preference cookie to land in this demo org

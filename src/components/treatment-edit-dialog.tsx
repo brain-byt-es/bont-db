@@ -11,51 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { GoalCategory, Timepoint } from "@/generated/client/enums"
-
-interface Goal {
-  id: string
-  category: GoalCategory
-  description: string
-}
-
-interface GoalOutcome {
-  id: string
-  score: number
-  notes: string | null
-  goal: Goal
-}
-
-interface Assessment {
-    id: string
-    scale: string
-    timepoint: Timepoint
-    value: number
-    assessed_at: Date
-    notes?: string
-}
-
-interface ProcedureStep {
-    id: string
-    muscle_id: string
-    side: "Left" | "Right" | "Bilateral" | "Midline"
-    numeric_value: number
-    mas_baseline: string
-    mas_peak: string
-}
-
-interface InitialFormData {
-    subject_id: string
-    date: Date
-    location: string
-    category: string
-    product_label: string
-    notes?: string
-    assessments: Assessment[]
-    steps: ProcedureStep[]
-    goals: Goal[]
-    goalOutcomes: GoalOutcome[]
-}
+import { Timepoint } from "@/generated/client/enums"
+import { InitialFormData } from "./record-form"
 
 interface TreatmentEditDialogProps {
   treatmentId: string | null
@@ -97,24 +54,28 @@ export function TreatmentEditDialog({ treatmentId, open, onOpenChange }: Treatme
               category: treatment.indication,
               product_label: treatment.product?.name || '',
               notes: treatment.effectNotes ?? undefined,
-              assessments: (treatment.assessments || []).map((a) => ({
+              assessments: (treatment.assessments || []).map((a: { id: string, scale: string, timepoint: Timepoint, valueNum: number | null, assessedAt: Date, notes: string | null }) => ({
                 id: a.id,
                 scale: a.scale,
-                timepoint: a.timepoint as Timepoint,
+                timepoint: a.timepoint,
                 value: a.valueNum || 0,
                 assessed_at: a.assessedAt,
                 notes: a.notes || undefined,
               })),
-              steps: (treatment.injections || []).map((inj) => ({
+              steps: (treatment.injections || []).map((inj: { id: string, muscleId: string | null, side: string, units: number, injectionAssessments: InjectionAssessment[] }) => ({
                 id: inj.id,
                 muscle_id: inj.muscleId || '', 
                 side: (inj.side === 'L' ? 'Left' : inj.side === 'R' ? 'Right' : inj.side === 'B' ? 'Bilateral' : 'Midline') as "Left" | "Right" | "Bilateral" | "Midline",
                 numeric_value: inj.units,
-                mas_baseline: getMasScore(inj.injectionAssessments as unknown as InjectionAssessment[], 'baseline'),
-                mas_peak: getMasScore(inj.injectionAssessments as unknown as InjectionAssessment[], 'peak_effect')
+                mas_baseline: getMasScore(inj.injectionAssessments, 'baseline'),
+                mas_peak: getMasScore(inj.injectionAssessments, 'peak_effect')
               })),
-              goals: treatment.goals as Goal[],
-              goalOutcomes: treatment.goalOutcomes as unknown as GoalOutcome[]
+              targetedGoalIds: treatment.targetedGoals?.map((g: { id: string }) => g.id) || [],
+              goalAssessments: treatment.goalAssessments?.map((ga: { goalId: string, score: number, notes: string | null }) => ({
+                  goalId: ga.goalId,
+                  score: ga.score,
+                  notes: ga.notes
+              })) || []
             }
             setInitialData(data)
             setStatus(treatment.status)

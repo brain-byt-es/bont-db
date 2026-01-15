@@ -26,7 +26,7 @@ The database is strictly partitioned for PHI (Protected Health Information) comp
 We use **Composite Foreign Keys** to prevent "Organization Drift".
 - `Encounter(orgId, patientId)` -> `Patient(orgId, id)`
 - **Immutability:** Updates to `patientId` on existing encounters are blocked by DB security policy.
-- **GAS Hardening:** `TreatmentGoal(encounterId)` and `GoalOutcome(goalId, assessmentEncounterId)` are immutable to ensure data integrity across treatment cycles.
+- **GAS Hardening:** `TreatmentGoal(encounterId)` and `GoalAssessment(goalId, assessedByMembershipId)` are immutable to ensure data integrity across treatment cycles.
 - **Demo Isolation:** Organizations with status `DEMO` are technically isolated and feature a programmatic reset capability to maintain a "Gold State" for sales.
 
 ## 3. Multi-Tenancy & Monetization
@@ -39,7 +39,96 @@ InjexPro features a high-fidelity "Demo Center" for prospects.
 - **Safety:** Prospects are landed in a sandboxed `DEMO` organization with a persistent UI banner and simulated reset intervals.
 
 ### Context Resolution
-// ... existing content ...
+- **`getOrganizationContext()`**: Resolved via cookie or fallback to first active membership.
+- **Effective Plan Resolution:** Manual overrides (`planOverride`) and support windows (`proUntil`) take precedence over Stripe-synced data via `getEffectivePlan()`.
+
+### Monetization & Billing Engine
+- **Source of Truth:** Database holds the primary subscription state.
+- **Seat-based Gating:**
+  - **BASIC:** Limited to **1 active user**. Unlimited clinical documentation.
+  - **PRO:** Limited to **5 active users**. Pauschalpreis (Flat Fee) billed via Stripe.
+  - **ENTERPRISE:** Unlimited users. Managed manually via Sales/Invoices.
+- **Automated Reconciliation:** Stripe subscription quantities are automatically synced in `src/lib/stripe-billing.ts` upon team changes (Invite/Remove).
+- **Lifecycle & Support:**
+  - **Grace Period:** `PAST_DUE` status triggers warnings but maintains access.
+  - **Kill-Switch:** Manual overrides enabled for support/sales intervention.
+- **Admin UI:** Real-time seat tracking (e.g. "3 / 5 used") and direct portal integration.
+
+### Plans
+- **BASIC (Free):** Single user, unlimited documentation, manual calculations.
+- **PRO ($49 / mo):** Up to 5 users, Smart Defaults, Audit Re-open, CSV Exports, Clinical Insights.
+- **ENTERPRISE (Custom):** Unlimited users, EHR Integration (EPIC, KISIM), SSO/SAML, SLA, Custom Contracts.
+
+## 4. Clinical Workflow & Data Integrity
+
+### Encounter Lifecycle
+1.  **Draft:** Default state. Features **Unsaved Changes** indicator.
+2.  **Signed:** Finalized state. Read-only.
+3.  **Re-open:** Requires **PRO Plan** and Audit Log entry.
+4.  **Void:** Soft-delete state (Audit trail preserved).
+
+### Goal Attainment Scaling (GAS+)
+InjexPro uses a longitudinal, GAS-inspired framework to connect treatment intent to outcomes over the entire clinical course (365+ days).
+- **Patient-Level Goals:** Goals are defined at the patient level, allowing them to persist across multiple injection cycles without duplication.
+- **Many-to-Many Linkage:** Each `Encounter` targets specific active goals, creating a "Golden Thread" between muscle selection and intent.
+- **Goal Assessments:** GAS scores (-2 to +2) are time-stamped and clinician-attributed, supporting inter-session progress reviews (e.g., via phone or physio).
+- **Trend Visualization:** Integrated Recharts-based trend lines show therapeutic gain chronologically per goal.
+
+### Advanced Dose Engine
+- **Automatic Calculation:** Live conversion between Units and Volume (ml).
+- **Clinical Protocols:** Indication-specific presets (e.g., PREEMPT Migraine, Spasticity).
+- **Smart Suggestions:** Automated dose hints based on specific patient history and muscle selection.
+- **Query Optimization:** Two-step history fetching (Encounters -> Injections) to avoid complex joins and ensure high performance.
+
+## 5. Roadmap & Follow-up Actions
+
+### Phase 3: Scaling & Monetization (Completed)
+- [x] **Stripe Integration:** Full checkout loop and flat-fee organization billing.
+- [x] **PRO + ENTERPRISE Split:** Hierarchical plan structure with hard seat limits.
+- [x] **Conversion Triggers:** Active upgrade prompts for Exports and Smart Defaults.
+- [x] **Support Tools:** Manual plan overrides and support period flags.
+- [x] **Admin UI:** Enhanced billing dashboard with seat usage tracking.
+
+### Phase 4: Expansion & Polish (Completed)
+- [x] **Data Residency Enablers:** Regional onboarding selection (EU vs US) with storage transparency.
+- [x] **Advanced Dose Engine:** Intelligent historical suggestions and clinical protocol support.
+- [x] **Multi-Admin UX:** Granular role management, membership updates, and ownership transfer.
+- [x] **Strategic UX:** Compact upsell teasers and searchable country selection.
+
+### Phase 5: Legal & Compliance Framework (Completed)
+- [x] **Legal Hub:** Centralized, accessible pages for Terms, Privacy, DPA, Subprocessors, and TOMs using Tailwind typography.
+- [x] **DPA Acceptance Gate:** Mandatory, high-conversion modal blocking clinical access until DPA is accepted by Organization Owner.
+- [x] **Compliance Audit Trail:** `LegalAcceptance` table tracks execution details (User, IP, Version, Timestamp) for GDPR accountability.
+- [x] **UX Optimization:** "Product-moment" design for DPA gate with clear "Why" messaging and minimal friction.
+
+### Phase 8: High-End Clinical Polish (Completed)
+- [x] **Dynamic Contextual Navigation:** Implemented dynamic Breadcrumbs and a global Command Menu (`⌘K`) for rapid navigation.
+- [x] **Workflow Efficiency:** Integrated User-Defined Protocols ("My Protocols"), allowing doctors to save and reuse custom treatment templates.
+- [x] **Single-Page UX:** Refactored all clinical editing (Patients, Treatments) to use high-performance **Modals** instead of separate page routes.
+- [x] **Longitudinal GAS Tracking:** Implemented patient-level goal management and many-to-many encounter linkage for multi-cycle outcome analysis.
+- [x] **Structured Diagnostics:** Integrated a searchable ICD-10 Diagnostic Catalogue with keyword-based matching and pre-seeded neurological codes.
+- [x] **Visual Clinical History:** Implementation of a visual Patient Treatment Timeline and Goal Attainment Trend Charts.
+- [x] **UX Refinements:** Added purposeful Empty States, transparent reset actions, and environment-aware organization switching.
+
+### Phase 10: AK Botulinum Certification Roadmap (Completed)
+The core mission of InjexPro is now fully integrated with automated tracking and evidence generation.
+
+- [x] **Qualification Profile (Settings):**
+    - Define target specialty (Neurology: 100/50 rule vs. Neuropediatrics: 50/25 rule).
+    - Configure Supervision mode (Direct vs. Guarantor/Bürge) and default supervisor names.
+- [x] **Dynamic Certification Tracker (Dashboard):**
+    - High-end "Progress Tree" visualizing the path to Full vs. Partial certificates.
+    - **Total treatments gate:** Live tracking against the 100 (or 50) required injections.
+    - **Success control gate:** Automated counting of treatments with documented clinical follow-ups.
+    - **Indication mix validator:** Visual checklist ensuring min. 2 categories (Spasticity, Dystonia, etc.) are covered.
+    - **The "25 Rule" Tracker:** Visual alert for the 25-treatment focus requirement in primary indications.
+- [x] **Supervision Integration (Treatments):**
+    - Optional, collapsible "Certification Details" section added to treatment forms.
+    - Ability to tag specific treatments as supervised by a named clinician.
+- [x] **Expanded Clinical Targets:** Added Glandula parotis, Submandibularis, and Axilla targets for autonomic certification.
+- [x] **Certification Reporting & Export:**
+    - Dedicated "Print View" export matching AK Botulinum requirements (File 2).
+    - Detailed, collapsible guidance card in Settings with submission instructions and email links.
 
 ### Phase 12: Sales & Enablement (Completed)
 - [x] **Demo Mode Infrastructure:** Implemented isolated `DEMO` status for organizations with session-based data safety.

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
-import { BodySide, Timepoint, EncounterStatus, Prisma, GoalCategory } from "@/generated/client/client"
+import { BodySide, Timepoint, EncounterStatus, Prisma } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 import { getDoseSuggestions, CLINICAL_PROTOCOLS } from "@/lib/dose-engine"
 import { logAuditAction } from "@/lib/audit-logger"
@@ -25,12 +25,7 @@ interface ProcedureStep {
   mas_peak?: string;
 }
 
-interface GoalData {
-  category: GoalCategory;
-  description: string;
-}
-
-interface GoalOutcomeData {
+interface GoalAssessmentData {
   goalId: string;
   score: number;
   notes?: string | null;
@@ -51,8 +46,10 @@ interface CreateTreatmentFormData {
   steps?: ProcedureStep[];
   assessments?: AssessmentData[];
   status?: "DRAFT" | "SIGNED";
-  goals?: GoalData[];
-  goalOutcomes?: GoalOutcomeData[];
+  
+  // Longitudinal Goals
+  targetedGoalIds?: string[];
+  goalAssessments?: GoalAssessmentData[];
 }
 
 export async function createTreatment(formData: CreateTreatmentFormData) {
@@ -77,8 +74,8 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
     steps,
     assessments,
     status = "DRAFT",
-    goals,
-    goalOutcomes
+    targetedGoalIds,
+    goalAssessments
   } = formData
 
   const unitsPerMl = vial_size / dilution_ml
@@ -170,7 +167,7 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
       organizationId,
       patientId: subject_id,
       createdByMembershipId: membership.id,
-      providerMembershipId: membership.id, // Assuming creator is provider for now
+      providerMembershipId: membership.id, 
       encounterAt: date,
       encounterLocalDate: date,
       status: status === "SIGNED" ? EncounterStatus.SIGNED : EncounterStatus.DRAFT,
@@ -200,27 +197,28 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
         }
       } : undefined,
 
-      // GAS
-      goals: {
-        create: (goals || []).map(g => ({
-            category: g.category,
-            description: g.description
+      // GAS - Connect targeted goals
+      targetedGoals: targetedGoalIds ? {
+        connect: targetedGoalIds.map(id => ({ id }))
+      } : undefined,
+
+      // GAS - Create assessments
+      goalAssessments: goalAssessments ? {
+        create: goalAssessments.map(ga => ({
+            goalId: ga.goalId,
+            score: ga.score,
+            notes: ga.notes,
+            assessedByMembershipId: ctx.membership.id
         }))
-      },
-      goalOutcomes: {
-        create: (goalOutcomes || []).map(o => ({
-            goalId: o.goalId,
-            score: o.score,
-            notes: o.notes
-        }))
-      }
+      } : undefined
     }
   })
 
   await logAuditAction(ctx, "TREATMENT_CREATED", "Encounter", encounter.id, { patientId: subject_id, totalUnits: total_units })
 
   revalidatePath('/patients')
-  // Return success info instead of redirecting
+  revalidatePath(`/patients/${subject_id}`)
+  
   return { success: true, patientId: subject_id }
 }
 
@@ -319,8 +317,8 @@ export async function getTreatment(treatmentId: string) {
         }
       },
       assessments: true,
-      goals: true,
-      goalOutcomes: {
+      targetedGoals: true,
+      goalAssessments: {
         include: {
           goal: true
         }
@@ -365,8 +363,8 @@ export async function getLatestTreatment(patientId: string) {
         }
       },
       assessments: true,
-      goals: true,
-      goalOutcomes: {
+      targetedGoals: true,
+      goalAssessments: {
         include: {
           goal: true
         }
@@ -404,6 +402,7 @@ export async function getLatestTreatment(patientId: string) {
 /**
  * Get goals from the LAST SIGNED encounter for a patient.
  * Used for Goal Review in the new encounter.
+ * REFATURED: Now returns patient goals that were targeted in the last session.
  */
 export async function getPreviousGoalsAction(patientId: string) {
   const ctx = await getOrganizationContext()
@@ -420,11 +419,11 @@ export async function getPreviousGoalsAction(patientId: string) {
       encounterAt: 'desc'
     },
     include: {
-      goals: true
+      targetedGoals: true
     }
   })
 
-  return lastSigned ? { goals: lastSigned.goals, date: lastSigned.encounterLocalDate } : null
+  return lastSigned ? { goals: lastSigned.targetedGoals, date: lastSigned.encounterLocalDate } : null
 }
 
 /**

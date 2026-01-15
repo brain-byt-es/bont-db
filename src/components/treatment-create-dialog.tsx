@@ -10,24 +10,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { RecordForm } from "@/components/record-form"
+import { RecordForm, InitialFormData } from "@/components/record-form"
 import { getPatients } from "@/app/(dashboard)/patients/actions"
 import { Spinner } from "@/components/ui/spinner"
-import { ProcedureStep } from "@/components/procedure-steps-editor"
 
 import { UpgradeDialog } from "@/components/upgrade-dialog"
-
-interface InitialFormData {
-  location?: string;
-  subject_id?: string;
-  date?: string | Date;
-  category?: string;
-  product_label?: string;
-  vial_size?: number;
-  dilution_ml?: number;
-  notes?: string;
-  steps?: ProcedureStep[];
-}
 
 interface TreatmentDialogProps {
   children?: React.ReactNode

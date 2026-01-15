@@ -55,6 +55,8 @@ interface RecentRecordsTableProps {
   records: TreatmentRecord[]
   hideActions?: boolean
   enableSelection?: boolean
+  selectedIds?: string[]
+  onSelectionChange?: (ids: string[]) => void
 }
 
 const indicationLabels: Record<string, string> = {
@@ -73,20 +75,34 @@ const indicationColors: Record<string, string> = {
   andere: "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400",
 }
 
-export function RecentRecordsTable({ records, hideActions = false, enableSelection = true }: RecentRecordsTableProps) {
+export function RecentRecordsTable({ 
+    records, 
+    hideActions = false, 
+    enableSelection = true,
+    selectedIds: externalSelectedIds,
+    onSelectionChange
+}: RecentRecordsTableProps) {
   const [isPending, startTransition] = useTransition()
   const { userPlan } = useAuthContext()
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  
+  const [internalSelectedIds, setInternalSelectedIds] = useState<string[]>([])
+  const selectedIds = externalSelectedIds || internalSelectedIds
+  const setSelectedIds = onSelectionChange || setInternalSelectedIds
+
   const [showBulkSignDialog, setShowBulkSignDialog] = useState(false)
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [reopenId, setReopenId] = useState<string | null>(null)
   const [reopenReason, setReopenReason] = useState("")
+  
   const [editId, setEditId] = useState<string | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+
   const showPatientColumn = records.some(r => r.patient)
   const router = useRouter()
+
+  const isBulkSelection = selectedIds.length > 0 && !onSelectionChange
 
   const sortedRecords = [...records].sort((a, b) => {
     if (!sortConfig) return 0;
@@ -185,9 +201,9 @@ export function RecentRecordsTable({ records, hideActions = false, enableSelecti
 
   const handleSelectOne = (checked: boolean, id: string) => {
       if (checked) {
-          setSelectedIds(prev => [...prev, id])
+          setSelectedIds([...selectedIds, id])
       } else {
-          setSelectedIds(prev => prev.filter(i => i !== id))
+          setSelectedIds(selectedIds.filter(i => i !== id))
       }
   }
 
@@ -209,7 +225,6 @@ export function RecentRecordsTable({ records, hideActions = false, enableSelecti
   }
 
   const allSelected = sortedRecords.length > 0 && selectedIds.length === sortedRecords.length
-  const isBulkSelection = selectedIds.length > 0
 
   return (
     <div className="space-y-2">
@@ -426,4 +441,3 @@ function SortButton({ label, align = "start", onClick }: { label: string, align?
     </Button>
   )
 }
-
