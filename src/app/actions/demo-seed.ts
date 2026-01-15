@@ -131,6 +131,7 @@ export async function seedDemoOrganizationAction() {
     const injectionAssessmentPayload: Prisma.InjectionAssessmentCreateManyInput[] = []
     const followupPayload: Prisma.FollowupCreateManyInput[] = []
     const targetedGoalsLinks: { A: string, B: string }[] = []
+    const seenGoalIds = new Set<string>()
 
     interface DemoGoal {
         id: string
@@ -212,14 +213,17 @@ export async function seedDemoOrganizationAction() {
         })
 
         e.goals.forEach((g: DemoGoal) => {
-            goalPayload.push({
-                id: g.id,
-                patientId: e.patientId,
-                organizationId: demoOrg.id,
-                category: g.category,
-                description: g.description,
-                indication: e.indication
-            })
+            if (!seenGoalIds.has(g.id)) {
+                goalPayload.push({
+                    id: g.id,
+                    patientId: e.patientId,
+                    organizationId: demoOrg.id,
+                    category: g.category,
+                    description: g.description,
+                    indication: e.indication
+                })
+                seenGoalIds.add(g.id)
+            }
             // Link to encounter
             targetedGoalsLinks.push({ A: e.id, B: g.id })
         })
