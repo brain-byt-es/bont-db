@@ -108,6 +108,7 @@ InjexPro uses a longitudinal, GAS-inspired framework to connect treatment intent
 - [x] **Longitudinal GAS Tracking:** Implemented patient-level goal management and many-to-many encounter linkage for multi-cycle outcome analysis.
 - [x] **Structured Diagnostics:** Integrated a searchable ICD-10 Diagnostic Catalogue with keyword-based matching and pre-seeded neurological codes.
 - [x] **Visual Clinical History:** Implementation of a visual Patient Treatment Timeline and Goal Attainment Trend Charts.
+- [x] **Precise Bilateral Tracking:** Implemented auto-splitting of "Bilateral" injections into Left/Right entries for independent MAS scoring and dose tracking.
 - [x] **UX Refinements:** Added purposeful Empty States, transparent reset actions, and environment-aware organization switching.
 
 ### Phase 10: AK Botulinum Certification Roadmap (Completed)
@@ -133,6 +134,8 @@ The core mission of InjexPro is now fully integrated with automated tracking and
 ### Phase 12: Sales & Enablement (Completed)
 - [x] **Demo Mode Infrastructure:** Implemented isolated `DEMO` status for organizations with session-based data safety.
 - [x] **High-Fidelity Data Generator:** Created a programmatic clinical simulator generating 365 days of realistic clinic history (Encounters, Injections, GAS Goals, MAS scores).
+    - **Patient-Centric Timelines:** Refactored to generate consistent patient profiles with persistent indications and realistic clinical intervals (80-120 days).
+    - **Enforced Data Integrity:** Guaranteed MAS scoring for spasticity and strict L/R separation for extremity injections.
 - [x] **One-Click Launch:** Integrated "Launch Demo Center" into the onboarding flow for immediate prospect engagement.
 - [x] **Technical Seeding Engine:** Developed a flat, chunked `createMany` seeding strategy with manual UUID generation to bypass Prisma client-side limitations.
 - [x] **Demo UX:** Added persistent `DemoBanner` for environment awareness and simulated environment resets.
