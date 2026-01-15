@@ -1,9 +1,22 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from "recharts"
-import { Lock } from "lucide-react"
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
+import { Lock, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+
+const chartConfig = {
+  count: {
+    label: "Treatments",
+    color: "#8b5cf6", // violet-500
+  },
+} satisfies ChartConfig
 
 interface TreatmentTrend {
   date: string
@@ -27,44 +40,52 @@ export function ActivityTrendCard({ trendData, isPro, className }: { trendData: 
       <Card className={cn("h-full", !isPro && "relative overflow-hidden", className)}>
         {!isPro && <LockOverlay title="Activity Insights" />}
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Treatments over Time</CardTitle>
-          <CardDescription>Last 6 months activity</CardDescription>
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg">
+                <TrendingUp className="h-4 w-4 text-violet-600" />
+            </div>
+            <div>
+                <CardTitle className="text-sm font-medium">Clinical Activity</CardTitle>
+                <CardDescription>Treatments per month</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className={cn("h-[200px] w-full mt-4", !isPro && "blur-[2px] opacity-40")}>
-            <ResponsiveContainer width="100%" height="100%">
+          <div className={cn("mt-4", !isPro && "blur-[2px] opacity-40")}>
+            <ChartContainer
+              config={chartConfig}
+              className="aspect-auto h-[250px] w-full"
+            >
               <AreaChart data={displayTrend}>
                 <defs>
                   <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--muted))" />
                 <XAxis 
                   dataKey="date" 
-                  hide 
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={8}
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: "hsl(var(--popover))", 
-                    borderColor: "hsl(var(--border))", 
-                    borderRadius: "var(--radius)",
-                    color: "hsl(var(--popover-foreground))",
-                    boxShadow: "var(--shadow-sm)"
-                  }}
-                  itemStyle={{ color: "hsl(var(--primary))" }}
-                  cursor={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1, strokeDasharray: "4 4" }}
+                <ChartTooltip
+                  cursor={{ stroke: "#8b5cf6", strokeWidth: 1 }}
+                  content={<ChartTooltipContent indicator="dot" />}
                 />
                 <Area 
-                  type="monotone" 
+                  type="natural" 
                   dataKey="count" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
+                  stroke="#8b5cf6" 
+                  strokeWidth={2.5}
                   fillOpacity={1} 
                   fill="url(#colorCount)" 
+                  animationDuration={1500}
                 />
               </AreaChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </div>
         </CardContent>
       </Card>
@@ -94,7 +115,7 @@ export function TopMusclesCard({ topMuscles, isPro, className }: { topMuscles: M
                     <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/50">
                       <div
                         className="h-full bg-primary transition-all duration-500 ease-in-out"
-                        style={{ width: `${(muscle.count / displayMuscles[0].count) * 100}%` }}
+                        style={{ width: `${(muscle.count / (displayMuscles[0]?.count || 1)) * 100}%` }}
                       />
                     </div>
                 </div>

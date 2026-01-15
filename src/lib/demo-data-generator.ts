@@ -43,6 +43,16 @@ interface PatientData {
     status: string
 }
 
+interface InjectionData {
+    id: string
+    muscleId: string
+    muscleName: string
+    units: number
+    side: BodySide
+    masBaseline?: number
+    masPeak?: number
+}
+
 interface EncounterData {
     id: string
     patientId: string
@@ -55,12 +65,7 @@ interface EncounterData {
     vialSize: number
     dilution: number
     totalUnits: number
-    injections: {
-        muscleId: string
-        muscleName: string
-        units: number
-        side: BodySide
-    }[]
+    injections: InjectionData[]
     goals: {
         id: string
         category: GoalCategory
@@ -71,6 +76,10 @@ interface EncounterData {
         score: number
         notes: string | null
     }[]
+    followup?: {
+        date: Date
+        outcome: string
+    }
 }
 
 export function generateDemoData(muscles: { id: string, name: string }[]) {
@@ -148,6 +157,14 @@ export function generateDemoData(muscles: { id: string, name: string }[]) {
                 goalOutcomes: []
             }
 
+            // Generate Follow-up for signed records (85% completion rate)
+            if (status === EncounterStatus.SIGNED && Math.random() > 0.15) {
+                encounter.followup = {
+                    date: addDays(encounterDate, 84 + Math.floor(Math.random() * 21)), // 12-15 weeks later
+                    outcome: "Positive response, goal attainment targets achieved."
+                }
+            }
+
             // Generate Injections
             const muscleGroup = MUSCLE_POOL[indication.muscleGroup as keyof typeof MUSCLE_POOL]
             const numSites = Math.min(muscleGroup.length, 2 + Math.floor(Math.random() * 4))
@@ -163,11 +180,23 @@ export function generateDemoData(muscles: { id: string, name: string }[]) {
 
                 const dose = 10 + Math.floor(Math.random() * 40)
                 units += dose
+
+                // Generate MAS scores for Spasticity
+                let masBaseline: number | undefined = undefined
+                let masPeak: number | undefined = undefined
+                if (indication.label === 'spastik') {
+                    masBaseline = 2 + Math.floor(Math.random() * 2) // 2 or 3
+                    masPeak = masBaseline - (Math.random() > 0.2 ? 1 : 0) // Improvement or same
+                }
+
                 encounter.injections.push({
+                    id: crypto.randomUUID(),
                     muscleId: mId,
                     muscleName: mName,
                     units: dose,
-                    side: Math.random() > 0.3 ? BodySide.B : (Math.random() > 0.5 ? BodySide.L : BodySide.R)
+                    side: Math.random() > 0.3 ? BodySide.B : (Math.random() > 0.5 ? BodySide.L : BodySide.R),
+                    masBaseline,
+                    masPeak
                 })
             }
             encounter.totalUnits = units

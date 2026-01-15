@@ -145,7 +145,7 @@ export async function getDashboardData(days: number = 90): Promise<DashboardData
         } 
       },
       select: {
-        encounter: { select: { encounterLocalDate: true } },
+        encounter: { select: { encounterLocalDate: true, indication: true } },
         injectionAssessments: { select: { scale: true, timepoint: true, valueNum: true } }
       }
     }),
@@ -234,14 +234,18 @@ export async function getDashboardData(days: number = 90): Promise<DashboardData
   let masBaselineCount = 0
   let masPeakCount = 0
   let missingBaselineCount = 0
+  
   allInjectionsWithAssessments.forEach(inj => {
-    const hasBaseline = inj.injectionAssessments.some(a => a.scale === 'MAS' && a.timepoint === 'baseline')
-    if (hasBaseline) masBaselineCount++
-    else missingBaselineCount++
-    if (inj.injectionAssessments.some(a => a.scale === 'MAS' && a.timepoint === 'peak_effect')) masPeakCount++
+    // Only count towards quality metrics if indication is Spasticity
+    if (inj.encounter.indication.toLowerCase() === 'spastik') {
+        const hasBaseline = inj.injectionAssessments.some(a => a.scale === 'MAS' && a.timepoint === 'baseline')
+        if (hasBaseline) masBaselineCount++
+        else missingBaselineCount++
+        if (inj.injectionAssessments.some(a => a.scale === 'MAS' && a.timepoint === 'peak_effect')) masPeakCount++
+    }
   })
   
-  const totalSpastikInjections = allInjectionsWithAssessments.length
+  const totalSpastikInjections = allInjectionsWithAssessments.filter(i => i.encounter.indication.toLowerCase() === 'spastik').length
   const masBaselineRate = totalSpastikInjections > 0 ? (masBaselineCount / totalSpastikInjections) * 100 : 0
   const masPeakRate = totalSpastikInjections > 0 ? (masPeakCount / totalSpastikInjections) * 100 : 0
 

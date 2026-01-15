@@ -11,14 +11,27 @@ import {
   XAxis, 
   YAxis, 
   CartesianGrid, 
-  Tooltip, 
   ResponsiveContainer,
   Cell,
-  Legend
+  Legend,
+  Tooltip
 } from "recharts"
 import { Badge } from "@/components/ui/badge"
 import { Lock, TrendingUp, FlaskConical, PieChart as PieIcon, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+
+const outcomeConfig = {
+  improvement: {
+    label: "Improvement",
+    color: "#10b981", // emerald-500
+  },
+} satisfies ChartConfig
 
 interface OutcomeTrend {
   date: string
@@ -51,45 +64,51 @@ export function OutcomeTrendsCard({ outcomeTrends, isPro, className }: { outcome
           {!isPro && <LockOverlay />}
           <CardHeader>
             <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-medium">Outcome Progress</CardTitle>
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                    <TrendingUp className="h-4 w-4 text-emerald-600" />
+                </div>
+                <div>
+                    <CardTitle className="text-sm font-medium">MAS Improvement</CardTitle>
+                    <CardDescription>Average therapeutic gain over time</CardDescription>
+                </div>
             </div>
-            <CardDescription>Average MAS improvement score over time</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className={cn("h-[250px] w-full mt-4", !isPro && "blur-[2px] opacity-40")}>
-              <ResponsiveContainer width="100%" height="100%">
+            <div className={cn("mt-4", !isPro && "blur-[2px] opacity-40")}>
+              <ChartContainer
+                config={outcomeConfig}
+                className="aspect-auto h-[250px] w-full"
+              >
                 <LineChart data={isPro ? outcomeTrends : MOCK_OUTCOME_DATA}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
                   <XAxis 
                     dataKey="date" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 10 }}
-                    dy={10}
+                    tickMargin={10}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                   />
                   <YAxis 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 10 }}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    width={30}
                   />
-                  <Tooltip 
-                    contentStyle={{ 
-                        backgroundColor: "hsl(var(--popover))", 
-                        borderColor: "hsl(var(--border))", 
-                        borderRadius: "var(--radius)" 
-                    }}
+                  <ChartTooltip
+                    cursor={{ stroke: "#10b981", strokeWidth: 1 }}
+                    content={<ChartTooltipContent indicator="line" />}
                   />
                   <Line 
-                    type="monotone" 
+                    type="natural" 
                     dataKey="improvement" 
-                    stroke="hsl(var(--primary))" 
+                    stroke="#10b981" 
                     strokeWidth={3} 
-                    dot={{ fill: "hsl(var(--primary))", strokeWidth: 2 }}
+                    dot={{ fill: "hsl(var(--background))", stroke: "#10b981", strokeWidth: 2, r: 4 }}
                     activeDot={{ r: 6, strokeWidth: 0 }}
+                    animationDuration={1500}
                   />
                 </LineChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </CardContent>
         </Card>
@@ -97,48 +116,59 @@ export function OutcomeTrendsCard({ outcomeTrends, isPro, className }: { outcome
 }
 
 export function DoseDistributionCard({ dosePerIndication, isPro, className }: { dosePerIndication: DoseStat[], isPro: boolean, className?: string }) {
+  const chartConfig = {
+    avgUnits: {
+      label: "Avg Units",
+      color: "#3b82f6", // blue-500
+    },
+  } satisfies ChartConfig
+
   return (
         <Card className={cn("h-full", !isPro && "relative overflow-hidden", className)}>
           {!isPro && <LockOverlay />}
           <CardHeader>
             <div className="flex items-center gap-2">
-                <FlaskConical className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-medium">Average Dosage</CardTitle>
+                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <FlaskConical className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                    <CardTitle className="text-sm font-medium">Average Dosage</CardTitle>
+                    <CardDescription>Units per indication</CardDescription>
+                </div>
             </div>
-            <CardDescription>Average units injected per primary indication</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className={cn("h-[250px] w-full mt-4", !isPro && "blur-[2px] opacity-40")}>
-              <ResponsiveContainer width="100%" height="100%">
+            <div className={cn("mt-4", !isPro && "blur-[2px] opacity-40")}>
+              <ChartContainer
+                config={chartConfig}
+                className="aspect-auto h-[250px] w-full"
+              >
                 <BarChart data={isPro ? dosePerIndication : MOCK_DOSE_DATA}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
                   <XAxis 
                     dataKey="name" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 10 }}
-                    dy={10}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    tickMargin={10}
                   />
                   <YAxis 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 10 }}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    width={30}
                   />
-                  <Tooltip 
+                  <ChartTooltip
                     cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
-                    contentStyle={{ 
-                        backgroundColor: "hsl(var(--popover))", 
-                        borderColor: "hsl(var(--border))", 
-                        borderRadius: "var(--radius)" 
-                    }}
+                    content={<ChartTooltipContent indicator="dashed" />}
                   />
-                  <Bar dataKey="avgUnits" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="avgUnits" radius={[4, 4, 0, 0]} barSize={30}>
                     {(isPro ? dosePerIndication : MOCK_DOSE_DATA).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} opacity={0.8} />
                     ))}
                   </Bar>
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </CardContent>
         </Card>
@@ -151,10 +181,14 @@ export function CaseMixCard({ data, isPro, className }: { data: MixStat[], isPro
           {!isPro && <LockOverlay />}
           <CardHeader>
             <div className="flex items-center gap-2">
-                <PieIcon className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-medium">Case Mix</CardTitle>
+                <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                    <PieIcon className="h-4 w-4 text-amber-600" />
+                </div>
+                <div>
+                    <CardTitle className="text-sm font-medium">Case Mix</CardTitle>
+                    <CardDescription>Indication breakdown</CardDescription>
+                </div>
             </div>
-            <CardDescription>Indication breakdown of signed treatments</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center justify-center">
             <div className={cn("h-[250px] w-full", !isPro && "blur-[2px] opacity-40")}>
@@ -168,6 +202,7 @@ export function CaseMixCard({ data, isPro, className }: { data: MixStat[], isPro
                     outerRadius={80}
                     paddingAngle={5}
                     dataKey="value"
+                    stroke="none"
                   >
                     {(isPro ? data : MOCK_MIX_DATA).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -177,10 +212,11 @@ export function CaseMixCard({ data, isPro, className }: { data: MixStat[], isPro
                     contentStyle={{ 
                         backgroundColor: "hsl(var(--popover))", 
                         borderColor: "hsl(var(--border))", 
-                        borderRadius: "var(--radius)" 
+                        borderRadius: "var(--radius)",
+                        fontSize: "12px"
                     }}
                   />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '20px' }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -190,37 +226,47 @@ export function CaseMixCard({ data, isPro, className }: { data: MixStat[], isPro
 }
 
 export function ProductUtilizationCard({ data, isPro, className }: { data: MixStat[], isPro: boolean, className?: string }) {
+  const chartConfig = {
+    value: {
+      label: "Treatments",
+      color: "#8b5cf6", // violet-500
+    },
+  } satisfies ChartConfig
+
   return (
         <Card className={cn("h-full", !isPro && "relative overflow-hidden", className)}>
           {!isPro && <LockOverlay />}
           <CardHeader>
             <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-medium">Product Mix</CardTitle>
+                <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <Activity className="h-4 w-4 text-purple-600" />
+                </div>
+                <div>
+                    <CardTitle className="text-sm font-medium">Product Mix</CardTitle>
+                    <CardDescription>Toxin utilization</CardDescription>
+                </div>
             </div>
-            <CardDescription>Frequency of toxins used in clinic</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className={cn("h-[250px] w-full mt-4", !isPro && "blur-[2px] opacity-40")}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart layout="vertical" data={isPro ? data : MOCK_PRODUCT_DATA} margin={{ left: 20 }}>
+            <div className={cn("mt-4", !isPro && "blur-[2px] opacity-40")}>
+              <ChartContainer
+                config={chartConfig}
+                className="aspect-auto h-[250px] w-full"
+              >
+                <BarChart layout="vertical" data={isPro ? data : MOCK_PRODUCT_DATA} margin={{ left: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--muted))" />
-                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
                   <YAxis 
                     dataKey="name" 
                     type="category" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 10 }}
-                    width={80}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    width={70}
                   />
-                  <Tooltip 
+                  <ChartTooltip
                     cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
-                    contentStyle={{ 
-                        backgroundColor: "hsl(var(--popover))", 
-                        borderColor: "hsl(var(--border))", 
-                        borderRadius: "var(--radius)" 
-                    }}
+                    content={<ChartTooltipContent indicator="line" />}
                   />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
                     {(isPro ? data : MOCK_PRODUCT_DATA).map((entry, index) => (
@@ -228,7 +274,7 @@ export function ProductUtilizationCard({ data, isPro, className }: { data: MixSt
                     ))}
                   </Bar>
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </CardContent>
         </Card>

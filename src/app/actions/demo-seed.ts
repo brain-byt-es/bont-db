@@ -73,7 +73,21 @@ export async function seedDemoOrganizationAction() {
     const muscles = await prisma.muscle.findMany()
     const { patients, encounters } = generateDemoData(muscles)
 
-    // 4. Batch Create Patients & Identifiers
+    // 4. Create Products for the Demo Org
+    const productNames = ["Botox", "Xeomin", "Dysport", "Myobloc"]
+    const products = await Promise.all(
+        productNames.map(name => 
+            prisma.product.create({
+                data: {
+                    organizationId: demoOrg.id,
+                    name,
+                    manufacturer: name === "Botox" ? "Allergan" : name === "Xeomin" ? "Merz" : "Ipsen"
+                }
+            })
+        )
+    )
+
+    // 5. Batch Create Patients & Identifiers
     await prisma.patient.createMany({
         data: patients.map(p => ({
             id: p.id,
@@ -94,17 +108,20 @@ export async function seedDemoOrganizationAction() {
         }))
     })
 
-    // 5. Flatten & Prepare Encounters, Injections, Goals, Outcomes
+    // 6. Flatten & Prepare Encounters, Injections, Goals, Outcomes, Assessments
     const membershipIds = [ownerMembership.id, providerMembership.id]
     
     const encounterPayload: Prisma.EncounterCreateManyInput[] = []
     const injectionPayload: Prisma.InjectionCreateManyInput[] = []
     const goalPayload: Prisma.TreatmentGoalCreateManyInput[] = []
     const outcomePayload: Prisma.GoalOutcomeCreateManyInput[] = []
+    const injectionAssessmentPayload: Prisma.InjectionAssessmentCreateManyInput[] = []
+    const followupPayload: Prisma.FollowupCreateManyInput[] = []
 
     for (const e of encounters) {
         const mId = membershipIds[Math.floor(Math.random() * membershipIds.length)]
         const unitsPerMl = e.vialSize / e.dilution
+        const productId = products.find(p => p.name === e.product)?.id
 
         encounterPayload.push({
             id: e.id,
@@ -117,6 +134,7 @@ export async function seedDemoOrganizationAction() {
             status: e.status,
             indication: e.indication,
             treatmentSite: e.treatmentSite,
+            productId: productId,
             totalUnits: new Prisma.Decimal(e.totalUnits),
             dilutionText: `${e.vialSize}U in ${e.dilution}ml`,
             dilutionUnitsPerMl: new Prisma.Decimal(unitsPerMl),
@@ -124,8 +142,18 @@ export async function seedDemoOrganizationAction() {
             adverseEventNotes: "keine"
         })
 
+        if (e.followup) {
+            followupPayload.push({
+                id: crypto.randomUUID(),
+                encounterId: e.id,
+                followupDate: e.followup.date,
+                outcome: e.followup.outcome
+            })
+        }
+
         e.injections.forEach((inj) => {
             injectionPayload.push({
+                id: inj.id,
                 organizationId: demoOrg.id,
                 encounterId: e.id,
                 muscleId: inj.muscleId,
@@ -133,6 +161,28 @@ export async function seedDemoOrganizationAction() {
                 units: new Prisma.Decimal(inj.units),
                 volumeMl: new Prisma.Decimal(inj.units / unitsPerMl)
             })
+
+            // Seed MAS Assessments if present
+            if (inj.masBaseline !== undefined) {
+                injectionAssessmentPayload.push({
+                    id: crypto.randomUUID(),
+                    injectionId: inj.id,
+                    timepoint: "baseline",
+                    scale: "MAS",
+                    valueText: inj.masBaseline.toString(),
+                    valueNum: new Prisma.Decimal(inj.masBaseline)
+                })
+            }
+            if (inj.masPeak !== undefined) {
+                injectionAssessmentPayload.push({
+                    id: crypto.randomUUID(),
+                    injectionId: inj.id,
+                    timepoint: "peak_effect",
+                    scale: "MAS",
+                    valueText: inj.masPeak.toString(),
+                    valueNum: new Prisma.Decimal(inj.masPeak)
+                })
+            }
         })
 
         e.goals.forEach((g) => {
@@ -146,6 +196,7 @@ export async function seedDemoOrganizationAction() {
 
         e.goalOutcomes.forEach((o) => {
             outcomePayload.push({
+                id: crypto.randomUUID(),
                 assessmentEncounterId: e.id,
                 goalId: o.goalId,
                 score: o.score,
@@ -154,8 +205,7 @@ export async function seedDemoOrganizationAction() {
         })
     }
 
-    // 6. Execute Batch Insertions in Strict Dependency Order
-    // Chunking to 500 records per query to be safe with DB limits
+    // 7. Execute Batch Insertions in Strict Dependency Order
     const CHUNK_SIZE = 500
 
     for (let i = 0; i < encounterPayload.length; i += CHUNK_SIZE) {
@@ -164,11 +214,17 @@ export async function seedDemoOrganizationAction() {
     for (let i = 0; i < injectionPayload.length; i += CHUNK_SIZE) {
         await prisma.injection.createMany({ data: injectionPayload.slice(i, i + CHUNK_SIZE) })
     }
+    for (let i = 0; i < injectionAssessmentPayload.length; i += CHUNK_SIZE) {
+        await prisma.injectionAssessment.createMany({ data: injectionAssessmentPayload.slice(i, i + CHUNK_SIZE) })
+    }
     for (let i = 0; i < goalPayload.length; i += CHUNK_SIZE) {
         await prisma.treatmentGoal.createMany({ data: goalPayload.slice(i, i + CHUNK_SIZE) })
     }
     for (let i = 0; i < outcomePayload.length; i += CHUNK_SIZE) {
         await prisma.goalOutcome.createMany({ data: outcomePayload.slice(i, i + CHUNK_SIZE) })
+    }
+    for (let i = 0; i < followupPayload.length; i += CHUNK_SIZE) {
+        await prisma.followup.createMany({ data: followupPayload.slice(i, i + CHUNK_SIZE) })
     }
 
     // Set preference cookie to land in this demo org
