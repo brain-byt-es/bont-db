@@ -29,10 +29,27 @@ const MUSCLE_POOL = {
     Axilla: ["Axilla (Hyperhidrosis)"]
 }
 
-const GOAL_TEMPLATES = {
-    SYMPTOM: ["Reduce pain during rest", "Decrease spasm frequency", "Improve sleep quality", "Reduce tension headache intensity"],
-    FUNCTION: ["Improve walking distance", "Better grip strength for eating", "Enable self-dressing", "Improve neck range of motion"],
-    PARTICIPATION: ["Return to part-time work", "Attend social events without discomfort", "Improve piano playing dexterity", "Walk to the bakery independently"]
+const GOAL_TEMPLATES: Record<string, Record<GoalCategory, string[]>> = {
+    spastik: {
+        SYMPTOM: ["Reduce pain in affected limb", "Decrease muscle stiffness (MAS)", "Reduce frequency of spasms", "Improve sleep comfort"],
+        FUNCTION: ["Improve walking distance", "Facilitate hand hygiene", "Improve grip release", "Ease dressing/undressing"],
+        PARTICIPATION: ["Return to work", "Walk to the bakery independently", "Attend social gatherings", "Play musical instrument"]
+    },
+    kopfschmerz: {
+        SYMPTOM: ["Reduce headache days per month", "Decrease headache intensity (VAS)", "Reduce acute medication intake", "Reduce photophobia"],
+        FUNCTION: ["Improve concentration at work", "Reduce absenteeism", "Improve sleep quality", "Ability to read for >30 mins"],
+        PARTICIPATION: ["Participate in family weekends", "Return to full-time work", "Enjoy hobbies without pain", "Attend concert/cinema"]
+    },
+    dystonie: {
+        SYMPTOM: ["Reduce neck pain intensity", "Decrease involuntary head turning", "Relieve neck tremor", "Reduce shoulder tension"],
+        FUNCTION: ["Improve head posture while driving", "Facilitate eating/drinking", "Improve reading comfort", "Ease shaving/makeup application"],
+        PARTICIPATION: ["Socialize without embarrassment", "Attend business meetings comfortably", "Go to the cinema", "Drive for >1 hour"]
+    },
+    autonom: {
+        SYMPTOM: ["Reduce axillary sweating", "Decrease saliva production", "Reduce skin maceration", "Reduce odor"],
+        FUNCTION: ["Improve grip stability (less sweat)", "Reduce swallowing difficulties", "Reduce need for clothing changes", "Improve skin condition"],
+        PARTICIPATION: ["Shake hands confidently", "Wear colored clothing", "Speak in public without issues", "Attend gym classes"]
+    }
 }
 
 interface PatientData {
@@ -190,12 +207,18 @@ export function generateDemoData(muscles: { id: string, name: string }[]) {
             if (!prevEncounter) {
                 const categories = [GoalCategory.SYMPTOM, GoalCategory.FUNCTION, GoalCategory.PARTICIPATION]
                 const numGoals = 1 + (Math.random() > 0.7 ? 1 : 0)
+                
+                // Fetch context-aware templates based on indication
+                const templatesByIndication = GOAL_TEMPLATES[indication.label] || GOAL_TEMPLATES['spastik'] // fallback
+
                 for (let g = 0; g < numGoals; g++) {
                     const cat = categories[Math.floor(Math.random() * categories.length)]
+                    const templates = templatesByIndication[cat]
+                    
                     encounter.goals.push({
                         id: crypto.randomUUID(),
                         category: cat,
-                        description: GOAL_TEMPLATES[cat][Math.floor(Math.random() * GOAL_TEMPLATES[cat].length)]
+                        description: templates[Math.floor(Math.random() * templates.length)]
                     })
                 }
             } else {
