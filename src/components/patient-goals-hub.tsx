@@ -167,20 +167,29 @@ export function PatientGoalsHub({ patientId, initialGoals }: PatientGoalsHubProp
                                         <div className="flex items-center gap-4 bg-muted/30 p-2 rounded-xl border border-muted">
                                             <div className="px-2 border-r border-muted min-w-[100px]">
                                                 <p className="text-[10px] font-bold uppercase text-muted-foreground">Current GAS</p>
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className={cn(
-                                                        "text-lg font-black",
-                                                        latestAssessment.score >= 0 ? "text-emerald-600" : "text-amber-600"
-                                                    )}>
-                                                        {latestAssessment.score > 0 ? "+" : ""}{latestAssessment.score}
-                                                    </span>
-                                                    <Badge className={cn(
-                                                        "text-[10px] h-4 py-0 font-normal",
-                                                        GAS_SCALE.find(s => s.value === latestAssessment.score)?.color
-                                                    )}>
-                                                        {GAS_SCALE.find(s => s.value === latestAssessment.score)?.label}
-                                                    </Badge>
-                                                </div>
+                                                {latestAssessment ? (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className={cn(
+                                                            "text-lg font-black",
+                                                            latestAssessment.score >= 0 ? "text-emerald-600" : "text-amber-600"
+                                                        )}>
+                                                            {latestAssessment.score > 0 ? "+" : ""}{latestAssessment.score}
+                                                        </span>
+                                                        <Badge className={cn(
+                                                            "text-[10px] h-4 py-0 font-normal",
+                                                            GAS_SCALE.find(s => s.value === latestAssessment.score)?.color
+                                                        )}>
+                                                            {GAS_SCALE.find(s => s.value === latestAssessment.score)?.label}
+                                                        </Badge>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-lg font-black text-muted-foreground">--</span>
+                                                        <Badge variant="outline" className="text-[10px] h-4 py-0 font-normal">
+                                                            Pending
+                                                        </Badge>
+                                                    </div>
+                                                )}
                                             </div>
                                             
                                             <div className="flex gap-1">
@@ -190,7 +199,7 @@ export function PatientGoalsHub({ patientId, initialGoals }: PatientGoalsHubProp
                                                         onClick={() => handleQuickScore(goal.id, s.value)}
                                                         className={cn(
                                                             "h-8 w-8 rounded flex items-center justify-center text-[10px] font-bold transition-all border",
-                                                            latestAssessment.score === s.value 
+                                                            latestAssessment?.score === s.value 
                                                                 ? s.color + " " + s.border + " scale-110 shadow-sm"
                                                                 : "bg-background hover:bg-muted text-muted-foreground border-transparent"
                                                         )}
