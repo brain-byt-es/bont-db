@@ -99,7 +99,7 @@ export default function SupportPage() {
                 <AccordionItem value="item-4" className="px-6 border-t border-b-0">
                     <AccordionTrigger className="hover:no-underline py-4">How do Smart Defaults work?</AccordionTrigger>
                     <AccordionContent className="text-muted-foreground pb-4">
-                        The Advanced Dose Engine analyzes the patient&apos;s history and automatically suggests dosages and injection sites based on the last successful treatment. This significantly reduces documentation time while maintaining precision.
+                        The Dose Reference Assistant provides historical context by analyzing the patient&apos;s past procedures. It displays dosages and injection sites from the last successful treatment as a reference point. This significantly reduces documentation time while maintaining record accuracy.
                     </AccordionContent>
                 </AccordionItem>
 

@@ -5,8 +5,9 @@ import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { BodySide, Timepoint, EncounterStatus, Prisma } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
-import { getDoseSuggestions, CLINICAL_PROTOCOLS } from "@/lib/dose-engine"
+import { getDoseReferences, CLINICAL_PROTOCOLS } from "@/lib/dose-reference"
 import { logAuditAction } from "@/lib/audit-logger"
+import { getOrgPolicy, validateSafeResponse } from "@/lib/compliance"
 
 interface AssessmentData {
   scale: string;
@@ -231,6 +232,9 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
   })
 
   await logAuditAction(ctx, "TREATMENT_CREATED", "Encounter", encounter.id, { patientId: subject_id, totalUnits: total_units })
+  if (status === "SIGNED") {
+      await logAuditAction(ctx, "TREATMENT_SIGNED", "Encounter", encounter.id, { patientId: subject_id })
+  }
 
   revalidatePath('/patients')
   revalidatePath(`/patients/${subject_id}`)
@@ -443,13 +447,27 @@ export async function getPreviousGoalsAction(patientId: string) {
 }
 
 /**
- * Advanced Dose Engine: Get suggestions for a specific patient and muscle.
+ * Dose Reference Assistant: Get historical context for a specific patient and muscle.
  */
-export async function getDoseSuggestionsAction(patientId: string, muscleId: string) {
+export async function getDoseReferencesAction(patientId: string, muscleId: string) {
   const ctx = await getOrganizationContext()
   if (!ctx) throw new Error("No organization context")
   
-  return await getDoseSuggestions(ctx.organizationId, patientId, muscleId)
+  // Policy Check: If mode is STRICT, return nothing.
+  const policy = await getOrgPolicy(ctx.organizationId)
+  if (policy.mode === 'STRICT') {
+      return []
+  }
+
+  const data = await getDoseReferences(ctx.organizationId, patientId, muscleId)
+  
+  // Log policy-relevant action
+  if (data.length > 0) {
+      await logAuditAction(ctx, "VIEWED_DOSE_REFERENCE", "Muscle", muscleId, { patientId })
+  }
+
+  // Compliance Guard: Ensure no forbidden terms are returned to the client
+  return validateSafeResponse(data, "DoseReferenceAction")
 }
 
 /**

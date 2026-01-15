@@ -74,10 +74,10 @@ InjexPro uses a longitudinal, GAS-inspired framework to connect treatment intent
 - **Goal Assessments:** GAS scores (-2 to +2) are time-stamped and clinician-attributed, supporting inter-session progress reviews (e.g., via phone or physio).
 - **Trend Visualization:** Integrated Recharts-based trend lines show therapeutic gain chronologically per goal.
 
-### Advanced Dose Engine
-- **Automatic Calculation:** Live conversion between Units and Volume (ml).
-- **Clinical Protocols:** Indication-specific presets (e.g., PREEMPT Migraine, Spasticity).
-- **Smart Suggestions:** Automated dose hints based on specific patient history and muscle selection.
+### Dose Reference Assistant
+- **Automatic Calculation:** Deterministic conversion between Units and Volume (ml) based on user-entered values.
+- **Clinical Protocols:** Reference-only indication-specific presets (e.g., PREEMPT Migraine, Spasticity).
+- **Historical References:** Automated dose context based on specific patient history and muscle selection.
 - **Query Optimization:** Two-step history fetching (Encounters -> Injections) to avoid complex joins and ensure high performance.
 
 ## 5. Roadmap & Follow-up Actions

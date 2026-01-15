@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Trash2, Copy, Sparkles } from "lucide-react"
+import { Plus, Trash2, Copy, Sparkles, AlertCircle } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -27,9 +27,11 @@ import {
   CardDescription
 } from "@/components/ui/card"
 import { MuscleSelector, Muscle, MuscleRegion } from "@/components/muscle-selector"
-import { getDoseSuggestionsAction } from "@/app/(dashboard)/treatments/actions"
-import { DoseSuggestion } from "@/lib/dose-engine"
+import { getDoseReferencesAction } from "@/app/(dashboard)/treatments/actions"
+import { DoseReference } from "@/lib/dose-reference"
 import { useEffect, useState } from "react"
+import { SAFETY_COPY, SAFETY_TOOLTIPS } from "@/lib/safety-copy"
+import { cn } from "@/lib/utils"
 
 export interface ProcedureStep {
   id: string
@@ -51,7 +53,7 @@ interface ProcedureStepsEditorProps {
   patientId?: string
 }
 
-function DoseSuggestionHint({ 
+function DoseReferenceHint({ 
     muscleId, 
     patientId, 
     onApply 
@@ -60,30 +62,30 @@ function DoseSuggestionHint({
     patientId?: string, 
     onApply: (units: number, side: ProcedureStep["side"]) => void 
 }) {
-    const [suggestion, setSuggestion] = useState<DoseSuggestion | null>(null)
+    const [reference, setReference] = useState<DoseReference | null>(null)
 
     useEffect(() => {
         if (!muscleId || !patientId) return
-        const fetchSuggestion = async () => {
-            const results = await getDoseSuggestionsAction(patientId, muscleId)
-            if (results.length > 0) setSuggestion(results[0])
+        const fetchReference = async () => {
+            const results = await getDoseReferencesAction(patientId, muscleId)
+            if (results.length > 0) setReference(results[0])
         }
-        fetchSuggestion()
+        fetchReference()
     }, [muscleId, patientId])
 
-    if (!suggestion) return null
+    if (!reference) return null
 
     return (
         <Button
             variant="ghost"
             size="sm"
             className="h-6 px-1.5 text-[10px] text-primary bg-primary/5 hover:bg-primary/10 flex items-center gap-1 mt-1"
-            onClick={() => onApply(suggestion.units, suggestion.side)}
+            onClick={() => onApply(reference.units, reference.side)}
             type="button"
-            title={`Suggestion based on patient history: ${suggestion.units} U`}
+            title={SAFETY_TOOLTIPS.DOSE_HISTORY}
         >
             <Sparkles className="size-2.5" />
-            Apply {suggestion.units} U
+            Use {SAFETY_COPY.DOSE_HISTORY}: {reference.units} U
         </Button>
     )
 }
@@ -202,9 +204,15 @@ export function ProcedureStepsEditor({
                       value={step.numeric_value}
                       onChange={(e) => updateStep(step.id, "numeric_value", parseFloat(e.target.value))}
                       disabled={disabled}
+                      className={cn(step.numeric_value > 100 && "border-amber-500 bg-amber-50/50")}
                     />
+                    {step.numeric_value > 100 && (
+                        <div className="flex items-center gap-1 mt-1 text-[9px] text-amber-600 font-bold uppercase tracking-tighter">
+                            <AlertCircle className="size-2.5" /> High dose check
+                        </div>
+                    )}
                     {!disabled && patientId && step.muscle_id && (
-                        <DoseSuggestionHint 
+                        <DoseReferenceHint 
                             muscleId={step.muscle_id} 
                             patientId={patientId} 
                             onApply={(units, side) => {
@@ -312,9 +320,15 @@ export function ProcedureStepsEditor({
                         value={step.numeric_value}
                         onChange={(e) => updateStep(step.id, "numeric_value", parseFloat(e.target.value))}
                         disabled={disabled}
+                        className={cn(step.numeric_value > 100 && "border-amber-500 bg-amber-50/50")}
                       />
+                      {step.numeric_value > 100 && (
+                          <div className="flex items-center gap-1 mt-1 text-[9px] text-amber-600 font-bold uppercase tracking-tighter">
+                              <AlertCircle className="size-2.5" /> High dose check
+                          </div>
+                      )}
                       {!disabled && patientId && step.muscle_id && (
-                        <DoseSuggestionHint 
+                        <DoseReferenceHint 
                             muscleId={step.muscle_id} 
                             patientId={patientId} 
                             onApply={(units, side) => {

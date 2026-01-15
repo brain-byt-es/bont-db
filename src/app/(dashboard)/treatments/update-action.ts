@@ -5,6 +5,7 @@ import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { BodySide, Timepoint, EncounterStatus } from "@/generated/client/client"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
+import { logAuditAction } from "@/lib/audit-logger"
 
 interface AssessmentData {
   scale: string;
@@ -255,6 +256,11 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     }
 
   })
+
+  await logAuditAction(ctx, "TREATMENT_UPDATED", "Encounter", treatmentId, { patientId: subject_id })
+  if (status === "SIGNED") {
+      await logAuditAction(ctx, "TREATMENT_SIGNED", "Encounter", treatmentId, { patientId: subject_id })
+  }
 
   revalidatePath(`/treatments/${treatmentId}`)
   revalidatePath(`/patients/${subject_id}`)

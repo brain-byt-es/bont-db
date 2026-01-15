@@ -191,6 +191,12 @@ model UserIdentity {
   @@schema("public")
 }
 
+enum DecisionSupportMode {
+  REFERENCE_ONLY
+  STRICT
+  @@schema("public")
+}
+
 /* =========================
    Organizations + Memberships
    ========================= */
@@ -216,6 +222,10 @@ model Organization {
   proUntil               DateTime?
 
   preferences Json? @default("{}")
+  
+  // Compliance & Decision Support
+  decisionSupportMode DecisionSupportMode @default(STRICT)
+  featureFlags        Json                @default("{}")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

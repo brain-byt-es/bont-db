@@ -12,6 +12,8 @@ import { PatientTimeline } from "@/components/patient-timeline"
 import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
 import { PatientGoalsHub, Goal } from "@/components/patient-goals-hub"
 import { GoalTrendChart } from "@/components/goal-trend-chart"
+import Link from "next/link"
+import { TrendingUp } from "lucide-react"
 
 interface Patient {
   id: string;
@@ -57,18 +59,26 @@ export default function PatientPage({ patient, treatments, goals, organization }
     <div className="flex flex-col gap-4 pt-6">
       <div className="flex items-center justify-between">
         <PatientHeader patient={patient} />
-        <TreatmentDialog 
-          open={treatmentDialogOpen} 
-          onOpenChange={setTreatmentDialogOpen} 
-          defaultPatientId={patient.id}
-          patients={[patient]}
-          organization={organization}
-        >
-          <Button onClick={() => setTreatmentDialogOpen(true)}>
-            <Plus className="mr-2 size-4" />
-            New Record
-          </Button>
-        </TreatmentDialog>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+                <Link href={`/patients/${patient.id}/insights`}>
+                    <TrendingUp className="mr-2 size-4" />
+                    Clinical Insights
+                </Link>
+            </Button>
+            <TreatmentDialog 
+              open={treatmentDialogOpen} 
+              onOpenChange={setTreatmentDialogOpen} 
+              defaultPatientId={patient.id}
+              patients={[patient]}
+              organization={organization}
+            >
+              <Button onClick={() => setTreatmentDialogOpen(true)}>
+                <Plus className="mr-2 size-4" />
+                New Record
+              </Button>
+            </TreatmentDialog>
+        </div>
       </div>
 
       <Tabs defaultValue={organization?.preferences?.standard_patient_view || "timeline"} className="w-full">

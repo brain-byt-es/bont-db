@@ -170,7 +170,7 @@ export function PricingTable({ className }: { className?: string }) {
               >
                 {plan.isPro && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-4 py-1.5 rounded-full flex items-center gap-1.5 tracking-wider">
-                        <Sparkles className="size-3" /> RECOMMENDED
+                        <Sparkles className="size-3" /> MOST POPULAR
                     </div>
                 )}
                 <CardHeader className="pb-8">

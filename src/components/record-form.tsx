@@ -75,9 +75,10 @@ import { checkPermission, PERMISSIONS, checkPlan } from "@/lib/permissions"
 import { MembershipRole, Plan, GoalCategory, GoalStatus } from "@/generated/client/enums"
 import { useAuthContext } from "@/components/auth-context-provider"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
-import { Protocol } from "@/lib/dose-engine"
+import { Protocol } from "@/lib/dose-reference"
 import { DiagnosisPicker } from "@/components/diagnosis-picker"
 import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
+import { SAFETY_COPY } from "@/lib/safety-copy"
 
 const formSchema = z.object({
   subject_id: z.string().min(1, {
@@ -165,8 +166,8 @@ interface StepConfig {
 
 const STEPS: StepConfig[] = [
     { id: 'context', title: 'Context', description: 'Product & Meta', icon: Settings2 },
-    { id: 'intent', title: 'Intent', description: 'Goals & GAS', icon: Target },
     { id: 'procedure', title: 'Procedure', description: 'Injections', icon: Activity },
+    { id: 'intent', title: 'Intent', description: 'Goals & GAS', icon: Target },
     { id: 'review', title: 'Review', description: 'Sign & Lock', icon: FileText },
 ]
 
@@ -298,7 +299,7 @@ export function RecordForm({
                  setSteps(newSteps)
              }
              setIsSmartFilled(true)
-             toast.success("Pro Assistant: Pre-filled from last visit")
+             toast.success(`Dose History: ${SAFETY_COPY.REFERENCE_ONLY}`)
         }
     }
     fetchData()
@@ -645,12 +646,12 @@ export function RecordForm({
                 {!isEditing && watchedValues.subject_id && (
                     <div className="space-y-2">
                         {isSmartFilled && (
-                            <Badge variant="secondary" className="w-full bg-primary/10 text-primary border-primary/20 flex gap-1 items-center px-2 py-1 justify-center">
-                                <Sparkles className="h-3 w-3" /> Smart Pre-fill
+                            <Badge variant="secondary" className="w-full bg-primary/10 text-primary border-primary/20 flex gap-1 items-center px-2 py-1 justify-center" title={SAFETY_COPY.REFERENCE_ONLY}>
+                                <Sparkles className="h-3 w-3" /> History Applied
                             </Badge>
                         )}
-                        <Button variant="outline" size="sm" type="button" onClick={handleCopyLastVisit} className="w-full text-[10px] h-8">
-                            <Save className="mr-2 h-3 w-3" /> Last Visit
+                        <Button variant="outline" size="sm" type="button" onClick={handleCopyLastVisit} className="w-full text-[10px] h-8" title={SAFETY_COPY.PREVIOUS_EFFECTIVE}>
+                            <Save className="mr-2 h-3 w-3" /> {SAFETY_COPY.DOSE_HISTORY}
                         </Button>
                     </div>
                 )}
@@ -697,7 +698,10 @@ export function RecordForm({
 
                                     <div className="p-4 border rounded-xl bg-muted/20 space-y-6">
                                         <div className="flex items-center justify-between">
-                                            <Label>Toxin Product</Label>
+                                            <div className="flex flex-col">
+                                                <Label>Toxin Product</Label>
+                                                <span className="text-[9px] text-muted-foreground italic">{SAFETY_COPY.REFERENCE_ONLY}</span>
+                                            </div>
                                             {protocols.length > 0 && (
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>

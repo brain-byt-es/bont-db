@@ -16,6 +16,7 @@ import { SettingsTabs } from "./settings-tabs"
 import { cn } from "@/lib/utils"
 import { ComplianceUpgradeTeaser } from "@/components/settings/compliance-upgrade-teaser"
 import { ClinicalSettingsForm } from "@/components/settings/clinical-settings-form"
+import { DecisionSupportToggle } from "./decision-support-toggle"
 import { getAuditLogs, getAuditFilterOptions } from "./audit-logs/actions"
 import { AuditLogManager } from "@/components/settings/audit-log-manager"
 import { IntegrationsManager } from "@/components/settings/integrations-manager"
@@ -289,15 +290,18 @@ export default async function SettingsPage({
                 <Card className={cn(!isPro && "opacity-60 grayscale-[0.5]")}>
                     <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        Compliance & Exports
+                        Clinical Decision Support
                         {!isPro && <Badge variant="secondary" className="font-normal text-[10px] h-4">Pro</Badge>}
                     </CardTitle>
                     <CardDescription>
-                        Manage documentation standards and export formats.
+                        Manage how historical references and protocols are displayed.
                     </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                    <ComplianceToggle initialValue={settings.enable_compliance_views && isPro} disabled={!isPro} />
+                    <CardContent className="space-y-6">
+                        <DecisionSupportToggle initialValue={ctx.organization.decisionSupportMode} disabled={!isPro} />
+                        <div className="pt-4 border-t">
+                            <ComplianceToggle initialValue={settings.enable_compliance_views && isPro} disabled={!isPro} />
+                        </div>
                     </CardContent>
                 </Card>
 

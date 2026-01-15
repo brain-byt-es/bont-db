@@ -65,9 +65,9 @@ export function AssessmentManager({ assessments, onChange, indication, disabled 
     const hasAny = (scale: string) => assessments.some(a => a.scale === scale)
 
     if (indication === "dystonie") {
-      if (!hasBaseline("TWSTRS") && !hasBaseline("Tsui")) newWarnings.push("Recommended Baseline Score (TWSTRS or Tsui) missing")
+      if (!hasBaseline("TWSTRS") && !hasBaseline("Tsui")) newWarnings.push("Standard Baseline Score (TWSTRS or Tsui) missing")
     } else if (indication === "kopfschmerz") {
-      if (!hasAny("HIT-6") && !hasBaseline("MIDAS")) newWarnings.push("Recommended Score (HIT-6 or MIDAS) missing")
+      if (!hasAny("HIT-6") && !hasBaseline("MIDAS")) newWarnings.push("Standard Score (HIT-6 or MIDAS) missing")
     }
 
     setWarnings(newWarnings)
@@ -136,7 +136,7 @@ export function AssessmentManager({ assessments, onChange, indication, disabled 
                assessments.length > 0 && (
                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                        <CheckCircle2 className="mr-1 h-3 w-3" />
-                       Score Recommendations Met
+                       Standard Scores Documented
                    </Badge>
                )
            )}

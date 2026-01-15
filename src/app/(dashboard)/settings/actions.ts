@@ -5,6 +5,7 @@ import { getOrganizationContext } from "@/lib/auth-context"
 import prisma from "@/lib/prisma"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 import { logAuditAction } from "@/lib/audit-logger"
+import { DecisionSupportMode } from "@/generated/client/enums"
 
 export interface OrganizationPreferences {
   enable_compliance_views?: boolean;
@@ -14,6 +15,23 @@ export interface OrganizationPreferences {
   logo_url?: string;
   default_supervisor_name?: string;
   is_demo?: boolean;
+}
+
+export async function updateDecisionSupportMode(mode: DecisionSupportMode) {
+  const ctx = await getOrganizationContext()
+  if (!ctx) return { error: "Not found" }
+
+  requirePermission(ctx.membership.role, PERMISSIONS.MANAGE_ORGANIZATION)
+
+  await prisma.organization.update({
+    where: { id: ctx.organizationId },
+    data: { decisionSupportMode: mode }
+  })
+
+  await logAuditAction(ctx, "DECISION_SUPPORT_MODE_UPDATED", "Organization", ctx.organizationId, { mode })
+
+  revalidatePath('/settings')
+  return { success: true }
 }
 
 export async function updateComplianceSettings(enabled: boolean) {
