@@ -166,8 +166,8 @@ interface StepConfig {
 
 const STEPS: StepConfig[] = [
     { id: 'context', title: 'Context', description: 'Product & Meta', icon: Settings2 },
-    { id: 'procedure', title: 'Procedure', description: 'Injections', icon: Activity },
     { id: 'intent', title: 'Intent', description: 'Goals & GAS', icon: Target },
+    { id: 'procedure', title: 'Procedure', description: 'Injections', icon: Activity },
     { id: 'review', title: 'Review', description: 'Sign & Lock', icon: FileText },
 ]
 
@@ -803,7 +803,7 @@ export function RecordForm({
                                         />
 
                                         <div className="pt-4 border-t">
-                                            <Collapsible>
+                                            <Collapsible defaultOpen={true}>
                                                 <CollapsibleTrigger asChild>
                                                     <Button variant="ghost" size="sm" className="w-full justify-between text-xs text-muted-foreground h-8 font-bold uppercase tracking-widest">
                                                         Clinical Assessments & Scores <ChevronDown className="h-3 w-3" />
