@@ -100,7 +100,7 @@ export function TreatmentEditDialog({ treatmentId, open, onOpenChange }: Treatme
   if (isLoading && !initialData) {
       return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-4xl min-h-[400px] flex flex-col items-center justify-center">
+            <DialogContent className="sm:max-w-5xl h-[90vh] flex flex-col items-center justify-center">
                 <DialogHeader>
                     <DialogTitle>Loading Treatment...</DialogTitle>
                 </DialogHeader>

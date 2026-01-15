@@ -161,6 +161,22 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
     productId = product.id
   }
 
+  // Handle Diagnosis (Lookup ID by code if needed)
+  let resolvedDiagnosisId: string | null = null
+  if (diagnosis_id) {
+      // Check if it's a UUID or a code
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(diagnosis_id)
+      
+      if (isUuid) {
+          resolvedDiagnosisId = diagnosis_id
+      } else {
+          const diagRecord = await prisma.diagnosis.findFirst({
+              where: { code: diagnosis_id }
+          })
+          resolvedDiagnosisId = diagRecord?.id || null
+      }
+  }
+
   // Create Encounter with ALL nested data
   const encounter = await prisma.encounter.create({
     data: {
@@ -191,9 +207,9 @@ export async function createTreatment(formData: CreateTreatmentFormData) {
       assessments: {
         create: assessmentsCreate
       },
-      diagnoses: diagnosis_id ? {
+      diagnoses: resolvedDiagnosisId ? {
         create: {
-            diagnosisId: diagnosis_id
+            diagnosisId: resolvedDiagnosisId
         }
       } : undefined,
 

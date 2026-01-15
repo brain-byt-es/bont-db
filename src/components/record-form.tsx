@@ -5,14 +5,13 @@ import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Save, ChevronDown, Wand2, Lock, Unlock, Sparkles, Plus as PlusIcon } from "lucide-react"
+import { CalendarIcon, Save, ChevronDown, Wand2, Lock, Unlock, Sparkles, Plus as PlusIcon, Settings2, Target, Activity, FileText, CheckCircle2, ChevronRight, ChevronLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Form,
@@ -64,6 +63,7 @@ import { cn } from "@/lib/utils"
 import { ProcedureStepsEditor, ProcedureStep } from "@/components/procedure-steps-editor"
 import { AssessmentManager, Assessment } from "@/components/assessment-manager"
 import { TreatmentGoalManager } from "@/components/treatment-goal-manager"
+import { MuscleMASManager } from "@/components/muscle-mas-manager"
 import { createTreatment, getMuscles, getMuscleRegions, getLatestTreatment, getProtocolsAction, saveProtocolAction, getPreviousGoalsAction } from "@/app/(dashboard)/treatments/actions"
 import { updateTreatment } from "@/app/(dashboard)/treatments/update-action"
 import { reopenTreatmentAction } from "@/app/(dashboard)/treatments/status-actions"
@@ -154,6 +154,29 @@ interface Goal {
     status: GoalStatus
 }
 
+type StepId = 'context' | 'intent' | 'procedure' | 'review'
+
+interface StepConfig {
+    id: StepId
+    title: string
+    description: string
+    icon: React.ElementType
+}
+
+const STEPS: StepConfig[] = [
+    { id: 'context', title: 'Context', description: 'Product & Meta', icon: Settings2 },
+    { id: 'intent', title: 'Intent', description: 'Goals & GAS', icon: Target },
+    { id: 'procedure', title: 'Procedure', description: 'Injections', icon: Activity },
+    { id: 'review', title: 'Review', description: 'Sign & Lock', icon: FileText },
+]
+
+interface PreviousAssessment {
+    scale: string
+    timepoint: string
+    valueNum: number | null
+    notes: string | null
+}
+
 export function RecordForm({
   patients,
   defaultSubjectId,
@@ -173,6 +196,7 @@ export function RecordForm({
   const isSigned = status === "SIGNED"
   const canWrite = checkPermission(userRole as MembershipRole, PERMISSIONS.WRITE_TREATMENTS)
 
+  const [activeStep, setActiveStep] = useState<StepId>('context')
   const [steps, setSteps] = useState<ProcedureStep[]>(initialData?.steps || [])
   const [assessments, setAssessments] = useState<Assessment[]>(initialData?.assessments || [])
   
@@ -194,7 +218,6 @@ export function RecordForm({
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const [piiDetected, setPiiDetected] = useState<string[]>([])
   const [pendingValues, setPendingValues] = useState<z.infer<typeof formSchema> | null>(null)
-  const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [reopenReason, setReopenReason] = useState("")
   const [isSmartFilled, setIsSmartFilled] = useState(false)
   const [protocols, setProtocols] = useState<Protocol[]>([])
@@ -215,7 +238,6 @@ export function RecordForm({
     },
   })
 
-  // Use useWatch to reactively subscribe to form changes without imperative subscription issues
   const watchedValues = useWatch({ control: form.control })
   const categoryValue = watchedValues.category
   const productValue = watchedValues.product_label
@@ -237,7 +259,6 @@ export function RecordForm({
       toast.info(`Applied preset: ${preset.label}`)
   }
 
-  // Fetch latest treatment for defaults and previous goals for review
   const subjectId = form.watch("subject_id")
   useEffect(() => {
     if (isEditing || !subjectId) return
@@ -250,7 +271,6 @@ export function RecordForm({
 
         if (prevGoalsData) {
             setPreviousTargetedGoals(prevGoalsData.goals as Goal[])
-            // Pre-fill goal assessments for review if they exist
             if (prevGoalsData.goals.length > 0) {
                 setGoalAssessments(prevGoalsData.goals.map((g: Goal) => ({ goalId: g.id, score: 0, notes: "" })))
             }
@@ -259,10 +279,7 @@ export function RecordForm({
         }
 
         if (latest) {
-             // BASIC logic: no auto-fill, upsell via button
              if (!isPro) return
-
-             // PRO logic: Smart Auto-Fill everything
              form.setValue("product_label", latest.product, { shouldValidate: true })
              form.setValue("location", latest.treatment_site, { shouldValidate: true })
              form.setValue("category", latest.indication, { shouldValidate: true })
@@ -280,7 +297,6 @@ export function RecordForm({
                  }))
                  setSteps(newSteps)
              }
-
              setIsSmartFilled(true)
              toast.success("Pro Assistant: Pre-filled from last visit")
         }
@@ -314,7 +330,6 @@ export function RecordForm({
     }
 
     const newSteps = protocol.steps.map((s: { muscleId?: string, muscleName?: string, units: number, side: string }): ProcedureStep | null => {
-        // Handle Custom vs Global
         let muscleDef = null
         if (protocol.isCustom && s.muscleId) {
             muscleDef = muscles.find(m => m.id === s.muscleId)
@@ -346,15 +361,12 @@ export function RecordForm({
           setShowUpgradeDialog(true)
           return
       }
-      
       const name = prompt("Enter a name for this protocol template:")
       if (!name) return
-
       startTransition(async () => {
           try {
               await saveProtocolAction(name, categoryValue || "andere", steps)
               toast.success("Protocol saved to 'My Protocols'")
-              // Refresh protocols list
               const p = await getProtocolsAction(categoryValue || "andere")
               setProtocols(p)
           } catch {
@@ -363,25 +375,17 @@ export function RecordForm({
       })
   }
 
-  // Autosave & Load Draft
+  // Autosave Logic
   useEffect(() => {
     if (isEditing || hasRestoredDraft.current) return
     const savedDraft = localStorage.getItem("bont_treatment_draft")
     if (savedDraft && !initialData) {
         try {
             const draft = JSON.parse(savedDraft)
-            // 1. Check validity (24h)
             if (new Date().getTime() - new Date(draft.timestamp).getTime() < 24 * 60 * 60 * 1000) {
                 const { values, steps: draftSteps, assessments: draftAssessments, targetedGoalIds: draftGoalIds, goalAssessments: draftGoalAssessments } = draft
-                
-                // 2. Context Safety: If we are in a specific patient context, ONLY restore matching drafts
-                if (defaultSubjectId && values.subject_id !== defaultSubjectId) {
-                    return
-                }
-
-                // 3. Meaningful Content Check
+                if (defaultSubjectId && values.subject_id !== defaultSubjectId) return
                 const hasContent = !!(values.notes?.trim()) || (draftSteps && draftSteps.length > 0) || (draftGoalIds && draftGoalIds.length > 0)
-
                 if (hasContent) {
                     if (!form.getValues("subject_id")) {
                         form.reset({ ...values, date: values.date ? new Date(values.date) : new Date() })
@@ -390,7 +394,6 @@ export function RecordForm({
                     if (draftAssessments) setAssessments(draftAssessments.map((a: Assessment & { assessed_at: string }) => ({ ...a, assessed_at: new Date(a.assessed_at) })))
                     if (draftGoalIds) setTargetedGoalIds(draftGoalIds)
                     if (draftGoalAssessments) setGoalAssessments(draftGoalAssessments)
-                    
                     hasRestoredDraft.current = true
                     toast.info("Unsaved draft restored")
                 }
@@ -401,27 +404,19 @@ export function RecordForm({
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
-  // Autosave & Change Detection
   useEffect(() => {
     if (watchedValues || steps.length > 0 || assessments.length > 0 || targetedGoalIds.length > 0 || goalAssessments.length > 0) {
-        // Mark as dirty
         setHasUnsavedChanges(true)
-
-        // Local Storage Autosave (Only for new drafts)
         if (!isEditing && watchedValues) {
             const draft = { values: watchedValues, steps, assessments, targetedGoalIds, goalAssessments, timestamp: new Date() }
             localStorage.setItem("bont_treatment_draft", JSON.stringify(draft))
-            setLastSaved(new Date())
         }
     }
   }, [watchedValues, steps, assessments, targetedGoalIds, goalAssessments, isEditing])
 
   const handleCopyLastVisit = () => {
-      if (isPro) {
-          copyLastTreatmentFull()
-      } else {
-          setShowUpgradeDialog(true)
-      }
+      if (isPro) copyLastTreatmentFull()
+      else setShowUpgradeDialog(true)
   }
 
   const copyLastTreatmentFull = async () => {
@@ -433,7 +428,6 @@ export function RecordForm({
           form.setValue("location", latest.treatment_site, { shouldValidate: true })
           form.setValue("category", latest.indication, { shouldValidate: true })
           if (latest.effect_notes) form.setValue("notes", latest.effect_notes, { shouldValidate: true })
-
           if (latest.injections) {
               const newSteps = (latest.injections as InjectionData[]).map((inj) => ({
                 id: Math.random().toString(36).substr(2, 9),
@@ -445,10 +439,8 @@ export function RecordForm({
               }))
               setSteps(newSteps)
           }
-
           if (latest.assessments) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const newAssessments = (latest.assessments as any[]).map((a) => ({
+              const newAssessments = (latest.assessments as unknown as PreviousAssessment[]).map((a) => ({
                   id: Math.random().toString(36).substr(2, 9),
                   scale: a.scale,
                   timepoint: a.timepoint,
@@ -458,7 +450,6 @@ export function RecordForm({
               }))
               setAssessments(newAssessments)
           }
-
           toast.success("Last treatment data copied.")
       } else {
           toast.info("No previous treatment found.")
@@ -476,10 +467,7 @@ export function RecordForm({
             goalAssessments,
             status: targetStatus 
         }
-        const result = isEditing && treatmentId 
-          ? await updateTreatment(treatmentId, payload)
-          : await createTreatment(payload);
-
+        const result = isEditing && treatmentId ? await updateTreatment(treatmentId, payload) : await createTreatment(payload);
         if (result && 'error' in result) {
           toast.error(result.error)
           return
@@ -487,12 +475,8 @@ export function RecordForm({
         toast.success(isEditing ? "Updated" : "Saved")
         setHasUnsavedChanges(false)
         if (!isEditing) localStorage.removeItem("bont_treatment_draft")
-        
-        if (onSuccess) {
-          onSuccess()
-        } else {
-          router.push(values.subject_id ? `/patients/${values.subject_id}` : "/patients")
-        }
+        if (onSuccess) onSuccess()
+        else router.push(values.subject_id ? `/patients/${values.subject_id}` : "/patients")
       } catch {
         toast.error("Error saving record")
       }
@@ -508,26 +492,14 @@ export function RecordForm({
     processSubmission(values, "DRAFT")
   }
 
-  const totalUnits = steps.reduce((sum, step) => sum + (step.numeric_value || 0), 0)
-
-  const handleSign = () => {
-      // if (!treatmentId) return  <-- Removed check
-      setShowSignDialog(true)
-  }
-
+  const handleSign = () => setShowSignDialog(true)
   const confirmSign = () => {
-      // We must get current form values.
-      // Since confirmSign is outside form submit context, we use getValues.
       const values = form.getValues()
       processSubmission(values, "SIGNED")
       setShowSignDialog(false)
   }
 
-  const handleReopen = () => {
-      if (!treatmentId) return
-      setShowReopenDialog(true)
-  }
-
+  const handleReopen = () => treatmentId && setShowReopenDialog(true)
   const confirmReopen = () => {
       startTransition(async () => {
           try {
@@ -541,12 +513,7 @@ export function RecordForm({
       })
   }
 
-  const handleClear = () => {
-      setShowClearDialog(true)
-  }
-
   const confirmClear = () => {
-      // Reset form to absolute empty defaults
       form.reset({
           subject_id: "",
           location: organization?.name || "Clinic",
@@ -560,22 +527,37 @@ export function RecordForm({
           is_supervised: false,
           supervisor_name: organization?.preferences?.default_supervisor_name || "",
       })
-      
-      setSteps([])
-      setAssessments([])
-      setTargetedGoalIds([])
-      setGoalAssessments([])
-      setPreviousTargetedGoals([])
-      setIsSmartFilled(false)
-      setHasUnsavedChanges(false)
-      
-      if (!isEditing) {
-          localStorage.removeItem("bont_treatment_draft")
-          setLastSaved(null)
+      setSteps([]); setAssessments([]); setTargetedGoalIds([]); setGoalAssessments([]); setPreviousTargetedGoals([]); setHasUnsavedChanges(false)
+      if (!isEditing) { localStorage.removeItem("bont_treatment_draft"); }
+      toast.info("Form cleared"); setShowClearDialog(false)
+  }
+
+  const totalUnits = steps.reduce((sum, step) => sum + (step.numeric_value || 0), 0)
+
+  // Navigation Logic
+  const canGoNext = () => {
+      if (activeStep === 'context') return !!watchedValues.subject_id && !!watchedValues.category && !!watchedValues.product_label
+      return true
+  }
+
+  const navigateTo = (id: StepId) => {
+      if (id !== 'context' && (!watchedValues.subject_id || !watchedValues.category || !watchedValues.product_label)) {
+          setActiveStep('context')
+          form.trigger(['subject_id', 'category', 'product_label'])
+          toast.error("Please complete session context first")
+          return
       }
-      
-      toast.info("Form cleared")
-      setShowClearDialog(false)
+      setActiveStep(id)
+  }
+
+  const nextStep = () => {
+      const idx = STEPS.findIndex(s => s.id === activeStep)
+      if (idx < STEPS.length - 1) navigateTo(STEPS[idx + 1].id)
+  }
+
+  const prevStep = () => {
+      const idx = STEPS.findIndex(s => s.id === activeStep)
+      if (idx > 0) navigateTo(STEPS[idx - 1].id)
   }
 
   return (
@@ -584,28 +566,20 @@ export function RecordForm({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Clear all entries?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will reset the entire form and discard all current injection steps and assessments. This action cannot be undone.
-          </AlertDialogDescription>
+          <AlertDialogDescription>Discard all changes? This cannot be undone.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction 
-            onClick={confirmClear}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            Clear All
-          </AlertDialogAction>
+          <AlertDialogAction onClick={confirmClear} className="bg-destructive text-destructive-foreground">Clear All</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
     <AlertDialog open={showSignDialog} onOpenChange={setShowSignDialog}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Sign & Finalize?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will lock the record to prevent further changes. This action is recorded in the audit log.
-          </AlertDialogDescription>
+          <AlertDialogDescription>Lock record to prevent further changes. Action is logged.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -616,22 +590,10 @@ export function RecordForm({
 
     <AlertDialog open={showReopenDialog} onOpenChange={setShowReopenDialog}>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Re-open Record?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This record is currently finalized. Re-opening it will allow editing but will be flagged in the audit history.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-                <Label htmlFor="reason">Reason for re-opening (Required)</Label>
-                <Textarea 
-                    id="reason" 
-                    value={reopenReason} 
-                    onChange={(e) => setReopenReason(e.target.value)} 
-                    placeholder="e.g. Correction of dose..." 
-                />
-            </div>
+        <AlertDialogHeader><AlertDialogTitle>Re-open Record?</AlertDialogTitle></AlertDialogHeader>
+        <div className="py-4 space-y-4">
+            <Label htmlFor="reason">Reason for re-opening (Required)</Label>
+            <Textarea id="reason" value={reopenReason} onChange={(e) => setReopenReason(e.target.value)} placeholder="Correction..." />
         </div>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -640,307 +602,344 @@ export function RecordForm({
       </AlertDialogContent>
     </AlertDialog>
 
-    <UpgradeDialog 
-        open={showUpgradeDialog} 
-        onOpenChange={setShowUpgradeDialog}
-        title="Smart Clinical Defaults"
-        featureName="Auto-filling from previous visits"
-        description="Save time by automatically loading the exact dosage, muscles, and notes from the patient's last encounter. Standardize your workflow with Pro."
-    />
-
+    <UpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} title="Pro Features" featureName="Advanced Workflow" description="Standardize your clinical workflow with Pro defaults and audit logs." />
     <PiiWarningDialog open={showPiiWarning} onOpenChange={setShowPiiWarning} detectedTypes={piiDetected} onConfirm={() => { setShowPiiWarning(false); if (pendingValues) processSubmission(pendingValues) }} onCancel={() => setShowPiiWarning(false)} />
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {!canWrite && (
-             <Alert variant="default" className="mb-6 bg-muted/50">
-                <Lock className="h-4 w-4" />
-                <AlertTitle>Read Only</AlertTitle>
-                <AlertDescription>
-                    You do not have permission to edit treatment records.
-                </AlertDescription>
-            </Alert>
-        )}
-        {isSigned && (
-            <Alert variant="destructive" className="mb-6 bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-900/50 dark:text-amber-200">
-                <Lock className="h-4 w-4" />
-                <AlertTitle>Record Finalized</AlertTitle>
-                <AlertDescription>
-                    This treatment record is signed and read-only. Unlock it to make corrections.
-                </AlertDescription>
-            </Alert>
-        )}
-        <fieldset disabled={isSigned || !canWrite} className="space-y-8 border-none p-0 m-0 min-w-0">
-        
-        {!isEditing && form.watch("subject_id") && (
-            <div className="flex justify-end gap-2 items-center">
-                {isSmartFilled && (
-                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 flex gap-1 items-center px-2 py-1">
-                        <Sparkles className="h-3 w-3" /> Smart Pre-fill Active
-                    </Badge>
-                )}
-                {lastSaved && (
-                    <span className="text-xs text-muted-foreground mr-2">
-                        Saved {format(lastSaved, "HH:mm:ss")}
-                    </span>
-                )}
+
+    <div className="flex flex-col md:flex-row h-full overflow-hidden bg-background">
+        {/* Persistent Stepper Sidebar */}
+        <div className="w-full md:w-64 bg-muted/30 border-r p-4 flex flex-col gap-2">
+            {STEPS.map((step, idx) => {
+                const Icon = step.icon
+                const isActive = activeStep === step.id
+                const isPast = STEPS.findIndex(s => s.id === activeStep) > idx
                 
-                {protocols.length > 0 && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="secondary" size="sm" type="button" className={cn(!isPro && "opacity-80")}>
-                                {isPro ? <Wand2 className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-3 w-3" />}
-                                Load Protocol
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Clinical Protocols</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {protocols.map((p) => (
-                                <DropdownMenuItem key={p.id} onClick={() => applyProtocol(p)}>
-                                    {p.name}
-                                    {!isPro && <Lock className="ml-auto size-3 opacity-50" />}
-                                </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )}
-
-                {steps.length > 0 && (
-                    <Button variant="outline" size="sm" type="button" onClick={handleSaveProtocol} className={cn(!isPro && "opacity-80")}>
-                        <PlusIcon className="mr-2 h-4 w-4" />
-                        Save as My Protocol
-                    </Button>
-                )}
-
-                {!isSmartFilled && (
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        type="button" 
-                        onClick={handleCopyLastVisit} 
-                        className={cn("bg-primary/5 text-primary", !isPro && "opacity-80")}
+                return (
+                    <button
+                        key={step.id}
+                        type="button"
+                        onClick={() => navigateTo(step.id)}
+                        className={cn(
+                            "flex items-center gap-3 p-3 rounded-lg text-left transition-all group",
+                            isActive ? "bg-background shadow-sm ring-1 ring-border" : "hover:bg-muted/50"
+                        )}
                     >
-                        {isPro ? <Save className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-3 w-3" />} 
-                        Copy last visit
-                    </Button>
+                        <div className={cn(
+                            "h-8 w-8 rounded-full flex items-center justify-center border transition-colors",
+                            isActive ? "bg-primary text-primary-foreground border-primary" : 
+                            isPast ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-muted text-muted-foreground border-transparent"
+                        )}>
+                            {isPast ? <CheckCircle2 className="h-5 w-5" /> : <Icon className="h-4 w-4" />}
+                        </div>
+                        <div className="flex-1">
+                            <p className={cn("text-xs font-bold uppercase tracking-wider", isActive ? "text-primary" : "text-muted-foreground")}>
+                                {step.title}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground leading-tight">{step.description}</p>
+                        </div>
+                        {isActive && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                    </button>
+                )
+            })}
+
+            <div className="mt-auto pt-4 border-t border-muted">
+                {!isEditing && watchedValues.subject_id && (
+                    <div className="space-y-2">
+                        {isSmartFilled && (
+                            <Badge variant="secondary" className="w-full bg-primary/10 text-primary border-primary/20 flex gap-1 items-center px-2 py-1 justify-center">
+                                <Sparkles className="h-3 w-3" /> Smart Pre-fill
+                            </Badge>
+                        )}
+                        <Button variant="outline" size="sm" type="button" onClick={handleCopyLastVisit} className="w-full text-[10px] h-8">
+                            <Save className="mr-2 h-3 w-3" /> Last Visit
+                        </Button>
+                    </div>
                 )}
             </div>
-        )}
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <FormField control={form.control} name="subject_id" render={({ field }) => (
-              <FormItem><FormLabel>Patient</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isEditing || isSigned}><FormControl><SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger></FormControl><SelectContent>{patients.map((s) => (<SelectItem key={s.id} value={s.id}>{s.patient_code}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
-          )} />
-          <FormField control={form.control} name="date" render={({ field }) => (
-              <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-          )} />
-          
-          <FormField control={form.control} name="category" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Indication</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select indication" />
-                        </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        <SelectItem value="kopfschmerz">Headache</SelectItem>
-                        <SelectItem value="dystonie">Dystonia</SelectItem>
-                        <SelectItem value="spastik">Spasticity</SelectItem>
-                        <SelectItem value="autonom">Autonomous</SelectItem>
-                        <SelectItem value="andere">Other</SelectItem>
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-          )} />
-
-          <FormField control={form.control} name="diagnosis_id" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Specific Diagnosis (ICD-10)</FormLabel>
-                <FormControl>
-                    <DiagnosisPicker 
-                        value={field.value || ""} 
-                        onChange={field.onChange} 
-                    />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-          )} />
-
-          <FormField control={form.control} name="product_label" render={({ field }) => (
-              <FormItem><FormLabel>Product</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Botox">Botox</SelectItem><SelectItem value="Dysport">Dysport</SelectItem><SelectItem value="Xeomin">Xeomin</SelectItem><SelectItem value="Myobloc">Myobloc</SelectItem></SelectContent></Select><FormMessage /></FormItem>
-          )} />
         </div>
 
-        {productValue && (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3 p-4 border rounded-lg bg-muted/20">
-                <FormField control={form.control} name="vial_size" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Vial Size (Units)</FormLabel>
-                        <FormControl>
-                            <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <FormField control={form.control} name="dilution_ml" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Dilution (ml Saline)</FormLabel>
-                        <FormControl>
-                            <Input type="number" step="0.1" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <div className="flex flex-col justify-end space-y-2">
-                    <span className="text-xs text-muted-foreground font-medium">Quick Presets</span>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" type="button" className="w-full justify-between">
-                                Select... <ChevronDown className="h-4 w-4 ml-2" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-56">
-                            <DropdownMenuLabel>Standard Concentrations</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {DILUTION_PRESETS.map((p) => (
-                                <DropdownMenuItem key={p.label} onClick={() => applyPreset(p)}>
-                                    {p.label}
-                                </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-                <div className="flex flex-col justify-end pb-2 pl-2">
-                    <span className="text-xs text-muted-foreground font-medium">Concentration</span>
-                    <span className="text-lg font-bold text-primary">{unitsPerMl.toFixed(1)} U / ml</span>
-                </div>
-            </div>
-        )}
-        
-        <div className="space-y-4">
-             <ProcedureStepsEditor 
-                steps={steps} 
-                onChange={setSteps} 
-                muscles={muscles} 
-                regions={regions} 
-                disabled={isSigned || !canWrite} 
-                unitsPerMl={unitsPerMl}
-                patientId={form.watch("subject_id")}
-             />
-             <div className="flex justify-end font-bold text-xl">Total: {totalUnits} Units</div>
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col relative min-w-0">
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden min-w-0">
+                    <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
+                        <fieldset disabled={isSigned || !canWrite} className="h-full">
+                            
+                            {/* Step 1: Context */}
+                            {activeStep === 'context' && (
+                                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                        <FormField control={form.control} name="subject_id" render={({ field }) => (
+                                            <FormItem><FormLabel>Patient</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isEditing}><FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl><SelectContent>{patients.map(s => <SelectItem key={s.id} value={s.id}>{s.patient_code}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                        )} />
+                                        <FormField control={form.control} name="date" render={({ field }) => (
+                                            <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : "Pick"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={d => d > new Date()} /></PopoverContent></Popover><FormMessage /></FormItem>
+                                        )} />
+                                        <FormField control={form.control} name="category" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Indication</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="kopfschmerz">Headache</SelectItem>
+                                                        <SelectItem value="dystonie">Dystonia</SelectItem>
+                                                        <SelectItem value="spastik">Spasticity</SelectItem>
+                                                        <SelectItem value="autonom">Autonomous</SelectItem>
+                                                        <SelectItem value="andere">Other</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
+                                        <FormField control={form.control} name="diagnosis_id" render={({ field }) => (
+                                            <FormItem><FormLabel>Diagnosis (ICD-10)</FormLabel><FormControl><DiagnosisPicker value={field.value || ""} onChange={field.onChange} /></FormControl></FormItem>
+                                        )} />
+                                    </div>
+
+                                    <div className="p-4 border rounded-xl bg-muted/20 space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <Label>Toxin Product</Label>
+                                            {protocols.length > 0 && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="secondary" size="sm" type="button" className="h-7 text-[10px]">
+                                                            {isPro ? <Wand2 className="mr-1 h-3 w-3" /> : <Lock className="mr-1 h-3 w-3" />}
+                                                            Protocols
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">Clinical Protocols</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        {protocols.map((p) => (
+                                                            <DropdownMenuItem key={p.id} onClick={() => applyProtocol(p)} className="text-xs">
+                                                                {p.name}
+                                                                {!isPro && <Lock className="ml-auto size-3 opacity-50" />}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
+                                        </div>
+                                        <FormField control={form.control} name="product_label" render={({ field }) => (
+                                            <FormItem>
+                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger></FormControl>
+                                                    <SelectContent><SelectItem value="Botox">Botox</SelectItem><SelectItem value="Dysport">Dysport</SelectItem><SelectItem value="Xeomin">Xeomin</SelectItem><SelectItem value="Myobloc">Myobloc</SelectItem></SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
+                                        {productValue && (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <FormField control={form.control} name="vial_size" render={({ field }) => (
+                                                    <FormItem><FormLabel className="text-xs text-muted-foreground">Vial Size (U)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>
+                                                )} />
+                                                <FormField control={form.control} name="dilution_ml" render={({ field }) => (
+                                                    <FormItem><FormLabel className="text-xs text-muted-foreground">Dilution (ml)</FormLabel><FormControl><Input type="number" step="0.1" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>
+                                                )} />
+                                            </div>
+                                        )}
+                                        {productValue && (
+                                            <div className="flex items-center justify-between pt-2 border-t text-sm">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Concentration</span>
+                                                    <span className="font-black text-primary">{unitsPerMl.toFixed(1)} U / ml</span>
+                                                </div>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="sm" className="h-8 text-[10px] uppercase font-bold text-muted-foreground">Presets <ChevronDown className="ml-1 h-3 w-3" /></Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        {DILUTION_PRESETS.map(p => <DropdownMenuItem key={p.label} onClick={() => applyPreset(p)} className="text-xs">{p.label}</DropdownMenuItem>)}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 2: Intent (GAS+) */}
+                            {activeStep === 'intent' && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <TreatmentGoalManager 
+                                        patientId={form.getValues("subject_id")}
+                                        targetedGoalIds={targetedGoalIds}
+                                        onTargetedGoalsChange={setTargetedGoalIds}
+                                        goalAssessments={goalAssessments}
+                                        onGoalAssessmentsChange={setGoalAssessments}
+                                        disabled={isSigned}
+                                        previousTargetedGoals={previousTargetedGoals}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Step 3: Procedure */}
+                            {activeStep === 'procedure' && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <div className="flex justify-between items-end mb-4 bg-muted/10 p-4 rounded-xl border border-muted/20">
+                                        <div className="space-y-1">
+                                            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Clinical Procedure</h3>
+                                            <p className="text-xs text-muted-foreground">Mapping muscles and dosages.</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Accumulated Dose</p>
+                                            <p className="text-4xl font-black text-primary tabular-nums">{totalUnits} <span className="text-xs font-normal text-muted-foreground">Units</span></p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-6">
+                                        <ProcedureStepsEditor 
+                                            steps={steps} 
+                                            onChange={setSteps} 
+                                            muscles={muscles} 
+                                            regions={regions} 
+                                            disabled={isSigned || !canWrite} 
+                                            unitsPerMl={unitsPerMl}
+                                            patientId={form.getValues("subject_id")}
+                                        />
+
+                                        <div className="pt-4 border-t">
+                                            <Collapsible>
+                                                <CollapsibleTrigger asChild>
+                                                    <Button variant="ghost" size="sm" className="w-full justify-between text-xs text-muted-foreground h-8 font-bold uppercase tracking-widest">
+                                                        Clinical Assessments & Scores <ChevronDown className="h-3 w-3" />
+                                                    </Button>
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent className="mt-4 animate-in slide-in-from-top-2 duration-300 space-y-6">
+                                                    {categoryValue === 'spastik' && (
+                                                        <MuscleMASManager 
+                                                            steps={steps}
+                                                            muscles={muscles}
+                                                            disabled={isSigned || !canWrite}
+                                                            onChange={(id, field, val) => {
+                                                                setSteps(prev => prev.map(s => s.id === id ? { ...s, [field]: val } : s))
+                                                            }}
+                                                        />
+                                                    )}
+                                                    <AssessmentManager 
+                                                        assessments={assessments} 
+                                                        onChange={setAssessments} 
+                                                        indication={categoryValue || ""} 
+                                                        disabled={isSigned} 
+                                                    />
+                                                </CollapsibleContent>
+                                            </Collapsible>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 4: Review & Sign */}
+                            {activeStep === 'review' && (
+                                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <div className="space-y-4">
+                                        <FormField control={form.control} name="notes" render={({ field }) => (
+                                            <FormItem><FormLabel>Clinical Session Notes</FormLabel><FormControl><Textarea placeholder="Additional clinical observations..." className="min-h-[150px] resize-none text-sm" {...field} /></FormControl><FormMessage /></FormItem>
+                                        )} />
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="p-4 border rounded-xl bg-muted/10 space-y-4 flex flex-col justify-center">
+                                                <FormField control={form.control} name="is_supervised" render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                                        <FormLabel className="text-sm font-medium">Performed under supervision</FormLabel>
+                                                    </FormItem>
+                                                )} />
+                                                {form.watch("is_supervised") && (
+                                                    <FormField control={form.control} name="supervisor_name" render={({ field }) => (
+                                                        <FormItem><FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Supervisor Name</FormLabel><FormControl><Input {...field} placeholder="Dr. ..." className="h-8" /></FormControl></FormItem>
+                                                    )} />
+                                                )}
+                                            </div>
+
+                                            <div className="p-4 border rounded-xl bg-primary/5 flex flex-col justify-center">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                                                    <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Summary</h4>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4 text-[13px]">
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-[9px] font-bold text-muted-foreground uppercase">Procedure</p>
+                                                        <p className="font-semibold">{steps.length} Sites • {totalUnits} U</p>
+                                                    </div>
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-[9px] font-bold text-muted-foreground uppercase">Intent</p>
+                                                        <p className="font-semibold">{targetedGoalIds.length} Goals targeted</p>
+                                                    </div>
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-[9px] font-bold text-muted-foreground uppercase">Outcomes</p>
+                                                        <p className="font-semibold">
+                                                            {goalAssessments.length} GAS • {assessments.length} Global
+                                                        </p>
+                                                    </div>
+                                                    {categoryValue === 'spastik' && (
+                                                        <div className="space-y-0.5">
+                                                            <p className="text-[9px] font-bold text-muted-foreground uppercase">MAS Data</p>
+                                                            <p className="font-semibold">
+                                                                {steps.filter(s => !!s.mas_baseline).length}/{steps.length} Baseline
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {steps.length > 0 && (
+                                        <div className="mt-auto">
+                                            <Button variant="outline" size="sm" type="button" onClick={handleSaveProtocol} className={cn("w-full h-10 border-dashed", !isPro && "opacity-80")}>
+                                                <PlusIcon className="mr-2 h-4 w-4" />
+                                                Save configuration as Clinical Protocol
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </fieldset>
+                    </div>
+
+                    {/* Navigation Footer */}
+                    <div className="p-4 border-t bg-muted/5 flex items-center justify-between">
+                        <div className="flex gap-2">
+                            <Button type="button" variant="ghost" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
+                            {!isSigned && canWrite && (
+                                <Button type="button" variant="ghost" onClick={() => setShowClearDialog(true)} className="text-destructive">Reset</Button>
+                            )}
+                        </div>
+
+                        <div className="flex gap-3 items-center">
+                            {hasUnsavedChanges && !isSigned && <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest animate-pulse mr-2">Draft Mode</span>}
+                            
+                            {activeStep !== 'context' && (
+                                <Button type="button" variant="outline" onClick={prevStep}>
+                                    <ChevronLeft className="mr-2 h-4 w-4" /> Back
+                                </Button>
+                            )}
+
+                            {activeStep !== 'review' ? (
+                                <Button type="button" onClick={nextStep} disabled={!canGoNext()} className="min-w-[120px]">
+                                    Continue <ChevronRight className="ml-2 h-4 w-4" />
+                                </Button>
+                            ) : (
+                                isSigned ? (
+                                    <Button type="button" variant="outline" onClick={handleReopen}>
+                                        <Unlock className="mr-2 h-4 w-4" /> Re-open to Edit
+                                    </Button>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <Button type="submit" variant="outline" disabled={isPending}>Save Draft</Button>
+                                        <Button type="button" onClick={handleSign} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                                            <Lock className="mr-2 h-4 w-4" /> Sign & Finalize
+                                        </Button>
+                                    </div>
+                                )
+                            )}
+                        </div>
+                    </div>
+                </form>
+            </Form>
         </div>
-
-        {form.watch("subject_id") && (
-            <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-                <TreatmentGoalManager 
-                    patientId={form.watch("subject_id")}
-                    targetedGoalIds={targetedGoalIds}
-                    onTargetedGoalsChange={setTargetedGoalIds}
-                    goalAssessments={goalAssessments}
-                    onGoalAssessmentsChange={setGoalAssessments}
-                    disabled={isSigned}
-                    previousTargetedGoals={previousTargetedGoals}
-                />
-            </div>
-        )}
-
-        <Collapsible>
-          <div className="flex items-center space-x-2">
-            <CollapsibleTrigger asChild><Button variant="ghost" size="sm" className="w-full justify-between">Assessments (Optional) <ChevronDown className="h-4 w-4" /></Button></CollapsibleTrigger>
-          </div>
-          <CollapsibleContent className="mt-4"><AssessmentManager assessments={assessments} onChange={setAssessments} indication={categoryValue || ""} disabled={isSigned} /></CollapsibleContent>
-        </Collapsible>
-
-        <FormField control={form.control} name="notes" render={({ field }) => (
-            <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea placeholder="..." className="resize-none" {...field} /></FormControl><FormMessage /></FormItem>
-        )} />
-
-        <Collapsible>
-          <div className="flex items-center space-x-2">
-            <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-full justify-between">
-                    Certification Details (Optional) <ChevronDown className="h-4 w-4" />
-                </Button>
-            </CollapsibleTrigger>
-          </div>
-          <CollapsibleContent className="mt-4 space-y-4 p-4 border rounded-lg bg-muted/10">
-            <div className="flex items-center space-x-2">
-                <FormField
-                    control={form.control}
-                    name="is_supervised"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                                <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                                <FormLabel>
-                                    Treatment performed under supervision
-                                </FormLabel>
-                            </div>
-                        </FormItem>
-                    )}
-                />
-            </div>
-            
-            {form.watch("is_supervised") && (
-                <FormField
-                    control={form.control}
-                    name="supervisor_name"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Supervisor Name</FormLabel>
-                            <FormControl>
-                                <Input {...field} placeholder="Dr. Med. ..." />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            )}
-          </CollapsibleContent>
-        </Collapsible>
-
-        </fieldset>
-
-        <div className="flex items-center justify-between pt-4 border-t">
-            <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
-                {!isSigned && canWrite && (
-                    <Button type="button" variant="outline" onClick={handleClear} className="bg-transparent">Clear Form</Button>
-                )}
-            </div>
-            
-            <div className="flex gap-4 items-center">
-            {hasUnsavedChanges && !isSigned && canWrite && (
-                <span className="text-sm font-medium text-amber-600 animate-pulse">Unsaved Changes</span>
-            )}
-            {isSigned ? (
-                canWrite && (
-                <Button type="button" variant="outline" onClick={handleReopen} disabled={isPending}>
-                    <Unlock className="mr-2 h-4 w-4" /> Re-open to Edit
-                </Button>
-                )
-            ) : (
-                canWrite && (
-                <>
-                    <Button type="submit" disabled={isPending} variant="outline">{isPending ? "Saving..." : "Save Draft"}</Button>
-                    <Button type="button" onClick={handleSign} disabled={isPending}>
-                        <Lock className="mr-2 h-4 w-4" /> Sign & Finalize
-                    </Button>
-                </>
-                )
-            )}
-            </div>
-        </div>
-      </form>
-    </Form>
+    </div>
     </>
   )
 }

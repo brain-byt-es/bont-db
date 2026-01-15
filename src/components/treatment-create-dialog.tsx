@@ -104,30 +104,34 @@ export function TreatmentDialog({
         />
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Treatment Record" : "New Treatment Record"}</DialogTitle>
-          <DialogDescription>
-            {isEditing ? "Update details for this procedure." : "Enter details for the new procedure."}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-5xl h-[90vh] p-0 overflow-hidden flex flex-col">
+        <div className="p-6 pb-2">
+            <DialogHeader>
+            <DialogTitle>{isEditing ? "Edit Treatment Record" : "New Treatment Record"}</DialogTitle>
+            <DialogDescription>
+                {isEditing ? "Update details for this procedure." : "Enter details for the new procedure."}
+            </DialogDescription>
+            </DialogHeader>
+        </div>
         {isLoading ? (
-          <div className="flex justify-center p-8">
+          <div className="flex-1 flex justify-center items-center p-8">
             <Spinner className="size-8" />
           </div>
         ) : (
-          <RecordForm 
-            patients={effectivePatients}
-            defaultSubjectId={defaultPatientId}
-            initialData={initialData}
-            treatmentId={treatmentId}
-            isEditing={isEditing}
-            onCancel={() => setIsOpen && setIsOpen(false)}
-            onSuccess={() => setIsOpen && setIsOpen(false)}
-            status={status}
-            userRole={userRole}
-            organization={organization}
-          />
+          <div className="flex-1 overflow-hidden">
+            <RecordForm 
+                patients={effectivePatients}
+                defaultSubjectId={defaultPatientId}
+                initialData={initialData}
+                treatmentId={treatmentId}
+                isEditing={isEditing}
+                onCancel={() => setIsOpen && setIsOpen(false)}
+                onSuccess={() => setIsOpen && setIsOpen(false)}
+                status={status}
+                userRole={userRole}
+                organization={organization}
+            />
+          </div>
         )}
       </DialogContent>
     </Dialog>

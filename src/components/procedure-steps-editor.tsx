@@ -229,49 +229,6 @@ export function ProcedureStepsEditor({
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground">MAS Base</label>
-                    <Select
-                      value={step.mas_baseline || ""}
-                      onValueChange={(value) => updateStep(step.id, "mas_baseline", value)}
-                      disabled={disabled}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="-" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">0</SelectItem>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="1+">1+</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                        <SelectItem value="4">4</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground">MAS Peak</label>
-                    <Select
-                      value={step.mas_peak || ""}
-                      onValueChange={(value) => updateStep(step.id, "mas_peak", value)}
-                      disabled={disabled}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="-" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">0</SelectItem>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="1+">1+</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                        <SelectItem value="4">4</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
                 {!disabled && (
                 <div className="flex justify-end gap-2 pt-2 border-t">
                   <Button
@@ -302,23 +259,21 @@ export function ProcedureStepsEditor({
         </div>
 
         {/* Desktop Layout (Table) */}
-        <div className="hidden md:block rounded-md border">
+        <div className="hidden md:block rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Target Structure</TableHead>
-                <TableHead className="w-[150px]">Side</TableHead>
-                <TableHead className="w-[120px]">Units</TableHead>
-                {unitsPerMl > 0 && <TableHead className="w-[120px]">Volume (ml)</TableHead>}
-                <TableHead className="w-[100px]">MAS Base</TableHead>
-                <TableHead className="w-[100px]">MAS Peak</TableHead>
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead className="min-w-[200px]">Target Structure</TableHead>
+                <TableHead className="w-[130px]">Side</TableHead>
+                <TableHead className="w-[100px]">Units</TableHead>
+                {unitsPerMl > 0 && <TableHead className="w-[100px]">Vol (ml)</TableHead>}
+                <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {steps.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
+                  <TableCell colSpan={unitsPerMl > 0 ? 5 : 4} className="h-24 text-center">
                     No injection sites added.
                   </TableCell>
                 </TableRow>
@@ -381,44 +336,6 @@ export function ProcedureStepsEditor({
                             />
                         </TableCell>
                     )}
-                    <TableCell>
-                      <Select
-                        value={step.mas_baseline || ""}
-                        onValueChange={(value) => updateStep(step.id, "mas_baseline", value)}
-                        disabled={disabled}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="-" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">0</SelectItem>
-                          <SelectItem value="1">1</SelectItem>
-                          <SelectItem value="1+">1+</SelectItem>
-                          <SelectItem value="2">2</SelectItem>
-                          <SelectItem value="3">3</SelectItem>
-                          <SelectItem value="4">4</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={step.mas_peak || ""}
-                        onValueChange={(value) => updateStep(step.id, "mas_peak", value)}
-                        disabled={disabled}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="-" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">0</SelectItem>
-                          <SelectItem value="1">1</SelectItem>
-                          <SelectItem value="1+">1+</SelectItem>
-                          <SelectItem value="2">2</SelectItem>
-                          <SelectItem value="3">3</SelectItem>
-                          <SelectItem value="4">4</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
                     <TableCell>
                       {!disabled && (
                       <div className="flex items-center gap-1">

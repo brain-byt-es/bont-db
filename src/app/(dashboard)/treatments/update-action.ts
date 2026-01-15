@@ -34,6 +34,7 @@ interface UpdateTreatmentFormData {
   date: Date;
   location: string;
   category: string;
+  diagnosis_id?: string;
   product_label: string;
   vial_size?: number;
   dilution_ml?: number;
@@ -61,6 +62,7 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     date,
     location,
     category,
+    diagnosis_id,
     product_label,
     vial_size = 100,
     dilution_ml = 2.5,
@@ -83,6 +85,20 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
   
   if (total_units <= 0) {
     return { error: "Total units must be greater than 0. Please add at least one injection step." }
+  }
+
+  // Handle Diagnosis (Lookup ID by code if needed)
+  let resolvedDiagnosisId: string | null = null
+  if (diagnosis_id) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(diagnosis_id)
+      if (isUuid) {
+          resolvedDiagnosisId = diagnosis_id
+      } else {
+          const diagRecord = await prisma.diagnosis.findFirst({
+              where: { code: diagnosis_id }
+          })
+          resolvedDiagnosisId = diagRecord?.id || null
+      }
   }
 
   // Transaction: Update Encounter + Replace Injections & Assessments
@@ -116,6 +132,7 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
     await tx.encounter.update({
       where: { id: treatmentId },
       data: {
+        // patientId: subject_id, // IMMUTABLE field
         encounterAt: date,
         encounterLocalDate: date,
         treatmentSite: location || "N/A",
@@ -139,6 +156,19 @@ export async function updateTreatment(treatmentId: string, formData: UpdateTreat
         } : undefined
       }
     })
+
+    // Update Diagnosis
+    await tx.encounterDiagnosis.deleteMany({
+        where: { encounterId: treatmentId }
+    })
+    if (resolvedDiagnosisId) {
+        await tx.encounterDiagnosis.create({
+            data: {
+                encounterId: treatmentId,
+                diagnosisId: resolvedDiagnosisId
+            }
+        })
+    }
 
     // 2. Replace Injections (Delete all old, Create new)
     await tx.injection.deleteMany({
