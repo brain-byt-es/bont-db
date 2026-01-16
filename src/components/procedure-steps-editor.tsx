@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Trash2, Copy, Sparkles, AlertCircle } from "lucide-react"
+import { Plus, Trash2, Copy, Sparkles, AlertCircle, Minus } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -52,6 +52,7 @@ interface ProcedureStepsEditorProps {
   disabled?: boolean
   unitsPerMl?: number
   patientId?: string
+  isProcedureMode?: boolean
 }
 
 function DoseReferenceHint({ 
@@ -98,7 +99,8 @@ export function ProcedureStepsEditor({
   regions,
   disabled = false,
   unitsPerMl = 0,
-  patientId
+  patientId,
+  isProcedureMode = false
 }: ProcedureStepsEditorProps) {
   const addStep = () => {
     if (disabled) return
@@ -174,6 +176,124 @@ export function ProcedureStepsEditor({
 
     const removeStep = (id: string) => {
     onChange(steps.filter((step) => step.id !== id))
+  }
+
+  if (isProcedureMode) {
+      return (
+          <div className="space-y-6">
+              <div className="flex items-center justify-between pb-2">
+                  <div className="space-y-1">
+                      <h3 className="text-lg font-bold">Procedure Mode</h3>
+                      <p className="text-sm text-muted-foreground">Touch-optimized interface for bedside use.</p>
+                  </div>
+              </div>
+
+              {steps.map((step, idx) => (
+                  <Card key={step.id} className="border-l-4 border-l-primary shadow-sm overflow-hidden">
+                      <CardContent className="p-5 space-y-6">
+                          {/* Header: Muscle & Side */}
+                          <div className="flex gap-4 items-start">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground shrink-0">
+                                  {idx + 1}
+                              </div>
+                              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-1.5">
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Target Muscle</span>
+                                      <MuscleSelector 
+                                          value={step.muscle_id}
+                                          onSelect={(val) => updateStep(step.id, "muscle_id", val)}
+                                          muscles={muscles}
+                                          regions={regions}
+                                          disabled={disabled}
+                                      />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Side</span>
+                                      <Select
+                                          value={step.side}
+                                          onValueChange={(value) => handleSideChange(step.id, value as ProcedureStep["side"])}
+                                          disabled={disabled}
+                                      >
+                                          <SelectTrigger className="h-10">
+                                              <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                              <SelectItem value="Left">Left</SelectItem>
+                                              <SelectItem value="Right">Right</SelectItem>
+                                              <SelectItem value="Bilateral">Bilateral (Split)</SelectItem>
+                                              <SelectItem value="Midline">Midline</SelectItem>
+                                          </SelectContent>
+                                      </Select>
+                                  </div>
+                              </div>
+                              <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeStep(step.id)}
+                                  className="text-destructive h-8 w-8 shrink-0"
+                              >
+                                  <Trash2 className="h-5 w-5" />
+                              </Button>
+                          </div>
+
+                          {/* Large Dosing Interface */}
+                          <div className="bg-muted/30 rounded-2xl p-4 border border-muted/50">
+                              <div className="flex items-center justify-between gap-4">
+                                  <Button 
+                                      variant="outline" 
+                                      size="icon" 
+                                      className="h-14 w-14 rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5"
+                                      onClick={() => updateStep(step.id, "numeric_value", Math.max(0, (step.numeric_value || 0) - 5))}
+                                      disabled={disabled}
+                                  >
+                                      <Minus className="h-6 w-6" />
+                                  </Button>
+                                  
+                                  <div className="flex-1 text-center space-y-1">
+                                      <Input 
+                                          type="number" 
+                                          value={step.numeric_value} 
+                                          onChange={(e) => updateStep(step.id, "numeric_value", parseFloat(e.target.value))}
+                                          className="text-center text-3xl font-black h-14 border-transparent bg-transparent shadow-none focus-visible:ring-0 p-0" 
+                                      />
+                                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Units</p>
+                                  </div>
+
+                                  <Button 
+                                      variant="outline" 
+                                      size="icon" 
+                                      className="h-14 w-14 rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5"
+                                      onClick={() => updateStep(step.id, "numeric_value", (step.numeric_value || 0) + 5)}
+                                      disabled={disabled}
+                                  >
+                                      <Plus className="h-6 w-6" />
+                                  </Button>
+                              </div>
+                              
+                              {/* Volume Hint */}
+                              {unitsPerMl > 0 && (
+                                  <div className="mt-2 text-center">
+                                      <span className="text-xs font-medium text-muted-foreground bg-background px-2 py-1 rounded-full border">
+                                          {(step.numeric_value / unitsPerMl).toFixed(2)} ml
+                                      </span>
+                                  </div>
+                              )}
+                          </div>
+                      </CardContent>
+                  </Card>
+              ))}
+
+              <Button 
+                  onClick={addStep} 
+                  size="lg" 
+                  disabled={disabled} 
+                  className="w-full h-16 text-lg font-bold border-2 border-dashed border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary shadow-none"
+              >
+                  <Plus className="mr-2 h-6 w-6" />
+                  Add Injection Site
+              </Button>
+          </div>
+      )
   }
 
   return (

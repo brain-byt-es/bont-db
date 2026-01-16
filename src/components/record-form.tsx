@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import {
   Form,
   FormControl,
@@ -222,6 +223,7 @@ export function RecordForm({
   const [reopenReason, setReopenReason] = useState("")
   const [isSmartFilled, setIsSmartFilled] = useState(false)
   const [protocols, setProtocols] = useState<Protocol[]>([])
+  const [isProcedureMode, setIsProcedureMode] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -780,14 +782,20 @@ export function RecordForm({
                             {/* Step 3: Procedure */}
                             {activeStep === 'procedure' && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                    <div className="flex justify-between items-end mb-4 bg-muted/10 p-4 rounded-xl border border-muted/20">
+                                    <div className="flex flex-col md:flex-row justify-between items-end mb-4 bg-muted/10 p-4 rounded-xl border border-muted/20 gap-4">
                                         <div className="space-y-1">
                                             <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Clinical Procedure</h3>
                                             <p className="text-xs text-muted-foreground">Mapping muscles and dosages.</p>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Accumulated Dose</p>
-                                            <p className="text-4xl font-black text-primary tabular-nums">{totalUnits} <span className="text-xs font-normal text-muted-foreground">Units</span></p>
+                                        <div className="flex items-center gap-6">
+                                            <div className="flex items-center space-x-2 bg-background border rounded-full px-3 py-1.5">
+                                                <Switch id="proc-mode" checked={isProcedureMode} onCheckedChange={setIsProcedureMode} />
+                                                <Label htmlFor="proc-mode" className="text-xs font-medium cursor-pointer">Procedure Mode</Label>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Accumulated Dose</p>
+                                                <p className="text-4xl font-black text-primary tabular-nums">{totalUnits} <span className="text-xs font-normal text-muted-foreground">Units</span></p>
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -800,6 +808,7 @@ export function RecordForm({
                                             disabled={isSigned || !canWrite} 
                                             unitsPerMl={unitsPerMl}
                                             patientId={form.getValues("subject_id")}
+                                            isProcedureMode={isProcedureMode}
                                         />
 
                                         <div className="pt-4 border-t">
