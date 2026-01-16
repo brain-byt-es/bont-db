@@ -82,6 +82,28 @@ InjexPro uses a longitudinal, GAS-inspired framework to connect treatment intent
 
 ## 5. Roadmap & Follow-up Actions
 
+### Strategic Roadmap (Refined 2026-01)
+
+#### Phase 13: Clinical UX & Safety (Immediate)
+Focus on "Clinical-Native" features with high ROI and low regulatory risk.
+- [x] **Autosave/Drafts:** Implemented local storage heartbeat and state machine for draft resilience.
+- [ ] **Procedure Mode:** "Bedside" toggle with large touch targets, simplified layout, and step-by-step focus for tablet use.
+- [ ] **JIT PHI Access:** "Break-glass" UI for revealing patient identifiers (Name/DOB) with mandatory audit logging.
+- [ ] **i18n Foundation:** Extract UI strings and set up localization architecture (EN/DE) for EU expansion.
+
+#### Phase 14: Enterprise & Compliance (Mid-term)
+- [ ] **Smart "Diff" View:** Enhance "Copy Last Visit" to visually highlight changes (Dose/Muscle) vs previous session.
+- [ ] **AK Botulinum PDF Bundle:** One-click generation of certification application documents (Commercial Differentiator).
+
+#### Phase 15: Future Expansion (On Demand)
+- [ ] **Minimal Offline Layer:** Service Worker + IndexedDB for reliable draft entry in spotty Wi-Fi.
+- [ ] **Patient Portal:** Secure access for patients to view goals and schedules (Requires careful subject rights handling).
+
+#### Deprecated / Reframed Initiatives
+- **Predictive Dosing:** REFRAMED to **Org-Specific Historical Reference**. No community benchmarks to avoid Medical Device liability.
+- **Auto-Redaction:** REPLACED with **PII Warning Gates**. No silent alteration of clinical notes; user must manually correct.
+- **App-Level Encryption:** REPLACED with **Strict RBAC + JIT Reveal**.
+
 ### Phase 3: Scaling & Monetization (Completed)
 - [x] **Stripe Integration:** Full checkout loop and flat-fee organization billing.
 - [x] **PRO + ENTERPRISE Split:** Hierarchical plan structure with hard seat limits.
@@ -142,7 +164,6 @@ The core mission of InjexPro is now fully integrated with automated tracking and
 
 ### Phase 11: Advanced EHR Integration & Scaling (Planned)
 - [ ] **FHIR / HL7 Interface Stubs:** Finalize interface bridges for EPIC, KISIM, and other major EHR systems.
-- [ ] **PDF Application Bundle:** Automated one-click generation of the formal AK Botulinum application PDF.
 - [ ] **Regional Scaling:** Performance optimization for multi-clinic environments and high-concurrency database pooling.
 - [ ] **Custom Clinical Branding:** Enhanced white-labeling options for large hospital networks.
 
