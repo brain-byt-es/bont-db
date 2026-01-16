@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select"
 import { toast } from "sonner"
 import { Send, CheckCircle2, Loader2 } from "lucide-react"
 import { sendSupportMessageAction } from "@/app/(dashboard)/support/actions"
@@ -20,7 +27,6 @@ export function ContactSupportForm() {
         setIsSuccess(true)
         toast.success("Message sent successfully")
       } else if (result?.error) {
-        // Handle validation errors if needed, for now just show generic error
         toast.error("Please check your input and try again.")
       } else {
         toast.error("Failed to send message.")
@@ -50,21 +56,51 @@ export function ContactSupportForm() {
   return (
     <form action={handleSubmit} className="space-y-4 text-left">
       <div className="grid gap-2">
+        <Label htmlFor="topic">Related To</Label>
+        <Select name="topic" required defaultValue="technical">
+            <SelectTrigger>
+                <SelectValue placeholder="Select topic" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="technical">Technical Issue</SelectItem>
+                <SelectItem value="clinical">Clinical Logic / Calculations</SelectItem>
+                <SelectItem value="billing">Billing & Plan</SelectItem>
+                <SelectItem value="feature">Feature Request</SelectItem>
+            </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid gap-2">
         <Label htmlFor="subject">Subject</Label>
         <Input
           id="subject"
           name="subject"
-          placeholder="What do you need help with?"
+          placeholder="Brief summary..."
           required
           disabled={isPending}
         />
       </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="recordId">Link to Record (Optional)</Label>
+        <Input
+          id="recordId"
+          name="recordId"
+          placeholder="Record UUID (e.g. 550e8400...)"
+          disabled={isPending}
+          className="font-mono text-xs"
+        />
+        <p className="text-[10px] text-muted-foreground text-amber-600/80">
+            Do not enter patient names or identifiers.
+        </p>
+      </div>
+
       <div className="grid gap-2">
         <Label htmlFor="message">Message</Label>
         <Textarea
           id="message"
           name="message"
-          placeholder="Tell us more about your issue..."
+          placeholder="Tell us more details..."
           required
           rows={4}
           disabled={isPending}
