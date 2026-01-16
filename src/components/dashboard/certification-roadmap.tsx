@@ -21,7 +21,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface IndicationGroup {
     id: string
@@ -45,6 +45,22 @@ interface CertificationRoadmapProps {
 
 export function CertificationRoadmap({ data }: CertificationRoadmapProps) {
     const [isOpen, setIsOpen] = useState(true)
+    
+    useEffect(() => {
+        const saved = localStorage.getItem('injexpro_roadmap_open')
+        if (saved !== null) {
+            const timer = setTimeout(() => {
+                setIsOpen(saved === 'true')
+            }, 0)
+            return () => clearTimeout(timer)
+        }
+    }, [])
+
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open)
+        localStorage.setItem('injexpro_roadmap_open', open.toString())
+    }
+
     const totalPercentage = Math.min((data.totalProgress / data.totalGoal) * 100, 100)
     const followUpPercentage = Math.min((data.followUpProgress / data.followUpGoal) * 100, 100)
     const coveredCount = data.indicationGroups.filter(g => g.met).length
@@ -59,7 +75,7 @@ export function CertificationRoadmap({ data }: CertificationRoadmapProps) {
     const rule25Percentage = Math.min((maxFocusCount / 25) * 100, 100)
 
     return (
-        <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-4">
+        <Collapsible open={isOpen} onOpenChange={handleOpenChange} className="space-y-4">
             <div className="flex items-center justify-between">
                 <CollapsibleTrigger asChild>
                     <Button variant="ghost" className="p-0 hover:bg-transparent hover:text-primary gap-2">
