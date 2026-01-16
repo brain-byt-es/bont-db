@@ -80,6 +80,7 @@ import { Protocol } from "@/lib/dose-reference"
 import { DiagnosisPicker } from "@/components/diagnosis-picker"
 import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
 import { SAFETY_COPY } from "@/lib/safety-copy"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 const formSchema = z.object({
   subject_id: z.string().min(1, {
@@ -165,13 +166,6 @@ interface StepConfig {
     icon: React.ElementType
 }
 
-const STEPS: StepConfig[] = [
-    { id: 'context', title: 'Context', description: 'Product & Meta', icon: Settings2 },
-    { id: 'intent', title: 'Intent', description: 'Goals & GAS', icon: Target },
-    { id: 'procedure', title: 'Procedure', description: 'Injections', icon: Activity },
-    { id: 'review', title: 'Review', description: 'Sign & Lock', icon: FileText },
-]
-
 interface PreviousAssessment {
     scale: string
     timepoint: string
@@ -195,6 +189,15 @@ export function RecordForm({
   const userRole = contextUserRole || propUserRole || "READONLY"
   const isPro = checkPlan(userPlan as Plan, Plan.PRO)
   
+  const { t } = useTranslation()
+
+  const STEPS: StepConfig[] = [
+    { id: 'context', title: t('treatment.steps.context'), description: 'Product & Meta', icon: Settings2 },
+    { id: 'intent', title: t('treatment.steps.intent'), description: 'Goals & GAS', icon: Target },
+    { id: 'procedure', title: t('treatment.steps.procedure'), description: 'Injections', icon: Activity },
+    { id: 'review', title: t('treatment.steps.review'), description: 'Sign & Lock', icon: FileText },
+  ]
+
   const isSigned = status === "SIGNED"
   const canWrite = checkPermission(userRole as MembershipRole, PERMISSIONS.WRITE_TREATMENTS)
 
@@ -410,9 +413,14 @@ export function RecordForm({
   useEffect(() => {
     if (watchedValues || steps.length > 0 || assessments.length > 0 || targetedGoalIds.length > 0 || goalAssessments.length > 0) {
         setHasUnsavedChanges(true)
+        
         if (!isEditing && watchedValues) {
-            const draft = { values: watchedValues, steps, assessments, targetedGoalIds, goalAssessments, timestamp: new Date() }
-            localStorage.setItem("bont_treatment_draft", JSON.stringify(draft))
+            const handler = setTimeout(() => {
+                const draft = { values: watchedValues, steps, assessments, targetedGoalIds, goalAssessments, timestamp: new Date() }
+                localStorage.setItem("bont_treatment_draft", JSON.stringify(draft))
+            }, 1000) // Debounce autosave by 1s
+
+            return () => clearTimeout(handler)
         }
     }
   }, [watchedValues, steps, assessments, targetedGoalIds, goalAssessments, isEditing])
@@ -672,14 +680,14 @@ export function RecordForm({
                                 <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                         <FormField control={form.control} name="subject_id" render={({ field }) => (
-                                            <FormItem><FormLabel>Patient</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isEditing}><FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl><SelectContent>{patients.map(s => <SelectItem key={s.id} value={s.id}>{s.patient_code}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                            <FormItem><FormLabel>{t('treatment.labels.patient')}</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isEditing}><FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl><SelectContent>{patients.map(s => <SelectItem key={s.id} value={s.id}>{s.patient_code}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={form.control} name="date" render={({ field }) => (
-                                            <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : "Pick"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={d => d > new Date()} /></PopoverContent></Popover><FormMessage /></FormItem>
+                                            <FormItem className="flex flex-col"><FormLabel>{t('treatment.labels.date')}</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : "Pick"}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={d => d > new Date()} /></PopoverContent></Popover><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={form.control} name="category" render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Indication</FormLabel>
+                                                <FormLabel>{t('treatment.labels.indication')}</FormLabel>
                                                 <Select onValueChange={field.onChange} value={field.value}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
                                                     <SelectContent>
@@ -694,14 +702,14 @@ export function RecordForm({
                                             </FormItem>
                                         )} />
                                         <FormField control={form.control} name="diagnosis_id" render={({ field }) => (
-                                            <FormItem><FormLabel>Diagnosis (ICD-10)</FormLabel><FormControl><DiagnosisPicker value={field.value || ""} onChange={field.onChange} /></FormControl></FormItem>
+                                            <FormItem><FormLabel>{t('treatment.labels.diagnosis')} (ICD-10)</FormLabel><FormControl><DiagnosisPicker value={field.value || ""} onChange={field.onChange} /></FormControl></FormItem>
                                         )} />
                                     </div>
 
                                     <div className="p-4 border rounded-xl bg-muted/20 space-y-6">
                                         <div className="flex items-center justify-between">
                                             <div className="flex flex-col">
-                                                <Label>Toxin Product</Label>
+                                                <Label>{t('treatment.labels.product')}</Label>
                                                 <span className="text-[9px] text-muted-foreground italic">{SAFETY_COPY.REFERENCE_ONLY}</span>
                                             </div>
                                             {protocols.length > 0 && (
@@ -847,7 +855,7 @@ export function RecordForm({
                                 <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="space-y-4">
                                         <FormField control={form.control} name="notes" render={({ field }) => (
-                                            <FormItem><FormLabel>Clinical Session Notes</FormLabel><FormControl><Textarea placeholder="Additional clinical observations..." className="min-h-[150px] resize-none text-sm" {...field} /></FormControl><FormMessage /></FormItem>
+                                            <FormItem><FormLabel>{t('treatment.labels.notes')}</FormLabel><FormControl><Textarea placeholder="Additional clinical observations..." className="min-h-[150px] resize-none text-sm" {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -855,7 +863,7 @@ export function RecordForm({
                                                 <FormField control={form.control} name="is_supervised" render={({ field }) => (
                                                     <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                                                         <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                                        <FormLabel className="text-sm font-medium">Performed under supervision</FormLabel>
+                                                        <FormLabel className="text-sm font-medium">{t('treatment.labels.supervised')}</FormLabel>
                                                     </FormItem>
                                                 )} />
                                                 {form.watch("is_supervised") && (
@@ -914,9 +922,9 @@ export function RecordForm({
                     {/* Navigation Footer */}
                     <div className="p-4 border-t bg-muted/5 flex items-center justify-between">
                         <div className="flex gap-2">
-                            <Button type="button" variant="ghost" onClick={() => onCancel ? onCancel() : router.back()}>Cancel</Button>
+                            <Button type="button" variant="ghost" onClick={() => onCancel ? onCancel() : router.back()}>{t('common.cancel')}</Button>
                             {!isSigned && canWrite && (
-                                <Button type="button" variant="ghost" onClick={() => setShowClearDialog(true)} className="text-destructive">Reset</Button>
+                                <Button type="button" variant="ghost" onClick={() => setShowClearDialog(true)} className="text-destructive">{t('common.reset')}</Button>
                             )}
                         </div>
 
@@ -925,24 +933,24 @@ export function RecordForm({
                             
                             {activeStep !== 'context' && (
                                 <Button type="button" variant="outline" onClick={prevStep}>
-                                    <ChevronLeft className="mr-2 h-4 w-4" /> Back
+                                    <ChevronLeft className="mr-2 h-4 w-4" /> {t('common.back')}
                                 </Button>
                             )}
 
                             {activeStep !== 'review' ? (
                                 <Button type="button" onClick={nextStep} disabled={!canGoNext()} className="min-w-[120px]">
-                                    Continue <ChevronRight className="ml-2 h-4 w-4" />
+                                    {t('common.continue')} <ChevronRight className="ml-2 h-4 w-4" />
                                 </Button>
                             ) : (
                                 isSigned ? (
                                     <Button type="button" variant="outline" onClick={handleReopen}>
-                                        <Unlock className="mr-2 h-4 w-4" /> Re-open to Edit
+                                        <Unlock className="mr-2 h-4 w-4" /> {t('treatment.actions.reopen')}
                                     </Button>
                                 ) : (
                                     <div className="flex gap-2">
-                                        <Button type="submit" variant="outline" disabled={isPending}>Save Draft</Button>
+                                        <Button type="submit" variant="outline" disabled={isPending}>{t('treatment.actions.draft')}</Button>
                                         <Button type="button" onClick={handleSign} disabled={isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                                            <Lock className="mr-2 h-4 w-4" /> Sign & Finalize
+                                            <Lock className="mr-2 h-4 w-4" /> {t('treatment.actions.sign')}
                                         </Button>
                                     </div>
                                 )

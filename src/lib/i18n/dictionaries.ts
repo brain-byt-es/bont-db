@@ -9,7 +9,10 @@ export const dictionaries = {
       delete: "Delete",
       create: "Create",
       search: "Search...",
-      loading: "Loading..."
+      loading: "Loading...",
+      continue: "Continue",
+      back: "Back",
+      reset: "Reset"
     },
     sidebar: {
       dashboard: "Dashboard",
@@ -29,6 +32,29 @@ export const dictionaries = {
       title: "Patients",
       subtitle: "Manage your patient database and view histories.",
       new_patient: "New Patient"
+    },
+    treatment: {
+      steps: {
+        context: "Context",
+        intent: "Intent",
+        procedure: "Procedure",
+        review: "Review"
+      },
+      labels: {
+        patient: "Patient",
+        date: "Date",
+        indication: "Indication",
+        diagnosis: "Diagnosis",
+        product: "Toxin Product",
+        notes: "Clinical Session Notes",
+        supervised: "Performed under supervision"
+      },
+      actions: {
+        sign: "Sign & Finalize",
+        draft: "Save Draft",
+        add_site: "Add Injection Site",
+        reopen: "Re-open to Edit"
+      }
     }
   },
   de: {
@@ -39,7 +65,10 @@ export const dictionaries = {
       delete: "Löschen",
       create: "Erstellen",
       search: "Suchen...",
-      loading: "Lädt..."
+      loading: "Lädt...",
+      continue: "Weiter",
+      back: "Zurück",
+      reset: "Zurücksetzen"
     },
     sidebar: {
       dashboard: "Übersicht",
@@ -59,6 +88,29 @@ export const dictionaries = {
       title: "Patienten",
       subtitle: "Verwalten Sie Ihre Patientendatenbank.",
       new_patient: "Neuer Patient"
+    },
+    treatment: {
+      steps: {
+        context: "Kontext",
+        intent: "Ziele (GAS)",
+        procedure: "Prozedur",
+        review: "Abschluss"
+      },
+      labels: {
+        patient: "Patient",
+        date: "Datum",
+        indication: "Indikation",
+        diagnosis: "Diagnose",
+        product: "Präparat",
+        notes: "Klinische Notizen",
+        supervised: "Unter Supervision durchgeführt"
+      },
+      actions: {
+        sign: "Signieren & Abschließen",
+        draft: "Entwurf speichern",
+        add_site: "Injektionsstelle hinzufügen",
+        reopen: "Erneut öffnen"
+      }
     }
   }
 } as const
