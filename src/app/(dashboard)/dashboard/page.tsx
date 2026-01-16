@@ -16,6 +16,7 @@ import {
 } from "@/components/dashboard/clinical-insights"
 import { DateRangeFilter } from "@/components/dashboard/date-range-filter"
 import { CertificationRoadmap } from "@/components/dashboard/certification-roadmap"
+import { getDictionary } from "@/lib/i18n/server"
 
 export default async function Page({
   searchParams,
@@ -25,9 +26,10 @@ export default async function Page({
   const { range } = await searchParams
   const days = range ? parseInt(range) : 90
 
-  const [data, ctx] = await Promise.all([
+  const [data, ctx, dict] = await Promise.all([
       getDashboardData(days),
-      getOrganizationContext()
+      getOrganizationContext(),
+      getDictionary()
   ])
 
   const userPlan = ctx?.organization.plan as Plan
@@ -62,8 +64,8 @@ export default async function Page({
       {/* Header */}
       <div className="flex items-center justify-between px-4 lg:px-6">
         <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground text-sm">Clinical Activity & Progress</p>
+            <h1 className="text-2xl font-bold tracking-tight">{dict.dashboard.title}</h1>
+            <p className="text-muted-foreground text-sm">{dict.dashboard.subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
             <DateRangeFilter />
@@ -73,21 +75,21 @@ export default async function Page({
       {/* Layer 1: Operational (The Now) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-4 lg:px-6 items-stretch">
          <StatsCard 
-            title="Total Patients" 
+            title={dict.dashboard.stats.total_patients} 
             value={data.totalPatientsCount} 
             subtext="Distinct patients treated"
             icon={Users}
             className="h-full"
          />
          <StatsCard 
-            title="Total Treatments" 
+            title={dict.dashboard.stats.total_treatments} 
             value={data.totalTreatmentsCount} 
             subtext={`${range ? 'Last ' + range + ' days' : 'Total records logged'}`}
             icon={Activity}
             className="h-full"
          />
          <StatsCard 
-            title="Follow-up Rate" 
+            title={dict.dashboard.stats.follow_up_rate} 
             value={`${Math.round(data.followUpRateRecent)}%`}
             subtext={`${range ? 'Last ' + range + ' days' : 'Last 90 days'}`}
             icon={TrendingUp}
@@ -105,7 +107,7 @@ export default async function Page({
 
       {/* Layer 3: Evidence (The Hub) */}
       <div className="px-4 lg:px-6 space-y-6">
-        <h2 className="text-lg font-semibold tracking-tight">Clinical Insights</h2>
+        <h2 className="text-lg font-semibold tracking-tight">{dict.dashboard.insights.title}</h2>
 
         {!isPro ? (
             // Progressive Disclosure for Basic
