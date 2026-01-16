@@ -43,7 +43,11 @@ const FAQ_DATA: FaqCategory[] = [
     }
 ]
 
-export function FaqSection() {
+interface FaqSectionProps {
+    rightColumn?: React.ReactNode
+}
+
+export function FaqSection({ rightColumn }: FaqSectionProps) {
     const [search, setSearch] = React.useState("")
 
     const filteredFaqs = FAQ_DATA.map(cat => ({
@@ -55,7 +59,7 @@ export function FaqSection() {
     })).filter(cat => cat.items.length > 0)
 
     return (
-        <div className="space-y-8">
+        <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-4 text-center items-center py-8">
                 <h1 className="text-4xl font-bold tracking-tight">How can we help?</h1>
                 <div className="relative w-full max-w-lg">
@@ -69,37 +73,43 @@ export function FaqSection() {
                 </div>
             </div>
 
-            <div className="space-y-8">
-                {filteredFaqs.length > 0 ? (
-                    filteredFaqs.map((cat, idx) => (
-                        <div key={idx} className="space-y-4 animate-in fade-in duration-300">
-                            <h3 className="text-lg font-semibold flex items-center gap-2">
-                                {cat.category === "Clinical Workflow" && <MessageCircle className="size-5 text-primary" />}
-                                {cat.category}
-                            </h3>
-                            <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-                                <Accordion type="single" collapsible className="w-full">
-                                    {cat.items.map((item, i) => (
-                                        <AccordionItem key={i} value={`item-${idx}-${i}`} className="px-6 border-b last:border-0">
-                                            <AccordionTrigger className="hover:no-underline py-4 text-left font-medium">
-                                                {item.q}
-                                            </AccordionTrigger>
-                                            <AccordionContent className="text-muted-foreground pb-4 leading-relaxed">
-                                                {item.a}
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    ))}
-                                </Accordion>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <div className="lg:col-span-2 space-y-8">
+                    {filteredFaqs.length > 0 ? (
+                        filteredFaqs.map((cat, idx) => (
+                            <div key={idx} className="space-y-4 animate-in fade-in duration-300">
+                                <h3 className="text-lg font-semibold flex items-center gap-2">
+                                    {cat.category === "Clinical Workflow" && <MessageCircle className="size-5 text-primary" />}
+                                    {cat.category}
+                                </h3>
+                                <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                                    <Accordion type="single" collapsible className="w-full">
+                                        {cat.items.map((item, i) => (
+                                            <AccordionItem key={i} value={`item-${idx}-${i}`} className="px-6 border-b last:border-0">
+                                                <AccordionTrigger className="hover:no-underline py-4 text-left font-medium">
+                                                    {item.q}
+                                                </AccordionTrigger>
+                                                <AccordionContent className="text-muted-foreground pb-4 leading-relaxed">
+                                                    {item.a}
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                                </div>
                             </div>
+                        ))
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                            <FileQuestion className="h-12 w-12 mb-4 opacity-20" />
+                            <p className="text-lg font-medium">No results found for &quot;{search}&quot;</p>
+                            <p className="text-sm">Try using different keywords or contact support directly.</p>
                         </div>
-                    ))
-                ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                        <FileQuestion className="h-12 w-12 mb-4 opacity-20" />
-                        <p className="text-lg font-medium">No results found for &quot;{search}&quot;</p>
-                        <p className="text-sm">Try using different keywords or contact support directly.</p>
-                    </div>
-                )}
+                    )}
+                </div>
+
+                <div className="space-y-6">
+                    {rightColumn}
+                </div>
             </div>
         </div>
     )
