@@ -1,7 +1,6 @@
 import { ActivityTrendCard, TopMusclesCard } from "@/components/dashboard/clinical-activity"
 import { NextActions } from "@/components/dashboard/next-actions"
 import { DocumentationQuality } from "@/components/dashboard/documentation-quality"
-import { UpsellTeaser } from "@/components/dashboard/upsell-teaser"
 import { StatsCard } from "@/components/stats-card"
 import { Users, Activity, TrendingUp } from "lucide-react"
 import { getDashboardData } from "./actions"
@@ -12,7 +11,8 @@ import {
     OutcomeTrendsCard, 
     DoseDistributionCard, 
     CaseMixCard, 
-    ProductUtilizationCard 
+    ProductUtilizationCard,
+    ClinicalInsightsPreview
 } from "@/components/dashboard/clinical-insights"
 import { DateRangeFilter } from "@/components/dashboard/date-range-filter"
 import { CertificationRoadmap } from "@/components/dashboard/certification-roadmap"
@@ -57,20 +57,20 @@ export default async function Page({
   }
 
   return (
-    <div className="@container/main flex flex-1 flex-col gap-6 pt-6 pb-8">
+    <div className="@container/main flex flex-1 flex-col gap-8 pt-6 pb-12">
       
       {/* Header */}
       <div className="flex items-center justify-between px-4 lg:px-6">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground">Clinical Activity & Progress</p>
+            <p className="text-muted-foreground text-sm">Clinical Activity & Progress</p>
         </div>
         <div className="flex items-center gap-2">
             <DateRangeFilter />
         </div>
       </div>
       
-      {/* 1. Overview Row & Next Actions */}
+      {/* Layer 1: Operational (The Now) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-4 lg:px-6 items-stretch">
          <StatsCard 
             title="Total Patients" 
@@ -96,42 +96,52 @@ export default async function Page({
          <NextActions actions={actions} className="h-full" />
       </div>
 
-      {/* 2. Qualification & Certification Subsection */}
+      {/* Layer 2: Progress (The Path) */}
       {ctx?.membership?.showCertificationRoadmap && (
         <div className="px-4 lg:px-6">
           <CertificationRoadmap data={data.certification} />
         </div>
       )}
 
-      <div className="px-4 lg:px-6">
+      {/* Layer 3: Evidence (The Hub) */}
+      <div className="px-4 lg:px-6 space-y-6">
         <h2 className="text-lg font-semibold tracking-tight">Clinical Insights</h2>
-      </div>
 
-      {!isPro && (
-        <div className="px-4 lg:px-6 mb-4">
-            <UpsellTeaser />
-        </div>
-      )}
+        {!isPro ? (
+            // Progressive Disclosure for Basic
+            <ClinicalInsightsPreview />
+        ) : (
+            <div className="space-y-6">
+                {/* Hero Row: Outcomes & Quality */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                        <OutcomeTrendsCard outcomeTrends={data.outcomeTrends} isPro={isPro} className="h-full" />
+                    </div>
+                    <div className="lg:col-span-1">
+                        <DocumentationQuality 
+                            followUpRateOverall={data.followUpRateOverall}
+                            followUpRateRecent={data.followUpRateRecent}
+                            masBaselineRate={data.masBaselineRate}
+                            masPeakRate={data.masPeakRate}
+                            className="h-full"
+                        />
+                    </div>
+                </div>
 
-      {/* 3. Clinical Insights Grid (3x3) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 lg:px-6 items-stretch">
-        <OutcomeTrendsCard outcomeTrends={data.outcomeTrends} isPro={isPro} className="h-full" />
-        <DoseDistributionCard dosePerIndication={data.dosePerIndication} isPro={isPro} className="h-full" />
-        <CaseMixCard data={data.caseMix} isPro={isPro} className="h-full" />
+                {/* Practice Patterns Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <ActivityTrendCard trendData={data.trendData} isPro={isPro} className="h-full" />
+                    <TopMusclesCard topMuscles={data.topMuscles} isPro={isPro} className="h-full" />
+                    <CaseMixCard data={data.caseMix} isPro={isPro} className="h-full" />
+                </div>
 
-        <ProductUtilizationCard data={data.productUtilization} isPro={isPro} className="h-full" />
-        <ActivityTrendCard trendData={data.trendData} isPro={isPro} className="h-full" />
-        <TopMusclesCard topMuscles={data.topMuscles} isPro={isPro} className="h-full" />
-        
-        <div className="lg:col-span-3">
-            <DocumentationQuality 
-                followUpRateOverall={data.followUpRateOverall}
-                followUpRateRecent={data.followUpRateRecent}
-                masBaselineRate={data.masBaselineRate}
-                masPeakRate={data.masPeakRate}
-                className="h-full"
-            />
-        </div>
+                {/* Logistics Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <DoseDistributionCard dosePerIndication={data.dosePerIndication} isPro={isPro} className="h-full" />
+                    <ProductUtilizationCard data={data.productUtilization} isPro={isPro} className="h-full" />
+                </div>
+            </div>
+        )}
       </div>
 
     </div>

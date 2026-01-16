@@ -17,7 +17,7 @@ import {
   Tooltip
 } from "recharts"
 import { Badge } from "@/components/ui/badge"
-import { Lock, TrendingUp, FlaskConical, PieChart as PieIcon, Activity } from "lucide-react"
+import { Lock, TrendingUp, FlaskConical, PieChart as PieIcon, Activity, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   ChartContainer,
@@ -25,6 +25,8 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
+import { Button } from "@/components/ui/button"
+import { PricingDialog } from "@/components/pricing-dialog"
 
 const outcomeConfig = {
   improvement: {
@@ -48,33 +50,28 @@ interface MixStat {
   value: number
 }
 
-interface ClinicalInsightsProps {
-  outcomeTrends: OutcomeTrend[]
-  dosePerIndication: DoseStat[]
-  caseMix: MixStat[]
-  productUtilization: MixStat[]
-  isPro: boolean
-}
-
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-export function OutcomeTrendsCard({ outcomeTrends, isPro, className }: { outcomeTrends: OutcomeTrend[], isPro: boolean, className?: string }) {
+export function OutcomeTrendsCard({ outcomeTrends, isPro, className, showBadge }: { outcomeTrends: OutcomeTrend[], isPro: boolean, className?: string, showBadge?: boolean }) {
   return (
         <Card className={cn("h-full", !isPro && "relative overflow-hidden", className)}>
-          {!isPro && <LockOverlay />}
+          {!isPro && !showBadge && <LockOverlay />}
           <CardHeader>
-            <div className="flex items-center gap-2">
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                    <TrendingUp className="h-4 w-4 text-emerald-600" />
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                        <TrendingUp className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    <div>
+                        <CardTitle className="text-sm font-medium">MAS Improvement</CardTitle>
+                        <CardDescription>Average therapeutic gain over time</CardDescription>
+                    </div>
                 </div>
-                <div>
-                    <CardTitle className="text-sm font-medium">MAS Improvement</CardTitle>
-                    <CardDescription>Average therapeutic gain over time</CardDescription>
-                </div>
+                {showBadge && <Badge variant="secondary" className="text-[10px] font-normal bg-muted text-muted-foreground border-muted-foreground/20">Sample Data</Badge>}
             </div>
           </CardHeader>
           <CardContent>
-            <div className={cn("mt-4", !isPro && "blur-[2px] opacity-40")}>
+            <div className={cn("mt-4", !isPro && !showBadge && "blur-[2px] opacity-40")}>
               <ChartContainer
                 config={outcomeConfig}
                 className="aspect-auto h-[250px] w-full"
@@ -281,30 +278,31 @@ export function ProductUtilizationCard({ data, isPro, className }: { data: MixSt
   )
 }
 
-export function ClinicalInsights({ 
-    outcomeTrends, 
-    dosePerIndication, 
-    caseMix, 
-    productUtilization, 
-    isPro 
-}: ClinicalInsightsProps) {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
-          Clinical Insights
-          {!isPro && <Badge variant="secondary" className="font-normal">Upgrade to unlock</Badge>}
-        </h2>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <OutcomeTrendsCard outcomeTrends={outcomeTrends} isPro={isPro} />
-        <DoseDistributionCard dosePerIndication={dosePerIndication} isPro={isPro} />
-        <CaseMixCard data={caseMix} isPro={isPro} />
-        <ProductUtilizationCard data={productUtilization} isPro={isPro} />
-      </div>
-    </div>
-  )
+export function ClinicalInsightsPreview() {
+    return (
+        <div className="relative overflow-hidden rounded-xl border bg-background shadow-sm">
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm p-6 text-center">
+                <div className="rounded-full bg-gradient-to-br from-primary/20 to-primary/5 p-4 mb-4 border border-primary/10">
+                    <Sparkles className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold tracking-tight mb-2">Unlock Clinical Intelligence</h3>
+                <p className="text-sm text-muted-foreground max-w-md mb-6">
+                    Gain deep visibility into your treatment outcomes, dosing patterns, and documentation quality.
+                </p>
+                <PricingDialog>
+                    <Button size="lg" className="shadow-lg shadow-primary/20 bg-gradient-to-r from-primary to-primary/90 hover:to-primary text-primary-foreground">
+                        <Lock className="mr-2 h-4 w-4" /> Unlock Pro Analytics
+                    </Button>
+                </PricingDialog>
+            </div>
+            
+            {/* Background Content (Blurred) */}
+            <div className="grid md:grid-cols-2 gap-6 p-6 opacity-50 pointer-events-none filter blur-[1px]">
+                <OutcomeTrendsCard outcomeTrends={MOCK_OUTCOME_DATA} isPro={false} showBadge />
+                <DoseDistributionCard dosePerIndication={MOCK_DOSE_DATA} isPro={false} />
+            </div>
+        </div>
+    )
 }
 
 function LockOverlay() {
