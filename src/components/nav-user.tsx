@@ -1,14 +1,12 @@
 "use client"
 
 import {
-  IconCreditCard,
   IconDotsVertical,
   IconLogout,
   IconUserCircle,
 } from "@tabler/icons-react"
-import { Languages } from "lucide-react"
 import { signOut } from "next-auth/react"
-import Link from "next/link"
+import { useState } from "react"
 
 import {
   Avatar,
@@ -31,6 +29,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { AccountHub } from "@/components/account-hub"
 
 export function NavUser({
   user,
@@ -42,9 +41,13 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { locale, setLocale, t } = useTranslation()
+  const { t } = useTranslation()
+  const [isAccountHubOpen, setIsAccountHubOpen] = useState(false)
 
   return (
+    <>
+    <AccountHub open={isAccountHubOpen} onOpenChange={setIsAccountHubOpen} />
+    
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
@@ -83,24 +86,9 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => setLocale(locale === 'en' ? 'de' : 'en')} className="cursor-pointer">
-                <Languages className="mr-2 size-4" />
-                Language: {locale.toUpperCase()}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link href="/settings?tab=profile" className="cursor-pointer">
-                  <IconUserCircle className="mr-2 size-4" />
-                  Account Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings?tab=organization" className="cursor-pointer">
-                  <IconCreditCard className="mr-2 size-4" />
-                  Billing & Plan
-                </Link>
+              <DropdownMenuItem onClick={() => setIsAccountHubOpen(true)} className="cursor-pointer">
+                <IconUserCircle className="mr-2 size-4" />
+                Account Hub
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -112,5 +100,6 @@ export function NavUser({
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
+    </>
   )
 }
