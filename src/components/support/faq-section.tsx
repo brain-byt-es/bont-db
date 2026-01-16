@@ -107,7 +107,7 @@ export function FaqSection({ rightColumn }: FaqSectionProps) {
                     )}
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-6 lg:sticky lg:top-6">
                     {rightColumn}
                 </div>
             </div>
