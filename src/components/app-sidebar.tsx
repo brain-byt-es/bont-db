@@ -41,49 +41,13 @@ import { checkPermission, PERMISSIONS } from "@/lib/permissions"
 import { MembershipRole } from "@/generated/client/enums"
 import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
 
+import { useTranslation } from "@/lib/i18n/i18n-context"
+
 // Default data if no user provided
 const defaultUser = {
   name: "User",
   email: "user@example.com",
   avatar: "",
-}
-
-const data = {
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: IconDashboard,
-    },
-    {
-      title: "Patients",
-      url: "/patients",
-      icon: IconUsers,
-    },
-    {
-      title: "Treatments",
-      url: "/treatments",
-      icon: IconVaccine,
-    },
-    {
-      title: "Export",
-      url: "/export",
-      icon: IconChartBar,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Support",
-      url: "/support",
-      icon: IconLifebuoy,
-    },
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: IconSettings,
-      permission: PERMISSIONS.MANAGE_TEAM
-    },
-  ],
 }
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -113,6 +77,45 @@ export function AppSidebar({ user, organization, allTeams = [], userRole = "Memb
   const initials = orgName.substring(0, 2).toUpperCase()
   const { isMobile } = useSidebar()
   const pathname = usePathname()
+  const { t } = useTranslation()
+
+  const data = {
+    navMain: [
+      {
+        title: t('sidebar.dashboard'),
+        url: "/dashboard",
+        icon: IconDashboard,
+      },
+      {
+        title: t('sidebar.patients'),
+        url: "/patients",
+        icon: IconUsers,
+      },
+      {
+        title: t('sidebar.treatments'),
+        url: "/treatments",
+        icon: IconVaccine,
+      },
+      {
+        title: t('sidebar.export'),
+        url: "/export",
+        icon: IconChartBar,
+      },
+    ],
+    navSecondary: [
+      {
+        title: t('sidebar.support'),
+        url: "/support",
+        icon: IconLifebuoy,
+      },
+      {
+        title: t('sidebar.settings'),
+        url: "/settings",
+        icon: IconSettings,
+        permission: PERMISSIONS.MANAGE_TEAM
+      },
+    ],
+  }
 
   const formattedRole = userRole.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase())
 

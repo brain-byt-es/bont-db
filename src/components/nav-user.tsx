@@ -6,6 +6,7 @@ import {
   IconLogout,
   IconUserCircle,
 } from "@tabler/icons-react"
+import { Languages } from "lucide-react"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
 
@@ -29,6 +30,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 export function NavUser({
   user,
@@ -40,6 +42,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const { locale, setLocale, t } = useTranslation()
 
   return (
     <SidebarMenu>
@@ -80,6 +83,13 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => setLocale(locale === 'en' ? 'de' : 'en')} className="cursor-pointer">
+                <Languages className="mr-2 size-4" />
+                Language: {locale.toUpperCase()}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
               <DropdownMenuItem asChild>
                 <Link href="/settings?tab=profile" className="cursor-pointer">
                   <IconUserCircle className="mr-2 size-4" />
@@ -96,7 +106,7 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })} className="cursor-pointer">
               <IconLogout className="mr-2 size-4" />
-              Log out
+              {t('sidebar.logout')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

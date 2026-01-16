@@ -8,6 +8,30 @@ import { revalidatePath } from "next/cache"
 import { randomUUID } from "crypto"
 import { PERMISSIONS, requirePermission } from "@/lib/permissions"
 import { createPatientIdentifier, PatientPhiInclude, getBirthYear } from "@/phi/patient-phi"
+import { logAuditAction } from "@/lib/audit-logger"
+
+export async function getPatientIdentity(patientId: string) {
+  const ctx = await getOrganizationContext()
+  if (!ctx) throw new Error("Unauthorized")
+
+  // Log Access (JIT)
+  await logAuditAction(ctx, "PHI_REVEAL", "Patient", patientId, { reason: "User requested identity reveal" })
+
+  const identity = await prisma.patientIdentifier.findFirst({
+    where: {
+      patientId,
+      organizationId: ctx.organizationId
+    }
+  })
+
+  if (!identity) return null
+
+  return {
+    ehrPatientId: identity.ehrPatientId,
+    birthYear: identity.birthYear,
+    dateOfBirth: identity.dateOfBirth
+  }
+}
 
 export async function getPatients(): Promise<Subject[]> {
   const ctx = await getOrganizationContext()
