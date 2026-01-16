@@ -240,10 +240,11 @@ export function ProcedureStepsEditor({
                           <div className="bg-muted/30 rounded-2xl p-4 border border-muted/50">
                               <div className="flex items-center justify-between gap-4">
                                   <Button 
+                                      type="button"
                                       variant="outline" 
                                       size="icon" 
                                       className="h-14 w-14 rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5"
-                                      onClick={() => updateStep(step.id, "numeric_value", Math.max(0, (step.numeric_value || 0) - 5))}
+                                      onClick={() => updateStep(step.id, "numeric_value", Math.max(0, (step.numeric_value || 0) - 1))}
                                       disabled={disabled}
                                   >
                                       <Minus className="h-6 w-6" />
@@ -260,10 +261,11 @@ export function ProcedureStepsEditor({
                                   </div>
 
                                   <Button 
+                                      type="button"
                                       variant="outline" 
                                       size="icon" 
                                       className="h-14 w-14 rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5"
-                                      onClick={() => updateStep(step.id, "numeric_value", (step.numeric_value || 0) + 5)}
+                                      onClick={() => updateStep(step.id, "numeric_value", (step.numeric_value || 0) + 1)}
                                       disabled={disabled}
                                   >
                                       <Plus className="h-6 w-6" />
@@ -284,6 +286,7 @@ export function ProcedureStepsEditor({
               ))}
 
               <Button 
+                  type="button"
                   onClick={addStep} 
                   size="lg" 
                   disabled={disabled} 
