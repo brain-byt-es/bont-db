@@ -73,23 +73,23 @@ export function FaqSection({ rightColumn }: FaqSectionProps) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                <div className="lg:col-span-2 space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start w-full">
+                <div className="lg:col-span-2 space-y-8 min-w-0">
                     {filteredFaqs.length > 0 ? (
                         filteredFaqs.map((cat, idx) => (
-                            <div key={idx} className="space-y-4 animate-in fade-in duration-300">
+                            <div key={idx} className="space-y-4">
                                 <h3 className="text-lg font-semibold flex items-center gap-2">
                                     {cat.category === "Clinical Workflow" && <MessageCircle className="size-5 text-primary" />}
                                     {cat.category}
                                 </h3>
-                                <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                                <div className="rounded-xl border bg-card shadow-sm overflow-hidden w-full">
                                     <Accordion type="single" collapsible className="w-full">
                                         {cat.items.map((item, i) => (
                                             <AccordionItem key={i} value={`item-${idx}-${i}`} className="px-6 border-b last:border-0">
-                                                <AccordionTrigger className="hover:no-underline py-4 text-left font-medium">
+                                                <AccordionTrigger className="hover:no-underline py-4 text-left font-medium w-full">
                                                     {item.q}
                                                 </AccordionTrigger>
-                                                <AccordionContent className="text-muted-foreground pb-4 leading-relaxed">
+                                                <AccordionContent className="text-muted-foreground pb-4 leading-relaxed w-full">
                                                     {item.a}
                                                 </AccordionContent>
                                             </AccordionItem>
