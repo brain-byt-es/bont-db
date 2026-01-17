@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/chart"
 import { Button } from "@/components/ui/button"
 import { PricingDialog } from "@/components/pricing-dialog"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 const outcomeConfig = {
   improvement: {
@@ -53,8 +54,16 @@ interface MixStat {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export function OutcomeTrendsCard({ outcomeTrends, isPro, className, showBadge }: { outcomeTrends: OutcomeTrend[], isPro: boolean, className?: string, showBadge?: boolean }) {
+  const { t } = useTranslation()
+  const outcomeConfig = {
+    improvement: {
+      label: t('charts.improvement'),
+      color: "#10b981",
+    },
+  } satisfies ChartConfig
+
   return (
-        <Card className={cn("h-full", !isPro && "relative overflow-hidden", className)}>
+        <Card className={cn("h-full", !isPro && !showBadge && "relative overflow-hidden", className)}>
           {!isPro && !showBadge && <LockOverlay />}
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -63,11 +72,11 @@ export function OutcomeTrendsCard({ outcomeTrends, isPro, className, showBadge }
                         <TrendingUp className="h-4 w-4 text-emerald-600" />
                     </div>
                     <div>
-                        <CardTitle className="text-sm font-medium">MAS Improvement</CardTitle>
-                        <CardDescription>Average therapeutic gain over time</CardDescription>
+                        <CardTitle className="text-sm font-medium">{t('charts.mas_improvement')}</CardTitle>
+                        <CardDescription>{t('charts.therapeutic_gain')}</CardDescription>
                     </div>
                 </div>
-                {showBadge && <Badge variant="secondary" className="text-[10px] font-normal bg-muted text-muted-foreground border-muted-foreground/20">Sample Data</Badge>}
+                {showBadge && <Badge variant="secondary" className="text-[10px] font-normal bg-muted text-muted-foreground border-muted-foreground/20">{t('dashboard.insights.sample_data')}</Badge>}
             </div>
           </CardHeader>
           <CardContent>

@@ -7,9 +7,13 @@ import { Badge } from "@/components/ui/badge"
 import { redirect } from "next/navigation"
 import { DeleteOrgCard } from "../delete-org-card"
 import { MembershipRole } from "@/generated/client/enums"
+import { getDictionary } from "@/lib/i18n/server"
 
 export default async function GeneralSettingsPage() {
-    const ctx = await getOrganizationContext()
+    const [ctx, dict] = await Promise.all([
+        getOrganizationContext(),
+        getDictionary()
+    ])
     if (!ctx) redirect("/onboarding")
 
     const settings = await getComplianceSettings()
@@ -18,13 +22,13 @@ export default async function GeneralSettingsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="text-lg font-medium">General</h3>
-                <p className="text-sm text-muted-foreground">Manage your clinic&apos;s public profile and details.</p>
+                <h3 className="text-lg font-medium">{dict.settings.general.title}</h3>
+                <p className="text-sm text-muted-foreground">{dict.settings.general.desc}</p>
             </div>
             
             <Card>
                 <CardHeader>
-                <CardTitle>Organization Details</CardTitle>
+                <CardTitle>{dict.settings.general.org_details}</CardTitle>
                 <CardDescription>
                     Visible on invoices and patient communications.
                 </CardDescription>
@@ -39,7 +43,7 @@ export default async function GeneralSettingsPage() {
                 <div className="pt-4 border-t space-y-3">
                     <h4 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
                         <Globe className="h-4 w-4" />
-                        Data Residency
+                        {dict.settings.general.data_residency}
                     </h4>
                     <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
                         <div className="space-y-0.5">

@@ -25,6 +25,7 @@ import {
 import { deletePatient } from "@/app/(dashboard)/patients/delete-action"
 import { toast } from "sonner"
 import { PatientEditDialog } from "@/components/patient-edit-dialog"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 
 export interface Subject {
@@ -44,6 +45,7 @@ function PatientActions({ subject }: { subject: Subject }) {
   const [isPending, startTransition] = useTransition()
   const [editOpen, setEditOpen] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const { t } = useTranslation()
 
   const handleDelete = () => {
     startTransition(async () => {
@@ -71,18 +73,18 @@ function PatientActions({ subject }: { subject: Subject }) {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Patient?</AlertDialogTitle>
+            <AlertDialogTitle>{t('common.delete')} {t('treatment.labels.patient')}?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete patient <strong>{subject.patient_code}</strong> and all associated treatment records. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction 
               onClick={(e) => { e.preventDefault(); handleDelete(); }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isPending ? "Deleting..." : "Delete Patient"}
+              {isPending ? t('common.loading') : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -120,6 +122,7 @@ function PatientActions({ subject }: { subject: Subject }) {
 }
 
 export function SubjectsTable({ subjects }: SubjectsTableProps) {
+  const { t } = useTranslation()
   const [sortConfig, setSortConfig] = useState<{ key: keyof Subject; direction: 'ascending' | 'descending' } | null>(null);
 
   const sortedSubjects = [...subjects].sort((a, b) => {
@@ -151,25 +154,25 @@ export function SubjectsTable({ subjects }: SubjectsTableProps) {
         <TableRow>
           <TableHead>
             <Button variant="ghost" onClick={() => requestSort('patient_code')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
-              Patient Code <ArrowUpDown className="ml-2 h-4 w-4" />
+              {t('patients.table.code')} <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>
           <TableHead>
             <Button variant="ghost" onClick={() => requestSort('birth_year')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
-              Birth Year <ArrowUpDown className="ml-2 h-4 w-4" />
+              {t('patients.table.birth_year')} <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>
           <TableHead>
             <Button variant="ghost" onClick={() => requestSort('record_count')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
-              Records <ArrowUpDown className="ml-2 h-4 w-4" />
+              {t('patients.table.records')} <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>
           <TableHead>
              <Button variant="ghost" onClick={() => requestSort('last_activity')} className="-ml-4 h-8 hover:bg-transparent font-semibold justify-start">
-              Last Activity <ArrowUpDown className="ml-2 h-4 w-4" />
+              {t('patients.table.last_activity')} <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </TableHead>
-          <TableHead>Notes</TableHead>
+          <TableHead>{t('patients.table.notes')}</TableHead>
           <TableHead className="w-[50px]"></TableHead>
         </TableRow>
       </TableHeader>
@@ -177,7 +180,7 @@ export function SubjectsTable({ subjects }: SubjectsTableProps) {
         {sortedSubjects.length === 0 ? (
           <TableRow>
             <TableCell colSpan={6} className="h-24 text-center">
-              No patients found.
+              {t('patients.no_patients')}
             </TableCell>
           </TableRow>
         ) : (

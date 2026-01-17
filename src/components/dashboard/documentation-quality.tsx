@@ -1,5 +1,8 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 interface DocumentationQualityProps {
   followUpRateOverall: number
@@ -22,16 +25,18 @@ export function DocumentationQuality({
   masPeakRate,
   className
 }: DocumentationQualityProps) {
+  const { t } = useTranslation()
+
   return (
     <Card className={className}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold">Research Readiness</CardTitle>
-        <CardDescription>Data quality for future analysis</CardDescription>
+        <CardTitle className="text-base font-semibold">{t('charts.documentation_quality')}</CardTitle>
+        <CardDescription>{t('charts.confidence_score')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="font-medium">Follow-up Rate (Last 90 Days)</span>
+            <span className="font-medium">{t('charts.activity_trend')} (Last 90 Days)</span>
             <span className="text-muted-foreground tabular-nums">{Math.round(followUpRateRecent)}%</span>
           </div>
           <Progress 
@@ -43,7 +48,7 @@ export function DocumentationQuality({
 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="font-medium">Follow-up Rate (All Time)</span>
+            <span className="font-medium">{t('charts.activity_trend')} (All Time)</span>
             <span className="text-muted-foreground tabular-nums">{Math.round(followUpRateOverall)}%</span>
           </div>
           <Progress 

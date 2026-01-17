@@ -12,9 +12,13 @@ import { format } from "date-fns"
 import { calculateBillableSeats } from "@/lib/stripe-billing"
 import { createCustomerPortalAction } from "@/app/actions/stripe"
 import { PricingDialog } from "@/components/pricing-dialog"
+import { getDictionary } from "@/lib/i18n/server"
 
 export default async function BillingSettingsPage() {
-    const ctx = await getOrganizationContext()
+    const [ctx, dict] = await Promise.all([
+        getOrganizationContext(),
+        getDictionary()
+    ])
     if (!ctx) redirect("/onboarding")
 
     const userPlan = getEffectivePlan(ctx.organization)
@@ -30,8 +34,8 @@ export default async function BillingSettingsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="text-lg font-medium">Billing & Plan</h3>
-                <p className="text-sm text-muted-foreground">Manage your subscription and usage limits.</p>
+                <h3 className="text-lg font-medium">{dict.settings.billing.title}</h3>
+                <p className="text-sm text-muted-foreground">{dict.settings.billing.desc}</p>
             </div>
 
             <Card className={cn(isPro ? "border-primary/20 bg-primary/5" : "")}>
@@ -40,7 +44,7 @@ export default async function BillingSettingsPage() {
                         <div>
                             <CardTitle className="flex items-center gap-2">
                                 <CreditCard className="h-5 w-5" />
-                                Subscription Plan
+                                {dict.settings.billing.plan}
                             </CardTitle>
                             <CardDescription>
                                 Manage your billing and seats.
@@ -67,7 +71,7 @@ export default async function BillingSettingsPage() {
                         <div className="space-y-6">
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 <div className="p-3 bg-background rounded-md border">
-                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Status</p>
+                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{dict.settings.billing.status}</p>
                                     <div className="mt-1 flex items-center gap-2">
                                         <div className={cn("h-2 w-2 rounded-full", 
                                             isEnterprise ? "bg-primary" :
@@ -78,7 +82,7 @@ export default async function BillingSettingsPage() {
                                     </div>
                                 </div>
                                 <div className="p-3 bg-background rounded-md border">
-                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Active Seats</p>
+                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{dict.settings.billing.seats}</p>
                                     <div className="mt-1 flex items-center gap-2">
                                         <Users className="h-4 w-4 text-muted-foreground" />
                                         <span className="font-semibold">
@@ -88,7 +92,7 @@ export default async function BillingSettingsPage() {
                                 </div>
                                 {periodEnd && !isEnterprise && (
                                     <div className="p-3 bg-background rounded-md border">
-                                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Renews On</p>
+                                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{dict.settings.billing.renews}</p>
                                         <div className="mt-1 font-semibold">
                                             {format(periodEnd, 'MMM d, yyyy')}
                                         </div>

@@ -6,6 +6,7 @@ import { DialogTrigger } from "@/components/ui/dialog"
 import { Edit } from "lucide-react"
 import { PatientEditDialog } from "@/components/patient-edit-dialog"
 import { PatientIdentityRevealer } from "@/components/patient-identity-revealer"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 interface PatientHeaderProps {
   patient: {
@@ -19,6 +20,7 @@ interface PatientHeaderProps {
 
 export function PatientHeader({ patient }: PatientHeaderProps) {
   const [open, setOpen] = useState(false)
+  const { t } = useTranslation()
 
   return (
     <div className="flex items-start justify-between w-full">
@@ -26,7 +28,7 @@ export function PatientHeader({ patient }: PatientHeaderProps) {
         <div>
             <h1 className="text-3xl font-bold tracking-tight">{patient.patient_code}</h1>
             <p className="text-muted-foreground">
-            Born: {patient.birth_year}
+            {t('patients.table.born')}: {patient.birth_year}
             </p>
         </div>
         <PatientIdentityRevealer patientId={patient.id} />
@@ -35,7 +37,7 @@ export function PatientHeader({ patient }: PatientHeaderProps) {
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">
             <Edit className="mr-2 size-4" />
-            Edit Patient
+            {t('common.edit')} {t('treatment.labels.patient')}
           </Button>
         </DialogTrigger>
       </PatientEditDialog>

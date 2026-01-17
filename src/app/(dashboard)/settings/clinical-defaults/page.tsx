@@ -15,9 +15,13 @@ import { ClinicalSettingsForm } from "@/components/settings/clinical-settings-fo
 import { DecisionSupportToggle } from "../decision-support-toggle"
 import { ComplianceToggle } from "../compliance-toggle"
 import { ComplianceUpgradeTeaser } from "@/components/settings/compliance-upgrade-teaser"
+import { getDictionary } from "@/lib/i18n/server"
 
 export default async function ClinicalDefaultsPage() {
-    const ctx = await getOrganizationContext()
+    const [ctx, dict] = await Promise.all([
+        getOrganizationContext(),
+        getDictionary()
+    ])
     if (!ctx) redirect("/onboarding")
 
     const userPlan = getEffectivePlan(ctx.organization)
@@ -28,8 +32,8 @@ export default async function ClinicalDefaultsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="text-lg font-medium">Clinical Defaults</h3>
-                <p className="text-sm text-muted-foreground">Configure standard doses, vials, and decision support.</p>
+                <h3 className="text-lg font-medium">{dict.settings.clinical.title}</h3>
+                <p className="text-sm text-muted-foreground">{dict.settings.clinical.desc}</p>
             </div>
 
             <div className="grid gap-4">
@@ -43,7 +47,7 @@ export default async function ClinicalDefaultsPage() {
                 <Card className={cn(!isPro && "opacity-60 grayscale-[0.5]")}>
                     <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        Clinical Decision Support
+                        {dict.settings.clinical.decision_support}
                         {!isPro && <Badge variant="secondary" className="font-normal text-[10px] h-4">Pro</Badge>}
                     </CardTitle>
                     <CardDescription>
@@ -63,7 +67,7 @@ export default async function ClinicalDefaultsPage() {
                 {isPro && canManageTeam && settings.enable_compliance_views && (
                     <Card>
                         <CardHeader>
-                        <CardTitle>Security Logs</CardTitle>
+                        <CardTitle>{dict.settings.clinical.logs}</CardTitle>
                         <CardDescription>
                             Review system-wide activity and security events for compliance audits.
                         </CardDescription>

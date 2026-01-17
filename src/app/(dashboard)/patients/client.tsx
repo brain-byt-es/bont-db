@@ -11,12 +11,14 @@ import {
 } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { EmptyState } from "@/components/ui/empty"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 interface PatientsClientProps {
   initialSubjects: Subject[]
 }
 
 export function PatientsClient({ initialSubjects }: PatientsClientProps) {
+  const { t } = useTranslation()
   const [search, setSearch] = useState("")
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
@@ -36,9 +38,9 @@ export function PatientsClient({ initialSubjects }: PatientsClientProps) {
     <div className="flex flex-col gap-4 pt-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Patients</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('patients.title')}</h1>
           <p className="text-muted-foreground text-sm">
-            Manage your patient database and view their treatment history.
+            {t('patients.subtitle')}
           </p>
         </div>
         <div className="flex w-full items-center justify-end gap-2 md:w-auto">
@@ -60,7 +62,7 @@ export function PatientsClient({ initialSubjects }: PatientsClientProps) {
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder="Search patients..."
+                  placeholder={t('patients.search_placeholder')}
                   className={cn(
                     "bg-transparent border-none outline-none text-sm p-0 transition-all duration-300",
                     isSearchExpanded || search ? "flex-1 opacity-100 w-full" : "w-0 opacity-0 pointer-events-none"
@@ -91,7 +93,7 @@ export function PatientsClient({ initialSubjects }: PatientsClientProps) {
 
       {initialSubjects.length === 0 ? (
         <EmptyState 
-            title="No patients yet"
+            title={t('patients.no_patients')}
             description="Start by adding your first patient to the database to begin clinical documentation."
             icon={Users}
             action={{

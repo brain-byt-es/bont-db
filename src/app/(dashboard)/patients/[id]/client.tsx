@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RecentRecordsTable } from "@/components/recent-records-table"
-import { Plus } from "lucide-react"
+import { Plus, TrendingUp } from "lucide-react"
 import { TreatmentDialog } from "@/components/treatment-create-dialog"
 import { PatientHeader } from "./patient-header"
 import { PatientTimeline } from "@/components/patient-timeline"
@@ -13,7 +13,7 @@ import { OrganizationPreferences } from "@/app/(dashboard)/settings/actions"
 import { PatientGoalsHub, Goal } from "@/components/patient-goals-hub"
 import { GoalTrendChart } from "@/components/goal-trend-chart"
 import Link from "next/link"
-import { TrendingUp } from "lucide-react"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 interface Patient {
   id: string;
@@ -46,8 +46,8 @@ interface PatientPageProps {
 
 export default function PatientPage({ patient, treatments, goals, organization }: PatientPageProps) {
   const [treatmentDialogOpen, setTreatmentDialogOpen] = useState(false)
+  const { t } = useTranslation()
 
-  // Map treatments to replace "Main Clinic" with organization name for better branding
   const displayTreatments = (treatments || []).map(t => ({
     ...t,
     treatment_site: (t.treatment_site === "Main Clinic" || !t.treatment_site) 
@@ -63,7 +63,7 @@ export default function PatientPage({ patient, treatments, goals, organization }
             <Button variant="outline" asChild>
                 <Link href={`/patients/${patient.id}/insights`}>
                     <TrendingUp className="mr-2 size-4" />
-                    Clinical Insights
+                    {t('patient_detail.tabs.insights')}
                 </Link>
             </Button>
             <TreatmentDialog 
@@ -75,7 +75,7 @@ export default function PatientPage({ patient, treatments, goals, organization }
             >
               <Button onClick={() => setTreatmentDialogOpen(true)}>
                 <Plus className="mr-2 size-4" />
-                New Record
+                {t('treatment.new_record')}
               </Button>
             </TreatmentDialog>
         </div>
@@ -83,10 +83,10 @@ export default function PatientPage({ patient, treatments, goals, organization }
 
       <Tabs defaultValue={organization?.preferences?.standard_patient_view || "timeline"} className="w-full">
         <TabsList>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="goals">Goals & GAS</TabsTrigger>
-          <TabsTrigger value="records">Records</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="timeline">{t('patient_detail.tabs.timeline')}</TabsTrigger>
+          <TabsTrigger value="goals">{t('patient_detail.tabs.goals')}</TabsTrigger>
+          <TabsTrigger value="records">{t('patient_detail.tabs.records')}</TabsTrigger>
+          <TabsTrigger value="notes">{t('patient_detail.tabs.notes')}</TabsTrigger>
         </TabsList>
         <TabsContent value="timeline" className="pt-4">
             <PatientTimeline treatments={displayTreatments} />
@@ -98,7 +98,7 @@ export default function PatientPage({ patient, treatments, goals, organization }
         <TabsContent value="records">
           <Card>
             <CardHeader>
-              <CardTitle>Treatment Records</CardTitle>
+              <CardTitle>{t('patient_detail.tabs.records')}</CardTitle>
               <CardDescription>
                 History of treatments for this patient.
               </CardDescription>
@@ -111,7 +111,7 @@ export default function PatientPage({ patient, treatments, goals, organization }
         <TabsContent value="notes">
           <Card>
             <CardHeader>
-              <CardTitle>Clinical Notes</CardTitle>
+              <CardTitle>{t('patient_detail.tabs.notes')}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="whitespace-pre-wrap">{patient.notes || "No notes available."}</p>

@@ -13,6 +13,7 @@ import { getPatientIdentity } from "@/app/(dashboard)/patients/actions"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 interface PatientIdentityRevealerProps {
     patientId: string
@@ -22,6 +23,7 @@ interface PatientIdentityRevealerProps {
 export function PatientIdentityRevealer({ patientId, className }: PatientIdentityRevealerProps) {
     const [identity, setIdentity] = React.useState<{ ehrPatientId: string, birthYear?: number | null, dateOfBirth?: Date | null } | null>(null)
     const [isPending, startTransition] = React.useTransition()
+    const { t } = useTranslation()
 
     const handleReveal = () => {
         startTransition(async () => {
@@ -44,7 +46,7 @@ export function PatientIdentityRevealer({ patientId, className }: PatientIdentit
             <div className={cn("flex flex-col text-sm animate-in fade-in duration-300", className)}>
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                    <span className="text-[10px] uppercase font-bold tracking-wider">Verified Identity</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider">{t('patient_detail.header.verified')}</span>
                 </div>
                 <div className="font-mono">
                     {identity.ehrPatientId}
@@ -70,7 +72,7 @@ export function PatientIdentityRevealer({ patientId, className }: PatientIdentit
                         disabled={isPending}
                     >
                         <Lock className="mr-1.5 h-3 w-3" />
-                        <span className="text-xs font-medium">Reveal Identity</span>
+                        <span className="text-xs font-medium">{t('patient_detail.header.reveal')}</span>
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>

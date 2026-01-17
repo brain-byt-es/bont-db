@@ -37,6 +37,7 @@ import { useAuthContext } from "@/components/auth-context-provider"
 import { checkPlan, PLAN_GATES } from "@/lib/permissions"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
 import { TreatmentEditDialog } from "@/components/treatment-edit-dialog"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 export interface TreatmentRecord {
   id: string
@@ -59,14 +60,6 @@ interface RecentRecordsTableProps {
   onSelectionChange?: (ids: string[]) => void
 }
 
-const indicationLabels: Record<string, string> = {
-  kopfschmerz: "Headache",
-  dystonie: "Dystonia",
-  spastik: "Spasticity",
-  autonom: "Autonomous",
-  andere: "Other",
-}
-
 const indicationColors: Record<string, string> = {
   kopfschmerz: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
   dystonie: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
@@ -84,6 +77,7 @@ export function RecentRecordsTable({
 }: RecentRecordsTableProps) {
   const [isPending, startTransition] = useTransition()
   const { userPlan } = useAuthContext()
+  const { t } = useTranslation()
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
   
   const [internalSelectedIds, setInternalSelectedIds] = useState<string[]>([])
@@ -101,8 +95,6 @@ export function RecentRecordsTable({
 
   const showPatientColumn = records.some(r => r.patient)
   const router = useRouter()
-
-  const isBulkSelection = selectedIds.length > 0 && !onSelectionChange
 
   const sortedRecords = [...records].sort((a, b) => {
     if (!sortConfig) return 0;
@@ -207,10 +199,6 @@ export function RecentRecordsTable({
       }
   }
 
-  const handleBulkSign = () => {
-      setShowBulkSignDialog(true)
-  }
-
   const confirmBulkSign = () => {
       startTransition(async () => {
           try {
@@ -231,14 +219,14 @@ export function RecentRecordsTable({
     <AlertDialog open={showBulkSignDialog} onOpenChange={setShowBulkSignDialog}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Sign {selectedIds.length} Treatments?</AlertDialogTitle>
+          <AlertDialogTitle>{t('treatment.actions.sign')} {selectedIds.length} {t('sidebar.treatments')}?</AlertDialogTitle>
           <AlertDialogDescription>
             This action will finalize the selected drafts and lock them from further editing. This cannot be undone in bulk.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmBulkSign}>Sign Treatments</AlertDialogAction>
+          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmBulkSign}>{t('treatment.actions.sign')}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -246,14 +234,14 @@ export function RecentRecordsTable({
     <AlertDialog open={!!reopenId} onOpenChange={(open) => !open && setReopenId(null)}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Edit Signed Record?</AlertDialogTitle>
+          <AlertDialogTitle>{t('treatment.actions.reopen')}?</AlertDialogTitle>
           <AlertDialogDescription>
             This record is currently finalized. Do you want to re-open it for editing? This action will be logged.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-                <Label htmlFor="reason">Reason for re-opening (Required)</Label>
+                <Label htmlFor="reason">{t('common.status')} {t('common.reset')}</Label>
                 <Textarea 
                     id="reason" 
                     value={reopenReason} 
@@ -263,8 +251,8 @@ export function RecentRecordsTable({
             </div>
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmReopen} disabled={!reopenReason.trim()}>Re-open & Edit</AlertDialogAction>
+          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmReopen} disabled={!reopenReason.trim()}>{t('treatment.actions.reopen')}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -272,14 +260,14 @@ export function RecentRecordsTable({
     <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Treatment?</AlertDialogTitle>
+          <AlertDialogTitle>{t('common.delete')} {t('treatment.title')}?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete the treatment record.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -292,19 +280,6 @@ export function RecentRecordsTable({
         description="Institutional documentation standards often require strictly logged corrections. Upgrade to manage clinical risk and maintain a full audit history."
     />
 
-    {enableSelection && isBulkSelection && (
-        <div className="flex items-center justify-between bg-primary text-primary-foreground p-2 px-4 rounded-md animate-in fade-in slide-in-from-top-2">
-            <span className="text-sm font-medium">{selectedIds.length} selected</span>
-            <div className="flex gap-2">
-                <Button size="sm" variant="secondary" onClick={handleBulkSign} disabled={isPending}>
-                    {isPending ? "Signing..." : "Sign Selected"}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])} className="text-primary-foreground hover:bg-primary-foreground/20">
-                    Cancel
-                </Button>
-            </div>
-        </div>
-    )}
     <div className="rounded-md border">
     <Table>
       <TableHeader>
@@ -320,26 +295,26 @@ export function RecentRecordsTable({
           )}
           {showPatientColumn && (
               <TableHead>
-                <SortButton label="Patient" onClick={() => requestSort("patient")} />
+                <SortButton label={t('treatment.table.patient')} onClick={() => requestSort("patient")} />
               </TableHead>
           )}
           <TableHead className="w-[140px]">
-            <SortButton label="Date" onClick={() => requestSort("treatment_date")} />
+            <SortButton label={t('treatment.table.date')} onClick={() => requestSort("treatment_date")} />
           </TableHead>
           <TableHead className="w-[100px]">
-            <SortButton label="Status" onClick={() => requestSort("status")} />
+            <SortButton label={t('treatment.table.status')} onClick={() => requestSort("status")} />
           </TableHead>
           <TableHead>
-            <SortButton label="Location" onClick={() => requestSort("treatment_site")} />
+            <SortButton label={t('treatment.table.location')} onClick={() => requestSort("treatment_site")} />
           </TableHead>
           <TableHead>
-             <SortButton label="Indication" onClick={() => requestSort("indication")} />
+             <SortButton label={t('treatment.table.indication')} onClick={() => requestSort("indication")} />
           </TableHead>
           <TableHead>
-             <SortButton label="Product" onClick={() => requestSort("product")} />
+             <SortButton label={t('treatment.table.product')} onClick={() => requestSort("product")} />
           </TableHead>
           <TableHead className="text-right w-[120px]">
-             <SortButton label="Total Units" align="end" onClick={() => requestSort("total_units")} />
+             <SortButton label={t('treatment.table.total_units')} align="end" onClick={() => requestSort("total_units")} />
           </TableHead>
           {!hideActions && <TableHead className="w-[120px]"></TableHead>}
         </TableRow>
@@ -351,7 +326,7 @@ export function RecentRecordsTable({
                 colSpan={6 + (enableSelection ? 1 : 0) + (showPatientColumn ? 1 : 0) + (!hideActions ? 1 : 0)} 
                 className="h-24 text-center text-muted-foreground"
             >
-              No records found.
+              {t('common.none')}
             </TableCell>
           </TableRow>
         ) : (
@@ -371,14 +346,14 @@ export function RecentRecordsTable({
                 {format(new Date(record.treatment_date), "dd.MM.yyyy")}
             </TableCell>
             <TableCell>
-                {record.status === "SIGNED" && <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 text-xs py-0">Signed</Badge>}
-                {record.status === "DRAFT" && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 text-xs py-0">Draft</Badge>}
-                {record.status === "VOID" && <Badge variant="destructive" className="text-xs py-0">Void</Badge>}
+                {record.status === "SIGNED" && <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 text-xs py-0">{t('status.signed')}</Badge>}
+                {record.status === "DRAFT" && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 text-xs py-0">{t('status.draft')}</Badge>}
+                {record.status === "VOID" && <Badge variant="destructive" className="text-xs py-0">{t('status.void')}</Badge>}
             </TableCell>
             <TableCell>{record.treatment_site}</TableCell>
             <TableCell>
                 <Badge variant="outline" className={cn("font-normal border-none shadow-none", indicationColors[record.indication])}>
-                    {indicationLabels[record.indication] || record.indication}
+                    {t(`treatment.indications.${record.indication}` as "treatment.indications.kopfschmerz") || record.indication}
                 </Badge>
             </TableCell>
             <TableCell>
